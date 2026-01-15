@@ -1,0 +1,630 @@
+.midiEditorOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.midiEditor {
+  width: 95vw;
+  max-width: 1600px;
+  height: 90vh;
+  max-height: 1000px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.editorTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.zoomControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.zoomLabel {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.zoomSlider {
+  flex: 1;
+  min-width: 100px;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.zoomSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.zoomSlider::-webkit-slider-thumb:hover {
+  background: var(--text-primary);
+}
+
+.zoomSlider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s ease;
+}
+
+.zoomSlider::-moz-range-thumb:hover {
+  background: var(--text-primary);
+}
+
+.zoomValue {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  min-width: 50px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.closeButton {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-tertiary);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.measureRulerContainer {
+  flex-shrink: 0;
+  height: 30px;
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* 룰러 컨테이너 (고정 영역, 가로 스크롤 가능) */
+.rulerContainer {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-shrink: 0;
+  height: 30px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.rulerContainer::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.rulerContent {
+  height: 30px;
+  position: relative;
+  /* width는 인라인으로 contentWidth 설정 */
+}
+
+.measureRulerInRoll {
+  height: 30px;
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+  /* sticky 제거, 부모가 sticky */
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #888888;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.playheadRecording {
+  background-color: #ff4444;
+  width: 2px;
+  box-shadow: 0 0 4px rgba(255, 68, 68, 0.6);
+}
+
+.editorContent {
+  flex: 1;
+  display: flex;
+  /* Vertical scrolling is handled by the piano roll + piano keys scroll areas.
+     Keeping editorContent non-scrollable avoids scrollHeight mismatches that
+     manifest as extra empty space below the lowest lane (C-1). */
+  overflow: hidden;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.pianoRollColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.pianoKeys {
+  width: 80px;
+  flex-shrink: 0;
+  position: relative;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--bg-secondary);
+  box-sizing: border-box;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.pianoKeys::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.pianoKeysScroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.pianoKeysScroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.pianoOctave {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.whiteKeysLayer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.blackKeysLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pianoKey {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-bottom: 1px solid var(--border-color);
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.pianoKeyWhite {
+  background-color: #ffffff;
+  border-right: 1px solid #ccc;
+  border-left: 1px solid #ccc;
+  transition: background-color 0.05s ease;
+}
+
+.pianoKeyWhite:hover {
+  background-color: #e0e0e0;
+}
+
+.pianoKeyWhite.pianoKeyPressed {
+  background-color: #b0b0b0;
+}
+
+.pianoKeyWhite.pianoKeyHovered {
+  background-color: #d0d0d0;
+  box-shadow: inset 0 0 4px rgba(74, 158, 255, 0.3);
+}
+
+.pianoKeyBlack {
+  background-color: #1a1a1a;
+  z-index: 2;
+  width: 55%;
+  border: 1px solid #333;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  left: 0;
+  right: auto;
+  transform: translateY(-50%);
+  transition: background-color 0.05s ease;
+  pointer-events: auto;
+}
+
+.pianoKeyBlack:hover {
+  background-color: #3a3a3a;
+}
+
+.pianoKeyBlack.pianoKeyPressed {
+  background-color: #5a5a5a;
+}
+
+.pianoKeyBlack.pianoKeyHovered {
+  background-color: #4a4a4a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 0 4px rgba(74, 158, 255, 0.3);
+}
+
+.pianoKeyLabel {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px;
+  color: var(--text-quaternary);
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pianoKeyWhite .pianoKeyLabel {
+  color: #000000;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 10;
+  left: auto;
+  right: 4px;
+}
+
+.pianoKeyBlack .pianoKeyLabel {
+  color: var(--text-primary);
+  font-weight: 600;
+  left: 4px;
+  right: auto;
+  font-size: 8px;
+}
+
+.pianoRollContainer {
+  /* NOTE: do NOT flex-fill vertically.
+     The piano roll's vertical size must be driven by the same content height
+     as the piano keys (key height scale), otherwise lanes stay viewport-sized. */
+  flex: 1 1 auto;
+  min-width: 0; /* allow horizontal scroll in flex row */
+  overflow: auto;
+  position: relative;
+  background-color: var(--bg-primary);
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  -webkit-overflow-scrolling: auto; /* momentum scrolling 비활성화 */
+  overscroll-behavior-x: none; /* momentum scrolling 비활성화 */
+  scroll-behavior: auto; /* 스크롤 애니메이션 비활성화 (momentum scrolling 방지) */
+}
+
+.pianoRollContainer::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.pianoRoll {
+  position: relative;
+  height: 100%;
+  background-color: var(--bg-primary);
+  cursor: default;
+}
+
+.noteLane {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-bottom: 1px solid var(--border-color);
+  pointer-events: auto;
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+.gridLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--border-color);
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+.gridLineStrong {
+  background-color: var(--border-hover);
+  opacity: 0.8;
+  width: 2px;
+}
+
+.midiNote {
+  position: absolute;
+  background-color: #4a9eff;
+  border: 1px solid #6bb0ff;
+  border-radius: 2px;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.1s ease, border-color 0.1s ease;
+  z-index: 2;
+}
+
+.midiNote:hover:not(.midiNoteSelected) {
+  filter: brightness(1.1);
+}
+
+.midiNoteBlack {
+  background-color: #2a6ecc;
+  border-color: #3a7edc;
+}
+
+.midiNoteBlack:hover {
+  background-color: #3a7edc;
+  border-color: #4a8eec;
+}
+
+.midiNoteSelected {
+  background-color: #2a5a9e;
+  border-color: #3a6aae;
+  box-shadow: 0 0 4px rgba(42, 90, 158, 0.5);
+}
+
+/* 선택된 노트는 호버 효과 제거 */
+.midiNoteSelected:hover {
+  background-color: #2a5a9e;
+  border-color: #3a6aae;
+}
+
+/* 선택된 흑건반 노트는 더 어둡게 */
+.midiNoteBlack.midiNoteSelected {
+  background-color: #1a3a6e;
+  border-color: #2a4a7e;
+  box-shadow: 0 0 4px rgba(26, 58, 110, 0.5);
+}
+
+.midiNoteBlack.midiNoteSelected:hover {
+  background-color: #1a3a6e;
+  border-color: #2a4a7e;
+}
+
+.midiNoteDrawing {
+  position: absolute;
+  background-color: rgba(74, 158, 255, 0.5);
+  border: 1px dashed #6bb0ff;
+  border-radius: 2px;
+  pointer-events: none;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.midiNoteDrawingBlack {
+  background-color: rgba(42, 110, 204, 0.5);
+  border-color: #3a7edc;
+}
+
+.selectionRect {
+  position: absolute;
+  background-color: rgba(100, 150, 255, 0.2);
+  border: 1px dashed rgba(100, 150, 255, 0.8);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.editorFooter {
+  padding: 8px 0;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  flex-shrink: 0;
+  min-height: 120px;
+  height: 120px;
+}
+
+.velocityDisplay {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  overflow: hidden;
+}
+
+.velocityTabSelector {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 80px;
+  height: 100%;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.velocityTabButton {
+  flex: 1;
+  font-size: 12px;
+  padding: 8px;
+  border: none;
+  background-color: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.velocityTabButton:hover {
+  background-color: var(--bg-quaternary);
+}
+
+.velocityTabButtonActive {
+  background-color: var(--text-secondary) !important;
+  color: var(--bg-primary) !important;
+}
+
+.velocityGraphContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+}
+
+.velocityBarInFooter {
+  transition: height 0.1s ease, background-color 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+  min-height: 2px;
+}
+
+.velocityBarInFooter:hover {
+  background-color: rgba(107, 176, 255, 0.9) !important;
+}
+
+.velocityBarSelected {
+  background-color: rgba(42, 90, 158, 0.9) !important;
+  border-left-color: rgba(58, 106, 174, 1) !important;
+  box-shadow: 0 0 4px rgba(42, 90, 158, 0.5) !important;
+}
+
+.velocityBarSelectedRed {
+  background-color: rgba(255, 165, 0, 0.9) !important;
+  border-left-color: rgba(255, 140, 0, 1) !important;
+  box-shadow: 0 0 4px rgba(255, 165, 0, 0.5) !important;
+}
+
+.velocityBarSelected:hover {
+  background-color: rgba(58, 106, 174, 0.95) !important;
+}
+
+/* 서스테인 바 호버 스타일 */
+.sustainRange {
+  position: absolute;
+  bottom: 0;
+  background-color: rgba(255, 158, 74, 0.35);
+  border: 1px solid rgba(255, 176, 107, 0.9);
+  border-radius: 2px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.sustainRange:hover {
+  background-color: rgba(255, 176, 107, 0.9);
+}
+
+.sustainRangeSelected {
+  background-color: rgba(255, 176, 107, 0.7);
+  border-color: rgba(255, 176, 107, 1);
+}
+
+.sustainHandle {
+  position: absolute;
+  bottom: 0;
+  width: 6px;
+  height: 100%;
+  background-color: rgba(255, 176, 107, 0.9);
+  opacity: 0.8;
+}
+
+.sustainHandleLeft {
+  left: -3px;
+  cursor: ew-resize;
+}
+
+.sustainHandleRight {
+  right: -3px;
+  cursor: ew-resize;
+}
+
+.sustainRangePreview {
+  background-color: rgba(255, 158, 74, 0.2);
+  border-style: dashed;
+  pointer-events: none;
+}
+
+.splitPreviewLine {
+  background-color: #ff4444;
+  box-shadow: 0 0 4px rgba(255, 68, 68, 0.8);
+  opacity: 0.9;
+}
+
+.exportRangeOverlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.leftLocatorLine,
+.rightLocatorLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #4a9eff;
+  pointer-events: none;
+  z-index: 2;
+  transform: translateX(-1px);
+}

@@ -1,0 +1,139 @@
+.dawContainer {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+
+.mainSection {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.trackListSection {
+  background-color: var(--bg-tertiary);
+  border-right: 1px solid var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.trackListResizeHandle {
+  width: 4px;
+  background-color: transparent;
+  cursor: ew-resize;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.trackListResizeHandle:hover {
+  background-color: var(--border-hover);
+}
+
+.timelineSection {
+  flex: 1;
+  background-color: var(--bg-primary);
+  overflow: hidden;
+  transition: background-color 0.3s ease;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.ruler {
+  flex-shrink: 0;
+  height: 30px;
+  overflow: hidden;
+}
+
+.eventDisplay {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  border-bottom: 1px solid var(--border-color);
+  transition: border-color 0.3s ease;
+}
+
+.mixerResizeHandle {
+  width: 100%;
+  height: 4px;
+  background-color: transparent;
+  cursor: ns-resize;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  transition: background-color 0.2s ease;
+}
+
+.mixerResizeHandle:hover {
+  background-color: var(--border-hover);
+}
+
+.mixerSection {
+  height: 200px;
+  min-height: 200px;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: height 0.1s ease;
+}
+
+.timelineScrollbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  background-color: #2a2a2a;
+  z-index: 10;
+}
+
+.inspectorResizeHandle {
+  width: 4px;
+  background-color: transparent;
+  cursor: ew-resize;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.inspectorResizeHandle:hover {
+  background-color: var(--border-hover);
+}
+
+.inspectorSection {
+  background-color: var(--bg-tertiary);
+  border-left: 1px solid var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.versionLabel {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  font-size: 11px;
+  color: var(--text-quaternary);
+  user-select: none;
+  pointer-events: none;
+  z-index: 100;
+  transition: color 0.3s ease;
+}
+

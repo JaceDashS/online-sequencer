@@ -1,0 +1,636 @@
+.collaborationButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.collaborationButtonContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.collaborationButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.collaborationButton:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.collaborationButton:active {
+  background-color: var(--bg-quaternary);
+  transform: scale(0.98);
+}
+
+.collaborationButton svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+.collaborationButton {
+  border-color: #7aaa7a;
+  color: #7aaa7a;
+}
+
+.collaborationButton:hover {
+  background-color: rgba(122, 170, 122, 0.1);
+  border-color: #8bbb8b;
+  color: #8bbb8b;
+}
+
+.collaborationButton .dropdownArrow {
+  margin-left: 4px;
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+.collaborationButtonContainer:hover .collaborationButton .dropdownArrow {
+  opacity: 1;
+  transform: rotate(180deg);
+}
+
+.collaborationDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 180px;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.collaborationDropdown .dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.collaborationDropdown .dropdownItem:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.collaborationDropdown .dropdownItem:active:not(:disabled) {
+  background-color: var(--bg-quaternary);
+}
+
+.collaborationDropdown .dropdownItem svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+  opacity: 0.8;
+}
+
+.collaborationDropdown .dropdownItem:hover:not(:disabled) svg {
+  opacity: 1;
+}
+
+.collaborationDropdown .dropdownItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.collaborationDropdown .dropdownItem:disabled:hover {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.collaborationDropdown .dropdownItem span {
+  flex: 1;
+}
+
+.participantsDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  min-width: 240px;
+  max-width: 320px;
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.roomCode {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.closeButton:hover {
+  color: var(--text-primary);
+}
+
+.participantsList {
+  padding: 8px;
+}
+
+.participantsTitle {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.participantItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: background-color 0.2s ease;
+}
+
+.participantItem:hover {
+  background-color: var(--bg-hover);
+}
+
+.participantIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #4a9eff;
+  flex-shrink: 0;
+}
+
+.connectionIcon {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  transition: color 0.2s ease;
+}
+
+.participantName {
+  flex: 1;
+}
+
+.kickButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.participantItem:hover .kickButton {
+  opacity: 1;
+}
+
+.kickButton:hover {
+  background-color: rgba(255, 77, 77, 0.1);
+  color: #ff4d4d;
+}
+
+.kickButton:active {
+  background-color: rgba(255, 77, 77, 0.2);
+  transform: scale(0.95);
+}
+
+.kickButton svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.allowButton {
+  padding: 4px 8px;
+  background-color: #4a9eff;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.allowButton:hover {
+  background-color: #5aaeff;
+}
+
+.dropdownFooter {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.footerButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.countdownDisplay {
+  flex: 1;
+  padding: 8px 12px;
+  background-color: rgba(74, 158, 255, 0.1);
+  color: #4a9eff;
+  border: 1px solid #4a9eff;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stopHostButton {
+  flex: 1;
+  padding: 8px 12px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stopHostButton:hover {
+  background-color: rgba(255, 77, 77, 0.1);
+  border-color: #ff4d4d;
+  color: #ff4d4d;
+}
+
+.dropdownFooter .allowButton {
+  flex: 1;
+  padding: 8px 12px;
+  background-color: #4a9eff;
+  color: white;
+  border: 1px solid #4a9eff;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdownFooter .allowButton:hover {
+  background-color: #5aaeff;
+  border-color: #5aaeff;
+}
+
+.joinInputContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.joinInput {
+  width: 80px;
+  padding: 6px 10px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-align: center;
+  transition: border-color 0.2s ease;
+}
+
+.joinInput:focus {
+  outline: none;
+  border-color: #4a9eff;
+}
+
+.joinConfirmButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #4a9eff;
+  background-color: #4a9eff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.joinConfirmButton:hover:not(:disabled) {
+  background-color: #5aaeff;
+  border-color: #5aaeff;
+}
+
+.joinConfirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.joinInputContainer .cancelButton {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.joinInputContainer .cancelButton:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.hostDropdownContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.dropdownTrigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.dropdownTrigger:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+.roomCodeDisplay {
+  letter-spacing: 1px;
+}
+
+.dropdownArrow {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.joinModal {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  min-width: 320px;
+  max-width: 400px;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modalContent {
+  padding: 20px;
+}
+
+.modalContent label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.roomCodeInput {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  text-align: center;
+  margin-bottom: 20px;
+  transition: border-color 0.2s ease;
+}
+
+.roomCodeInput:focus {
+  outline: none;
+  border-color: #4a9eff;
+}
+
+.modalActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.cancelButton,
+.confirmButton {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cancelButton {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.cancelButton:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.confirmButton {
+  background-color: #4a9eff;
+  color: white;
+  border-color: #4a9eff;
+}
+
+.confirmButton:hover:not(:disabled) {
+  background-color: #5aaeff;
+  border-color: #5aaeff;
+}
+
+.confirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorMessage {
+  padding: 6px 12px;
+  background-color: rgba(255, 77, 77, 0.1);
+  border: 1px solid #ff4d4d;
+  border-radius: 4px;
+  color: #ff4d4d;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loadingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  margin-left: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.loadingIndicator::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--text-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

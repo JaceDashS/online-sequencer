@@ -1,0 +1,141 @@
+<global>
+ //+ Instrument: Percussion
+ //+ PercussionMode: Yes
+ loop_mode=one_shot
+
+<group>
+<region>
+ key=35
+ sample=samples/Percussion/AcousticBassDrum.flac
+<region>
+ key=36
+ sample=samples/Percussion/ElectricBassDrum.flac
+<region>
+ key=37
+ sample=samples/Percussion/SideStick.flac
+<region>
+ key=38
+ sample=samples/Percussion/AcousticSnare.flac
+<region>
+ key=39
+ sample=samples/Percussion/HandClap.flac
+<region>
+ key=40
+ sample=samples/Percussion/ElectricSnare.flac
+<region>
+ lokey=41 hikey=41
+ pitch_keycenter=43
+ sample=samples/Percussion/LowTom.flac
+<region>
+ key=42
+ sample=samples/Percussion/ClosedHiHat.flac
+<region>
+ key=43
+ sample=samples/Percussion/LowTom.flac
+<region>
+ key=44
+ sample=samples/Percussion/PedalHiHat.flac
+<region>
+ lokey=45 hikey=45
+ pitch_keycenter=47
+ sample=samples/Percussion/MidTom.flac
+<region>
+ key=46
+ sample=samples/Percussion/OpenHi-Hat.flac
+<region>
+ key=47
+ sample=samples/Percussion/MidTom.flac
+<region>
+ lokey=48 hikey=48
+ pitch_keycenter=50
+ sample=samples/Percussion/HighTom.flac
+<region>
+ key=49
+ sample=samples/Percussion/CrashCymbal1.flac
+<region>
+ key=50
+ sample=samples/Percussion/HighTom.flac
+<region>
+ key=51
+ sample=samples/Percussion/RideCymbal1.flac
+<region>
+ key=52
+ sample=samples/Percussion/ChinaCymbal.flac
+<region>
+ key=53
+ sample=samples/Percussion/RideBell.flac
+<region>
+ key=54
+ sample=samples/Percussion/Tambourine.flac
+<region>
+ key=55
+ sample=samples/Percussion/SplashCymbal.flac
+<region>
+ key=56
+ sample=samples/Percussion/Cowbell.flac
+<region>
+ key=57
+ sample=samples/Percussion/CrashCymbal2.flac
+<region>
+ loop_mode=no_loop
+ ampeg_release=1
+ key=58
+ sample=samples/Percussion/Vibraslap.flac
+<region>
+ key=59
+ sample=samples/Percussion/RideCymbal2.flac
+<region>
+ key=60
+ sample=samples/Percussion/HighBongo.flac
+<region>
+ key=61
+ sample=samples/Percussion/LowBongo.flac
+<region>
+ key=62
+ sample=samples/Percussion/MutedConga.flac
+<region>
+ key=63
+ sample=samples/Percussion/HighConga.flac
+<region>
+ key=64
+ sample=samples/Percussion/LowConga.flac
+<region>
+ key=67
+ sample=samples/Percussion/HighAgogo.flac
+<region>
+ key=68
+ sample=samples/Percussion/LowAgogo.flac
+<region>
+ key=69
+ sample=samples/Percussion/Cabasa.flac
+<region>
+ key=70
+ sample=samples/Percussion/Maracas.flac
+<region>
+ key=71
+ sample=samples/Percussion/ShortWhistle.flac
+<region>
+ key=72
+ sample=samples/Percussion/LongWhistle.flac
+<region>
+ key=73
+ sample=samples/Percussion/ShortGuiro.flac
+<region>
+ key=74
+ sample=samples/Percussion/LongGuiro.flac
+<region>
+ key=75
+ sample=samples/Percussion/Claves.flac
+<region>
+ lokey=76 hikey=76
+ pitch_keycenter=72
+ sample=samples/Percussion/WoodBlock.flac
+<region>
+ key=77
+ sample=samples/Percussion/WoodBlock.flac
+<region>
+ key=80
+ sample=samples/Percussion/MutedTriangle.flac
+<region>
+ key=81
+ sample=samples/Percussion/OpenTriangle.flac

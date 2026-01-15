@@ -1,0 +1,18 @@
+{
+  "document": "case-tests/mixer.md",
+  "cases": [
+    { "id": "MX-001", "title": "Channel volume adjustment" },
+    { "id": "MX-002", "title": "Channel pan adjustment" },
+    { "id": "MX-003", "title": "Master volume adjustment" },
+    { "id": "MX-004", "title": "Master pan adjustment" },
+    { "id": "MX-005", "title": "Effect chain add/remove" },
+    { "id": "MX-006", "title": "Effect enable/disable" },
+    { "id": "MX-007", "title": "Selected track sync" },
+    { "id": "MX-008", "title": "Mixer panel toggle" },
+    { "id": "MX-009", "title": "Mixer panel resize" },
+    { "id": "MX-010", "title": "Track mute during playback" },
+    { "id": "MX-011", "title": "Track solo during playback" },
+    { "id": "MX-012", "title": "Mute/Solo immediate effect" },
+    { "id": "MX-013", "title": "Mute solo track releases auto-mute" }
+  ]
+}

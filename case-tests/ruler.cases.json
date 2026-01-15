@@ -1,0 +1,14 @@
+{
+  "document": "case-tests/ruler.md",
+  "cases": [
+    { "id": "RU-001", "title": "Measure/beat markers display" },
+    { "id": "RU-002", "title": "BPM change reflected" },
+    { "id": "RU-003", "title": "Time signature change reflected" },
+    { "id": "RU-004", "title": "Playhead moves on ruler click" },
+    { "id": "RU-005", "title": "Playhead drag move" },
+    { "id": "RU-006", "title": "Export range drag (Ctrl+Alt)" },
+    { "id": "RU-007", "title": "Left/Right locator set (Ctrl/Alt)" },
+    { "id": "RU-008", "title": "Locator drag adjust" },
+    { "id": "RU-009", "title": "Horizontal scroll sync" }
+  ]
+}

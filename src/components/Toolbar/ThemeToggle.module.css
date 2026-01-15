@@ -1,0 +1,39 @@
+.themeToggle {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #5a5a5a;
+  background-color: #3a3a3a;
+  color: #b0b0b0;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.themeToggle:hover {
+  background-color: #4a4a4a;
+  border-color: #6a6a6a;
+  color: #d0d0d0;
+}
+
+.themeToggle:active {
+  background-color: #2a2a2a;
+  transform: scale(0.95);
+}
+
+/* Light mode styles */
+[data-theme="light"] .themeToggle {
+  background-color: #e0e0e0;
+  border-color: #b0b0b0;
+  color: #333333;
+}
+
+[data-theme="light"] .themeToggle:hover {
+  background-color: #d0d0d0;
+  border-color: #909090;
+  color: #000000;
+}

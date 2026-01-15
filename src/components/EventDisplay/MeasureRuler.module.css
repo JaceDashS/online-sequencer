@@ -1,0 +1,202 @@
+.measureRuler {
+  width: 100%;
+  height: 30px;
+  background-color: var(--bg-quaternary);
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  flex-shrink: 0;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.rulerContent {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  min-height: 100%;
+  transition: none;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.measureMarker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 0; /* 모든 마커를 같은 레이어에서 렌더링 */
+}
+
+.measureLine {
+  width: 1px;
+  height: 50%;
+  background-color: #5a5a5a;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.measureMarker.strongMeasure .measureLine {
+  width: 2px;
+  height: 70%;
+  background-color: #7a7a7a;
+}
+
+.measureLabel {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 11px;
+  color: #aaaaaa;
+  font-weight: 500;
+  user-select: none;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.measureMarker.strongMeasure .measureLabel {
+  font-weight: 600;
+  color: #cccccc;
+}
+
+.beatMarker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: 0; /* 모든 마커를 같은 레이어에서 렌더링 */
+}
+
+.beatLine {
+  width: 1px;
+  height: 30%;
+  background-color: #4a4a4a;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.beatMarker.mediumBeat .beatLine {
+  height: 40%;
+  background-color: #5a5a5a;
+}
+
+.secondMarker {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+}
+
+.secondLine {
+  width: 1px;
+  height: 50%;
+  background-color: #7a7a7a;
+  position: absolute;
+  top: 50%;
+  left: 0;
+}
+
+.secondLabel {
+  position: absolute;
+  top: 18px;
+  left: 4px;
+  font-size: 10px;
+  color: #cccccc;
+  font-weight: 400;
+  user-select: none;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #888888;
+  pointer-events: auto;
+  z-index: 10;
+  transition: background-color 0.2s ease;
+  cursor: ew-resize;
+  will-change: transform;
+}
+
+.playheadRecording {
+  background-color: #ff4444;
+  width: 2px;
+  box-shadow: 0 0 4px rgba(255, 68, 68, 0.6);
+}
+
+.exportRangeOverlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.leftLocatorHandle {
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-left: 10px solid #4a9eff;
+  border-right: 0;
+  border-top: 10px solid #4a9eff;
+  border-bottom: 10px solid transparent;
+  pointer-events: auto;
+  cursor: ew-resize;
+  z-index: 6;
+  transform: translateX(-1px);
+}
+
+.leftLocatorLine {
+  position: absolute;
+  top: 10px;
+  bottom: 0;
+  width: 2px;
+  background-color: #4a9eff;
+  pointer-events: none;
+  z-index: 6;
+  transform: translateX(-1px);
+}
+
+.rightLocatorHandle {
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-left: 0;
+  border-right: 10px solid #4a9eff;
+  border-top: 10px solid #4a9eff;
+  border-bottom: 10px solid transparent;
+  pointer-events: auto;
+  cursor: ew-resize;
+  z-index: 6;
+  transform: translateX(-10px);
+}
+
+.rightLocatorLine {
+  position: absolute;
+  top: 10px;
+  bottom: 0;
+  width: 2px;
+  background-color: #4a9eff;
+  pointer-events: none;
+  z-index: 6;
+  transform: translateX(-1px);
+}

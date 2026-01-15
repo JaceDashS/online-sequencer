@@ -1,0 +1,13 @@
+{
+  "document": "case-tests/shortcuts.md",
+  "cases": [
+    { "id": "SH-001", "title": "Quantize toggle (Q)" },
+    { "id": "SH-002", "title": "Metronome toggle (M)" },
+    { "id": "SH-003", "title": "Split mode toggle (3)" },
+    { "id": "SH-004", "title": "Merge mode toggle (4)" },
+    { "id": "SH-005", "title": "Exit modes (1)" },
+    { "id": "SH-006", "title": "Delete selected clips (Delete/Backspace)" },
+    { "id": "SH-007", "title": "Undo (Ctrl+Z / Cmd+Z)" },
+    { "id": "SH-008", "title": "Redo (Ctrl+Y / Ctrl+Shift+Z)" }
+  ]
+}

@@ -1,0 +1,100 @@
+.splitMergeButton {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 16px;
+  height: 30px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  user-select: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  gap: 8px;
+}
+
+.buttonWrapper {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+}
+
+.separator {
+  color: #888888;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 4px;
+  pointer-events: none;
+}
+
+.buttonText {
+  width: auto;
+  height: auto;
+  background-color: transparent;
+  border: none;
+  color: #aaaaaa;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  outline: none;
+  padding: 0;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  line-height: 1;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.buttonWrapper:hover .buttonText {
+  color: #cccccc;
+}
+
+.buttonText.active.splitActive {
+  color: #ff4444; /* 빨간색 */
+}
+
+.buttonWrapper:hover .buttonText.active.splitActive {
+  color: #ff6666;
+}
+
+.buttonText.active.mergeActive {
+  color: #4a90e2; /* 파란색 */
+}
+
+.buttonWrapper:hover .buttonText.active.mergeActive {
+  color: #5aa0f2;
+}
+
+.buttonWrapper.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.buttonWrapper.disabled .buttonText {
+  color: #aaaaaa;
+}
+
+.buttonWrapper.disabled:hover .buttonText {
+  color: #aaaaaa;
+}
+
+.buttonWrapper.hoveringPart .buttonText {
+  color: #cccccc;
+}
+
+.buttonWrapper.hoveringPart:hover .buttonText {
+  color: #cccccc;
+}
+
+.buttonText.active.duplicateActive {
+  color: #4a90e2; /* 파란색 (Merge와 같은 색) */
+}
+
+.buttonWrapper:hover .buttonText.active.duplicateActive {
+  color: #5aa0f2;
+}
+

@@ -1,0 +1,551 @@
+//+ Name: Upright piano KW (small, bright)
+//+ Date: 2019-07-03
+//+ URL: http://freepats.zenvoid.org/Piano/acoustic-grand-piano.html#UprightKW
+
+<global>
+ //+ Instrument: Upright piano KW
+ ampeg_release=0.6
+
+
+<group>
+ loop_mode=loop_continuous
+<region>
+ lokey=21
+ hikey=21
+ pitch_keycenter=24
+ loop_start=306378
+ loop_end=424657
+ sample=samples/C1vH.flac
+<region>
+ lokey=22
+ hikey=22
+ pitch_keycenter=24
+ loop_start=306378
+ loop_end=424657
+ sample=samples/C1vH.flac
+<region>
+ lokey=23
+ hikey=23
+ pitch_keycenter=24
+ loop_start=306378
+ loop_end=424657
+ sample=samples/C1vH.flac
+<region>
+ lokey=24
+ hikey=24
+ pitch_keycenter=24
+ loop_start=306378
+ loop_end=424657
+ sample=samples/C1vH.flac
+<region>
+ lokey=25
+ hikey=25
+ pitch_keycenter=24
+ loop_start=306378
+ loop_end=424657
+ sample=samples/C1vH.flac
+<region>
+ lokey=26
+ hikey=26
+ pitch_keycenter=24
+ loop_start=306378
+ loop_end=424657
+ sample=samples/C1vH.flac
+<region>
+ lokey=27
+ hikey=27
+ pitch_keycenter=30
+ loop_start=240705
+ loop_end=351556
+ sample=samples/Fsharp1vH.flac
+<region>
+ lokey=28
+ hikey=28
+ pitch_keycenter=30
+ loop_start=240705
+ loop_end=351556
+ sample=samples/Fsharp1vH.flac
+<region>
+ lokey=29
+ hikey=29
+ pitch_keycenter=30
+ loop_start=240705
+ loop_end=351556
+ sample=samples/Fsharp1vH.flac
+<region>
+ lokey=30
+ hikey=30
+ pitch_keycenter=30
+ loop_start=240705
+ loop_end=351556
+ sample=samples/Fsharp1vH.flac
+<region>
+ lokey=31
+ hikey=31
+ pitch_keycenter=30
+ loop_start=240705
+ loop_end=351556
+ sample=samples/Fsharp1vH.flac
+<region>
+ lokey=32
+ hikey=32
+ pitch_keycenter=30
+ loop_start=240705
+ loop_end=351556
+ sample=samples/Fsharp1vH.flac
+<region>
+ lokey=33
+ hikey=33
+ pitch_keycenter=35
+ loop_start=256475
+ loop_end=366932
+ sample=samples/B1vH.flac
+<region>
+ lokey=34
+ hikey=34
+ pitch_keycenter=35
+ loop_start=256475
+ loop_end=366932
+ sample=samples/B1vH.flac
+<region>
+ lokey=35
+ hikey=35
+ pitch_keycenter=35
+ loop_start=256475
+ loop_end=366932
+ sample=samples/B1vH.flac
+<region>
+ lokey=36
+ hikey=36
+ pitch_keycenter=35
+ loop_start=256475
+ loop_end=366932
+ sample=samples/B1vH.flac
+<region>
+ lokey=37
+ hikey=37
+ pitch_keycenter=39
+ loop_start=288169
+ loop_end=398441
+ sample=samples/Dsharp2vH.flac
+<region>
+ lokey=38
+ hikey=38
+ pitch_keycenter=39
+ loop_start=288169
+ loop_end=398441
+ sample=samples/Dsharp2vH.flac
+<region>
+ lokey=39
+ hikey=39
+ pitch_keycenter=39
+ loop_start=288169
+ loop_end=398441
+ sample=samples/Dsharp2vH.flac
+<region>
+ lokey=40
+ hikey=40
+ pitch_keycenter=39
+ loop_start=288169
+ loop_end=398441
+ sample=samples/Dsharp2vH.flac
+<region>
+ lokey=41
+ hikey=41
+ pitch_keycenter=42
+ loop_start=250236
+ loop_end=393511
+ sample=samples/Fsharp2vH.flac
+<region>
+ lokey=42
+ hikey=42
+ pitch_keycenter=42
+ loop_start=250236
+ loop_end=393511
+ sample=samples/Fsharp2vH.flac
+<region>
+ lokey=43
+ hikey=43
+ pitch_keycenter=42
+ loop_start=250236
+ loop_end=393511
+ sample=samples/Fsharp2vH.flac
+<region>
+ lokey=44
+ hikey=44
+ pitch_keycenter=42
+ loop_start=250236
+ loop_end=393511
+ sample=samples/Fsharp2vH.flac
+<region>
+ lokey=45
+ hikey=45
+ pitch_keycenter=47
+ loop_start=238940
+ loop_end=341297
+ sample=samples/B2vH.flac
+<region>
+ lokey=46
+ hikey=46
+ pitch_keycenter=47
+ loop_start=238940
+ loop_end=341297
+ sample=samples/B2vH.flac
+<region>
+ lokey=47
+ hikey=47
+ pitch_keycenter=47
+ loop_start=238940
+ loop_end=341297
+ sample=samples/B2vH.flac
+<region>
+ lokey=48
+ hikey=48
+ pitch_keycenter=47
+ loop_start=238940
+ loop_end=341297
+ sample=samples/B2vH.flac
+<region>
+ lokey=49
+ hikey=49
+ pitch_keycenter=51
+ loop_start=162986
+ loop_end=240314
+ sample=samples/Dsharp3vH.flac
+<region>
+ lokey=50
+ hikey=50
+ pitch_keycenter=51
+ loop_start=162986
+ loop_end=240314
+ sample=samples/Dsharp3vH.flac
+<region>
+ lokey=51
+ hikey=51
+ pitch_keycenter=51
+ loop_start=162986
+ loop_end=240314
+ sample=samples/Dsharp3vH.flac
+<region>
+ lokey=52
+ hikey=52
+ pitch_keycenter=51
+ loop_start=162986
+ loop_end=240314
+ sample=samples/Dsharp3vH.flac
+<region>
+ lokey=53
+ hikey=53
+ pitch_keycenter=54
+ loop_start=194343
+ loop_end=265634
+ sample=samples/Fsharp3vH.flac
+<region>
+ lokey=54
+ hikey=54
+ pitch_keycenter=54
+ loop_start=194343
+ loop_end=265634
+ sample=samples/Fsharp3vH.flac
+<region>
+ lokey=55
+ hikey=55
+ pitch_keycenter=54
+ loop_start=194343
+ loop_end=265634
+ sample=samples/Fsharp3vH.flac
+<region>
+ lokey=56
+ hikey=56
+ pitch_keycenter=57
+ loop_start=120679
+ loop_end=186801
+ sample=samples/A3vH.flac
+<region>
+ lokey=57
+ hikey=57
+ pitch_keycenter=57
+ loop_start=120679
+ loop_end=186801
+ sample=samples/A3vH.flac
+<region>
+ lokey=58
+ hikey=58
+ pitch_keycenter=57
+ loop_start=120679
+ loop_end=186801
+ sample=samples/A3vH.flac
+<region>
+ lokey=59
+ hikey=59
+ pitch_keycenter=60
+ loop_start=145927
+ loop_end=213379
+ sample=samples/C4vH.flac
+<region>
+ lokey=60
+ hikey=60
+ pitch_keycenter=60
+ loop_start=145927
+ loop_end=213379
+ sample=samples/C4vH.flac
+<region>
+ lokey=61
+ hikey=61
+ pitch_keycenter=60
+ loop_start=145927
+ loop_end=213379
+ sample=samples/C4vH.flac
+<region>
+ lokey=62
+ hikey=62
+ pitch_keycenter=63
+ loop_start=151896
+ loop_end=217597
+ sample=samples/Dsharp4vH.flac
+<region>
+ lokey=63
+ hikey=63
+ pitch_keycenter=63
+ loop_start=151896
+ loop_end=217597
+ sample=samples/Dsharp4vH.flac
+<region>
+ lokey=64
+ hikey=64
+ pitch_keycenter=63
+ loop_start=151896
+ loop_end=217597
+ sample=samples/Dsharp4vH.flac
+<region>
+ lokey=65
+ hikey=65
+ pitch_keycenter=66
+ loop_start=138527
+ loop_end=185330
+ sample=samples/Fsharp4vH.flac
+
+<region>
+ lokey=66
+ hikey=66
+ pitch_keycenter=66
+ loop_start=138527
+ loop_end=185330
+ sample=samples/Fsharp4vH.flac
+
+<region>
+ lokey=67
+ hikey=67
+ pitch_keycenter=66
+ loop_start=138527
+ loop_end=185330
+ sample=samples/Fsharp4vH.flac
+
+
+<group>
+ loop_mode=no_loop
+<region>
+ lokey=68
+ hikey=68
+ pitch_keycenter=69
+ sample=samples/A4vH.flac
+<region>
+ lokey=69
+ hikey=69
+ pitch_keycenter=69
+ sample=samples/A4vH.flac
+<region>
+ lokey=70
+ hikey=70
+ pitch_keycenter=69
+ sample=samples/A4vH.flac
+<region>
+ lokey=71
+ hikey=71
+ pitch_keycenter=72
+ sample=samples/C5vH.flac
+<region>
+ lokey=72
+ hikey=72
+ pitch_keycenter=72
+ sample=samples/C5vH.flac
+<region>
+ lokey=73
+ hikey=73
+ pitch_keycenter=72
+ sample=samples/C5vH.flac
+<region>
+ lokey=74
+ hikey=74
+ pitch_keycenter=75
+ sample=samples/Dsharp5vH.flac
+<region>
+ lokey=75
+ hikey=75
+ pitch_keycenter=75
+ sample=samples/Dsharp5vH.flac
+<region>
+ lokey=76
+ hikey=76
+ pitch_keycenter=75
+ sample=samples/Dsharp5vH.flac
+<region>
+ lokey=77
+ hikey=77
+ pitch_keycenter=78
+ sample=samples/Fsharp5vH.flac
+<region>
+ lokey=78
+ hikey=78
+ pitch_keycenter=78
+ sample=samples/Fsharp5vH.flac
+<region>
+ lokey=79
+ hikey=79
+ pitch_keycenter=78
+ sample=samples/Fsharp5vH.flac
+<region>
+ lokey=80
+ hikey=80
+ pitch_keycenter=81
+ sample=samples/A5vH.flac
+<region>
+ lokey=81
+ hikey=81
+ pitch_keycenter=81
+ sample=samples/A5vH.flac
+<region>
+ lokey=82
+ hikey=82
+ pitch_keycenter=81
+ sample=samples/A5vH.flac
+<region>
+ lokey=83
+ hikey=83
+ pitch_keycenter=84
+ sample=samples/C6vH.flac
+<region>
+ lokey=84
+ hikey=84
+ pitch_keycenter=84
+ sample=samples/C6vH.flac
+<region>
+ lokey=85
+ hikey=85
+ pitch_keycenter=84
+ sample=samples/C6vH.flac
+<region>
+ lokey=86
+ hikey=86
+ pitch_keycenter=87
+ sample=samples/Dsharp6vH.flac
+<region>
+ lokey=87
+ hikey=87
+ pitch_keycenter=87
+ sample=samples/Dsharp6vH.flac
+<region>
+ lokey=88
+ hikey=88
+ pitch_keycenter=87
+ sample=samples/Dsharp6vH.flac
+<region>
+ lokey=89
+ hikey=89
+ pitch_keycenter=90
+ sample=samples/Fsharp6vH.flac
+<region>
+ lokey=90
+ hikey=90
+ pitch_keycenter=90
+ sample=samples/Fsharp6vH.flac
+<region>
+ lokey=91
+ hikey=91
+ pitch_keycenter=90
+ sample=samples/Fsharp6vH.flac
+<region>
+ lokey=92
+ hikey=92
+ pitch_keycenter=93
+ sample=samples/A6vH.flac
+<region>
+ lokey=93
+ hikey=93
+ pitch_keycenter=93
+ sample=samples/A6vH.flac
+<region>
+ lokey=94
+ hikey=94
+ pitch_keycenter=93
+ sample=samples/A6vH.flac
+<region>
+ lokey=95
+ hikey=95
+ pitch_keycenter=96
+ sample=samples/C7vH.flac
+<region>
+ lokey=96
+ hikey=96
+ pitch_keycenter=96
+ sample=samples/C7vH.flac
+<region>
+ lokey=97
+ hikey=97
+ pitch_keycenter=96
+ sample=samples/C7vH.flac
+<region>
+ lokey=98
+ hikey=98
+ pitch_keycenter=99
+ sample=samples/Dsharp7vH.flac
+<region>
+ lokey=99
+ hikey=99
+ pitch_keycenter=99
+ sample=samples/Dsharp7vH.flac
+<region>
+ lokey=100
+ hikey=100
+ pitch_keycenter=99
+ sample=samples/Dsharp7vH.flac
+<region>
+ lokey=101
+ hikey=101
+ pitch_keycenter=102
+ sample=samples/Fsharp7vH.flac
+<region>
+ lokey=102
+ hikey=102
+ pitch_keycenter=102
+ sample=samples/Fsharp7vH.flac
+<region>
+ lokey=103
+ hikey=103
+ pitch_keycenter=102
+ sample=samples/Fsharp7vH.flac
+<region>
+ lokey=104
+ hikey=104
+ pitch_keycenter=105
+ sample=samples/A7vH.flac
+<region>
+ lokey=105
+ hikey=105
+ pitch_keycenter=105
+ sample=samples/A7vH.flac
+<region>
+ lokey=106
+ hikey=106
+ pitch_keycenter=107
+ sample=samples/B7vH.flac
+<region>
+ lokey=107
+ hikey=107
+ pitch_keycenter=107
+ sample=samples/B7vH.flac
+<region>
+ lokey=108
+ hikey=108
+ pitch_keycenter=107
+ sample=samples/B7vH.flac

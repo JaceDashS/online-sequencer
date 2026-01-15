@@ -1,0 +1,16 @@
+{
+  "document": "case-tests/toolbar.md",
+  "cases": [
+    { "id": "TB-001", "title": "Play/stop button (click/shortcut)" },
+    { "id": "TB-002", "title": "Record button (click/shortcut)" },
+    { "id": "TB-003", "title": "Quantize button (click/shortcut)" },
+    { "id": "TB-004", "title": "Metronome button (click/shortcut)" },
+    { "id": "TB-005", "title": "Time signature change (dropdown/scroll)" },
+    { "id": "TB-006", "title": "BPM change (typing/scroll/drag)" },
+    { "id": "TB-007", "title": "Split/Merge enable" },
+    { "id": "TB-008", "title": "Zoom control" },
+    { "id": "TB-009", "title": "Panel toggle buttons" },
+    { "id": "TB-010", "title": "Theme toggle" },
+    { "id": "TB-011", "title": "Smooth playhead playback" }
+  ]
+}

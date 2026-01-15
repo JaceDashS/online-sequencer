@@ -1,0 +1,322 @@
+.mixerChannel {
+  width: 60px;
+  min-width: 60px;
+  height: 100%;
+  background-color: var(--bg-quaternary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.3s ease;
+}
+
+.mixerChannel:hover {
+  background-color: var(--bg-hover);
+}
+
+.mixerChannel.channelSelected {
+  background-color: var(--bg-focused);
+}
+
+.channelHeader {
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  flex-shrink: 0;
+}
+
+.channelName {
+  font-size: 9px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+  margin-bottom: 2px;
+  transition: color 0.3s ease;
+}
+
+.channelButtons {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.channelButton {
+  width: 18px;
+  height: 14px;
+  font-size: 8px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  background-color: var(--bg-secondary);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  user-select: none;
+}
+
+.channelButton:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+}
+
+.channelButton.solo.active {
+  background-color: #aa5a5a;
+  border-color: #cc7a7a;
+  color: #ffffff;
+}
+
+.channelButton.mute.active {
+  background-color: #aa8a5a;
+  border-color: #ccaa7a;
+  color: #ffffff;
+}
+
+.channelRoute {
+  font-size: 7px;
+  color: #7aaa7a;
+  text-align: center;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+.channelControls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 2px;
+  gap: 6px;
+}
+
+.metersAndVolumeRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+}
+
+.metersContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.meterWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  min-width: 0;
+}
+
+.meterLabel {
+  font-size: 7px;
+  color: var(--text-quaternary);
+  text-align: center;
+  font-weight: 600;
+  user-select: none;
+  margin-bottom: 2px;
+  transition: color 0.3s ease;
+}
+
+.volumeControl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  width: 20px;
+  height: 100%;
+}
+
+.panControl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.controlLabel {
+  font-size: 8px;
+  color: var(--text-quaternary);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  user-select: none;
+  transition: color 0.3s ease;
+}
+
+.verticalSliderContainer {
+  flex: 1;
+  min-height: 60px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 10px 0;
+}
+
+.verticalSlider {
+  height: 4px;
+  border-radius: 2px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-top: -2px;
+}
+
+/* Firefox vertical slider */
+@-moz-document url-prefix() {
+  .verticalSlider {
+    -moz-orient: vertical;
+    writing-mode: bt-lr;
+    transform: none;
+    width: 4px;
+    height: 100%;
+    position: relative;
+  }
+}
+
+.verticalSlider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #4a4a4a;
+  cursor: pointer;
+}
+
+.verticalSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 8px;
+  border-radius: 1px;
+  background: #8a8a8a;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: 1px solid #aaaaaa;
+  margin-top: -2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 10;
+  opacity: 1;
+  visibility: visible;
+}
+
+.verticalSlider::-webkit-slider-thumb:hover {
+  background: #aaaaaa;
+  border-color: #cccccc;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.verticalSlider::-moz-range-track {
+  width: 4px;
+  height: 100%;
+  background: #4a4a4a;
+  border-radius: 2px;
+  border: none;
+}
+
+.verticalSlider::-moz-range-thumb {
+  width: 16px;
+  height: 8px;
+  border-radius: 1px;
+  background: #8a8a8a;
+  cursor: pointer;
+  border: 1px solid #aaaaaa;
+  transition: background 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.verticalSlider::-moz-range-thumb:hover {
+  background: #aaaaaa;
+  border-color: #cccccc;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.sliderContainer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slider {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: #4a4a4a;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8a8a8a;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: 2px solid #aaaaaa;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: #aaaaaa;
+  border-color: #cccccc;
+}
+
+.slider::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8a8a8a;
+  cursor: pointer;
+  border: 2px solid #aaaaaa;
+  transition: background 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  background: #aaaaaa;
+  border-color: #cccccc;
+}
+
+.controlValue {
+  font-size: 8px;
+  color: var(--text-tertiary);
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  user-select: none;
+  transition: color 0.3s ease;
+}

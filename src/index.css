@@ -1,0 +1,117 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* 텍스트 입력 필드는 선택 가능하게 */
+input,
+textarea,
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+/* 전역: 모든 상호작용 가능한 요소의 포커스 아웃라인 제거 */
+button,
+select,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"] {
+  outline: none;
+}
+
+button:focus,
+select:focus,
+input[type="button"]:focus,
+input[type="submit"]:focus,
+input[type="reset"]:focus,
+input[type="checkbox"]:focus,
+input[type="radio"]:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* input[type="text"], input[type="number"], textarea는 실제 입력이 필요하므로 제외 */
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* Dark theme colors (default) */
+  --bg-primary: #2b2b2b;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #252525;
+  --bg-quaternary: #2a2a2a;
+  --bg-hover: #333333;
+  --bg-focused: #353535;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: #e0e0e0;
+  --text-tertiary: #b0b0b0;
+  --text-quaternary: #a0a0a0;
+  --border-color: #3a3a3a;
+  --border-hover: #5a5a5a;
+}
+
+/* Dark theme (default) */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e8e8e8;
+  --bg-quaternary: #f0f0f0;
+  --bg-hover: #e0e0e0;
+  --bg-focused: #d8d8d8;
+  --text-primary: rgba(0, 0, 0, 0.87);
+  --text-secondary: #1a1a1a;
+  --text-tertiary: #555555;
+  --text-quaternary: #666666;
+  --border-color: #d0d0d0;
+  --border-hover: #b0b0b0;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #2b2b2b;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="light"] body {
+  background-color: #ffffff;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  background-color: #2b2b2b;
+  transition: background-color 0.3s ease;
+}
+
+[data-theme="light"] #root {
+  background-color: #ffffff;
+}

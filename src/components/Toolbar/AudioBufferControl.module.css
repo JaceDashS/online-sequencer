@@ -1,0 +1,75 @@
+.bufferControl {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 12px;
+  height: 30px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  user-select: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.bufferDisplay {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.label {
+  font-size: 12px;
+  color: #aaaaaa;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.separator {
+  font-size: 12px;
+  color: #888888;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.select {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  outline: none;
+  padding: 2px 6px;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 44px;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
+}
+
+.select:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background-color: var(--bg-hover);
+}
+
+.select:focus {
+  color: var(--text-primary);
+  border-color: #7aaa7a;
+  background-color: var(--bg-focused);
+}
+
+.select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+}

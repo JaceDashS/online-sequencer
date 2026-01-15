@@ -1,0 +1,302 @@
+.trackList {
+  width: 100%;
+  height: 100%;
+  overflow-y: hidden;
+  background-color: var(--bg-secondary);
+  transition: background-color 0.3s ease;
+}
+
+.trackItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  min-height: 70px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-quaternary);
+  transition: background-color 0.2s ease, border-color 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.trackItem:hover {
+  background-color: var(--bg-hover);
+}
+
+.trackItem.trackFocused {
+  background-color: var(--bg-focused);
+}
+
+.trackHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 6px;
+  gap: 6px;
+}
+
+.trackButtons {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.trackButton {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #5a5a5a;
+  background-color: #3a3a3a;
+  color: #b0b0b0;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.trackButton.solo,
+.trackButton.mute {
+  height: 16.8px; /* 24px * 0.7 = 16.8px (30% 감소) */
+}
+
+.trackButton:hover {
+  background-color: #4a4a4a;
+  border-color: #6a6a6a;
+  color: #d0d0d0;
+}
+
+.trackButton.solo.active {
+  background-color: #aa5a5a;
+  border-color: #cc7a7a;
+  color: #ffffff;
+}
+
+.trackButton.mute.active {
+  background-color: #aa8a5a;
+  border-color: #ccaa7a;
+  color: #ffffff;
+}
+
+.trackDelete {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background-color: transparent;
+  color: #aa5a5a;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+.trackDelete:hover {
+  color: #cc7a7a;
+}
+
+.trackName {
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  min-width: 0;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: background-color 0.2s ease, color 0.3s ease;
+}
+
+.trackName:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.trackNameInput {
+  flex: 1;
+  color: #e0e0e0;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #3a3a3a;
+  border: 1px solid #5a5a5a;
+  border-radius: 2px;
+  padding: 2px 4px;
+  outline: none;
+  min-width: 0;
+}
+
+.trackNameInput:focus {
+  border-color: #7aaa7a;
+  background-color: #4a4a4a;
+}
+
+.trackControls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.controlRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.trackControlLabel {
+  width: 28px;
+  color: #a0a0a0;
+  font-size: 10px;
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.sliderWrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.trackSlider {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #4a4a4a;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.sliderValue {
+  min-width: 32px;
+  color: #b0b0b0;
+  font-size: 10px;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  flex-shrink: 0;
+}
+
+.instrumentSelect {
+  flex: 1;
+  height: 20px;
+  background-color: #3a3a3a;
+  border: 1px solid #5a5a5a;
+  border-radius: 2px;
+  color: #e0e0e0;
+  font-size: 10px;
+  padding: 0 4px;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.instrumentSelect:hover {
+  border-color: #6a6a6a;
+  background-color: #4a4a4a;
+}
+
+.instrumentSelect:focus {
+  border-color: #7aaa7a;
+  background-color: #4a4a4a;
+}
+
+.trackSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8a8a8a;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: 2px solid #aaaaaa;
+}
+
+.trackSlider::-webkit-slider-thumb:hover {
+  background: #aaaaaa;
+  border-color: #cccccc;
+}
+
+.trackSlider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8a8a8a;
+  cursor: pointer;
+  border: 2px solid #aaaaaa;
+  transition: background 0.2s ease;
+}
+
+.trackSlider::-moz-range-thumb:hover {
+  background: #aaaaaa;
+  border-color: #cccccc;
+}
+
+.resizeHandle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  cursor: ns-resize;
+  background-color: transparent;
+  z-index: 10;
+}
+
+.resizeHandle:hover {
+  background-color: #5a5a5a;
+}
+
+.addTrackButtonContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.addTrackButton {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  font-size: 20px;
+  font-weight: 300;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.addTrackButton:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+}
+
+.addTrackButton:active {
+  background-color: var(--bg-quaternary);
+  transform: scale(0.95);
+}

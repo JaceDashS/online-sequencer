@@ -1,0 +1,354 @@
+.effectItem {
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 0;
+  margin-bottom: 0;
+  width: 100%;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.dragHandle {
+  width: 100%;
+  height: 6px;
+  background-color: #3a3a3a;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  cursor: grab;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dragHandle:hover {
+  background-color: #4a4a4a;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+  background-color: #5a5a5a;
+}
+
+.effectItem.effectDragging {
+  opacity: 0.5;
+}
+
+.effectItem.effectDragOver {
+  border-color: #7aaa7a;
+  box-shadow: 0 0 8px rgba(122, 170, 122, 0.3);
+}
+
+.effectItem.effectDisabled {
+  opacity: 0.6;
+}
+
+.effectHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  padding-top: 6px;
+}
+
+.effectToggle {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background-color: transparent;
+  color: #7aaa7a;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.effectToggle:hover {
+  color: #8ccc8c;
+}
+
+.effectTypeSelect {
+  flex: 1;
+  height: 20px;
+  background-color: #3a3a3a;
+  border: 1px solid #5a5a5a;
+  border-radius: 2px;
+  color: #e0e0e0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0 4px;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.effectTypeSelect:hover {
+  border-color: #6a6a6a;
+  background-color: #4a4a4a;
+}
+
+.effectTypeSelect:focus {
+  border-color: #7aaa7a;
+  background-color: #4a4a4a;
+}
+
+.effectRemove {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background-color: transparent;
+  color: #aa5a5a;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.effectRemove:hover {
+  color: #cc7a7a;
+}
+
+.effectControls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 8px 8px 8px;
+}
+
+/* 세로 슬라이더 스타일 (EQ용) */
+.sliderContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.sliderLabel {
+  font-size: 9px;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.verticalSliderWrapper {
+  width: 20px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.verticalSlider {
+  width: 80px;
+  height: 20px;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  border-radius: 2px;
+  background: #4a4a4a;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  position: absolute;
+}
+
+.verticalSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #8a8a8a;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: 2px solid #aaaaaa;
+}
+
+.verticalSlider::-webkit-slider-thumb:hover {
+  background: #aaaaaa;
+  border-color: #cccccc;
+}
+
+.verticalSlider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #8a8a8a;
+  cursor: pointer;
+  border: 2px solid #aaaaaa;
+  transition: background 0.2s ease;
+}
+
+.verticalSlider::-moz-range-thumb:hover {
+  background: #aaaaaa;
+  border-color: #cccccc;
+}
+
+.sliderValue {
+  font-size: 9px;
+  color: #b0b0b0;
+  font-family: 'Courier New', monospace;
+  min-height: 12px;
+}
+
+/* 노브 스타일 (Delay, Reverb용) */
+.knobContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.knobLabel {
+  font-size: 9px;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.knobWrapper {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.knobCircle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+  border: 2px solid #5a5a5a;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.1s ease;
+}
+
+.knobCircle:active {
+  cursor: grabbing;
+}
+
+.knobIndicator {
+  position: absolute;
+  width: 3px;
+  height: 18px;
+  background-color: #7aaa7a;
+  top: 4px;
+  left: 50%;
+  transform-origin: bottom center;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  box-shadow: 0 0 2px rgba(122, 170, 122, 0.5);
+  transition: transform 0.05s ease;
+  pointer-events: none;
+}
+
+.knobValue {
+  font-size: 9px;
+  color: #b0b0b0;
+  font-family: 'Courier New', monospace;
+  min-height: 12px;
+  margin-top: 2px;
+}
+
+/* Q 값 슬라이더 스타일 (EQ용) */
+.effectControlsQ {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 8px 8px;
+  border-top: 1px solid #3a3a3a;
+  margin-top: 4px;
+  padding-top: 8px;
+}
+
+.horizontalSliderContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.horizontalSliderLabel {
+  font-size: 8px;
+  color: #909090;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.horizontalSliderWrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.horizontalSlider {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #4a4a4a;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.horizontalSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #7aaa7a;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border: 1px solid #8ccc8c;
+}
+
+.horizontalSlider::-webkit-slider-thumb:hover {
+  background: #8ccc8c;
+  border-color: #9eee9e;
+}
+
+.horizontalSlider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #7aaa7a;
+  cursor: pointer;
+  border: 1px solid #8ccc8c;
+  transition: background 0.2s ease;
+}
+
+.horizontalSlider::-moz-range-thumb:hover {
+  background: #8ccc8c;
+  border-color: #9eee9e;
+}
+
+.horizontalSliderValue {
+  font-size: 8px;
+  color: #a0a0a0;
+  font-family: 'Courier New', monospace;
+  min-height: 10px;
+}

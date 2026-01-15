@@ -1,0 +1,23 @@
+{
+  "document": "case-tests/midieditor.md",
+  "cases": [
+    { "id": "ME-001", "title": "Exit split mode (3 -> 1)" },
+    { "id": "ME-002", "title": "Exit merge mode (4 -> 1)" },
+    { "id": "ME-003", "title": "Switch split to merge (3 -> 4)" },
+    { "id": "ME-004", "title": "Switch merge to split (4 -> 3)" },
+    { "id": "ME-007", "title": "Switch split to merge while moving mouse" },
+    { "id": "ME-008", "title": "Switch merge to split while moving mouse" },
+    { "id": "ME-005", "title": "Split undo/redo" },
+    { "id": "ME-006", "title": "Merge undo/redo" },
+    { "id": "ME-009", "title": "Quantize snaps split preview and cut" },
+    { "id": "ME-010", "title": "Double-click opens editor with default cursor" },
+    { "id": "ME-011", "title": "Double-click only opens when cursor is null" },
+    { "id": "ME-012", "title": "Split mode single click does not create note" },
+    { "id": "ME-013", "title": "Axis lock snap with Alt" },
+    { "id": "ME-014", "title": "Axis lock clone with Ctrl+Alt" },
+    { "id": "ME-015", "title": "Axis lock works while toggling Alt" },
+    { "id": "ME-016", "title": "Axis lock drag does not split other MIDI part" },
+    { "id": "ME-017", "title": "Note duplicate (Ctrl + drag)" },
+    { "id": "ME-018", "title": "Multi-note clone undo: all cloned notes removed at once" }
+  ]
+}

@@ -1,0 +1,88 @@
+.transportControls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 16px;
+  height: 30px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  user-select: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.transportDisplay {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.label {
+  font-size: 12px;
+  color: #aaaaaa;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.separator {
+  font-size: 12px;
+  color: #888888;
+  font-weight: 500;
+}
+
+.controlsWrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.playButton,
+.pauseButton,
+.stopButton,
+.recordButton {
+  width: auto;
+  height: auto;
+  border: none;
+  background-color: transparent;
+  color: #aaaaaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.playButton:hover,
+.pauseButton:hover,
+.stopButton:hover,
+.recordButton:hover {
+  color: #cccccc;
+}
+
+.playButton:active,
+.pauseButton:active,
+.stopButton:active,
+.recordButton:active {
+  color: #ffffff;
+}
+
+.recordButton.recordActive {
+  color: #aa5a5a;
+}
+
+.recordButton.recordActive:hover {
+  color: #cc7a7a;
+}
+
+.timeDisplay {
+  font-size: 12px;
+  color: #aaaaaa;
+  font-family: 'Courier New', monospace;
+  min-width: 70px;
+  text-align: left;
+  user-select: none;
+}
+

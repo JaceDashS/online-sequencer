@@ -1,0 +1,73 @@
+{
+  "name": "online-daw",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "electron:dev": "npm run electron:build:main && start npm run dev && wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
+    "electron:build": "npm run build && npm run electron:build:main && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder",
+    "electron:build:main": "tsc -p tsconfig.electron.json",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "node case-tests/index.cjs",
+    "test:unit": "tsx scripts/unit-tests/index.ts",
+    "test:tracklist": "node scripts/tracklist-tests/index.cjs",
+    "test:midi-tick": "node scripts/midi-tick-tests/index.cjs",
+    "test:midi-migration": "node scripts/midi-migration-tests/index.cjs",
+    "test:midi-edge": "node scripts/midi-edge-tests/index.cjs",
+    "test:midi-all": "npm run test:midi-tick && npm run test:midi-migration && npm run test:midi-edge"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.11.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.4.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "tsx": "^4.20.3",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4",
+    "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.onlinedaw.app",
+    "productName": "Online DAW",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

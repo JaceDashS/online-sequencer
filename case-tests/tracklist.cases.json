@@ -1,0 +1,18 @@
+{
+  "document": "case-tests/tracklist.md",
+  "cases": [
+    { "id": "TL-001", "title": "Resize track list panel" },
+    { "id": "TL-002", "title": "Add track" },
+    { "id": "TL-003", "title": "Delete track" },
+    { "id": "TL-005", "title": "Volume and pan changes" },
+    { "id": "TL-006", "title": "Instrument change" },
+    { "id": "TL-004", "title": "Solo/mute basic rules" },
+    { "id": "TL-010", "title": "Solo auto-mutes other track" },
+    { "id": "TL-011", "title": "Multi-solo then unsolo leads to auto-mute" },
+    { "id": "TL-008", "title": "Solo on muted track restores mute" },
+    { "id": "TL-012", "title": "Mute persists after other solo cycle" },
+    { "id": "TL-009", "title": "Solo then mute toggle returns neutral" },
+    { "id": "TL-013", "title": "Mute while solo clears auto-mutes, keeps manual mutes" },
+    { "id": "TL-014", "title": "Track controller appears immediately after adding track" }
+  ]
+}

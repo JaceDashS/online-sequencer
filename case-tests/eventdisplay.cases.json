@@ -1,0 +1,26 @@
+{
+  "document": "case-tests/eventdisplay.md",
+  "cases": [
+    { "id": "ED-001", "title": "Double-click does not create history entry" },
+    { "id": "ED-002", "title": "Notes persist after part delete and undo/redo" },
+    { "id": "ED-003", "title": "Timeline scroll syncs with track list" },
+    { "id": "ED-004", "title": "Multi-part delete undo restores all at once" },
+    { "id": "ED-005", "title": "Split deactivates on 1/3/4" },
+    { "id": "ED-006", "title": "Merge deactivates on 1/4/3" },
+    { "id": "ED-007", "title": "Quantize snaps split preview and cut" },
+    { "id": "ED-008", "title": "Split/quantize/split returns cursor to null" },
+    { "id": "ED-009", "title": "Axis lock snap with Alt" },
+    { "id": "ED-010", "title": "Axis lock clone with Ctrl+Alt" },
+    { "id": "ED-011", "title": "Axis lock works while toggling Alt" },
+    { "id": "ED-012", "title": "Axis lock drag does not split other MIDI part" },
+    { "id": "ED-013", "title": "Merge: wrapped part maintains its end point" },
+    { "id": "ED-014", "title": "Merge: multi-select uses earliest and latest points" },
+    { "id": "ED-015", "title": "Merge: wrapped part with multi-select combination" },
+    { "id": "ED-016", "title": "Multi-select grab: all selected parts drag together" },
+    { "id": "ED-017", "title": "Multi-select then click unselected: single selection" },
+    { "id": "ED-018", "title": "Multi-clone undo: all cloned parts removed at once" },
+    { "id": "ED-019", "title": "Multi-track clone preview: all tracks show preview" },
+    { "id": "ED-020", "title": "Track focus persists when selecting different track after MIDI part selection" },
+    { "id": "ED-021", "title": "Track focus moves to MIDI part's track when clicking MIDI part" }
+  ]
+}
