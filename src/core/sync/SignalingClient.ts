@@ -6,6 +6,22 @@
 import { getOrCreateClientId } from './utils/uuid';
 
 /**
+ * 상세 로그 출력 여부 확인
+ */
+const isVerboseLogging = (): boolean => {
+  return import.meta.env.VITE_LOG_VERBOSE === 'true' || import.meta.env.LOG_VERBOSE === 'true';
+};
+
+/**
+ * 상세 로그 출력 헬퍼
+ */
+const verboseLog = (message: string, ...args: any[]): void => {
+  if (isVerboseLogging()) {
+    console.log(`[SignalingClient] ${message}`, ...args);
+  }
+};
+
+/**
  * 시그널링 메시지 타입 (WebRTC용)
  */
 export interface SignalingMessage {
@@ -108,6 +124,7 @@ export class SignalingClient {
 
     return new Promise((resolve, reject) => {
       const wsUrl = `${this.wsUrl}/api/online-daw/signaling?clientId=${this.clientId}`;
+      verboseLog('Connecting to WebSocket:', wsUrl);
       
       // WebSocket 연결 타임아웃 (10초)
       const connectionTimeout = setTimeout(() => {
@@ -125,6 +142,7 @@ export class SignalingClient {
           clearTimeout(connectionTimeout);
           this.isConnected = true;
           this.reconnectAttempts = 0;
+          verboseLog('WebSocket connection opened');
           
           // 재연결 시 룸 상태 복원
           if (this.roomCode) {
@@ -138,7 +156,9 @@ export class SignalingClient {
 
         this.ws.onmessage = (event) => {
           try {
-            const message: ServerToClientMessage = JSON.parse(event.data);            this.handleMessage(message);
+            const message: ServerToClientMessage = JSON.parse(event.data);
+            verboseLog('Received message:', JSON.stringify(message, null, 2));
+            this.handleMessage(message);
           } catch (error) {
             console.error('[SignalingClient] Error parsing message:', error);
           }
@@ -187,6 +207,8 @@ export class SignalingClient {
    * 서버 메시지 처리
    */
   private handleMessage(message: ServerToClientMessage): void {
+    verboseLog(`Handling message action: ${message.action}`, message);
+    
     // 특정 액션에 대한 콜백 호출
     const callbacks = this.messageCallbacks.get(message.action);
     if (callbacks) {
@@ -311,6 +333,7 @@ export class SignalingClient {
         role: 'host'
       }
     };
+    verboseLog('Sending register message:', JSON.stringify(registerMessage, null, 2));
     this.sendWebSocketMessage(registerMessage);
 
     // 등록 확인 대기
@@ -396,14 +419,16 @@ export class SignalingClient {
 
     // WebSocket으로 룸 조인
     this.roomCode = roomCode;
-    this.sendWebSocketMessage({
+    const joinMessage = {
       action: 'join',
       roomCode,
       clientId: this.clientId,
       data: {
         role: 'participant'
       }
-    });
+    };
+    verboseLog('Sending join message:', JSON.stringify(joinMessage, null, 2));
+    this.sendWebSocketMessage(joinMessage);
 
     // 조인 확인 대기
     return new Promise((resolve, reject) => {
@@ -540,6 +565,7 @@ export class SignalingClient {
     }
 
     const messageStr = JSON.stringify(message);
+    verboseLog('Sending WebSocket message:', messageStr);
     this.ws.send(messageStr);
   }
 

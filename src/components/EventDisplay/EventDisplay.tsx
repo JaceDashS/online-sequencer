@@ -518,17 +518,40 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       autoScrollRenderRef.current = renderTime;
 
       const viewportWidth = container.clientWidth;
-      const viewportCenter = viewportWidth / 2;
-      const playheadPixelX = renderTime * autoScrollPixelsPerSecondRef.current;
-      let targetScrollLeft = playheadPixelX - viewportCenter;
+      const currentScrollLeft = container.scrollLeft;
+      const playheadPixelX = (renderTime - startTime) * autoScrollPixelsPerSecondRef.current;
+      const rightEdge = currentScrollLeft + viewportWidth;
 
-      if (playheadPixelX < viewportCenter) {
-        targetScrollLeft = Math.max(0, playheadPixelX - Math.min(playheadPixelX, viewportCenter * 0.25));
-      } else {
-        targetScrollLeft = playheadPixelX - viewportCenter;
+      if (playheadPixelX >= rightEdge) {
+        const maxScrollLeft = Math.max(0, container.scrollWidth - viewportWidth);
+        const targetPage = Math.floor(playheadPixelX / viewportWidth);
+        const targetScrollLeft = Math.min(
+          maxScrollLeft,
+          Math.max(0, targetPage * viewportWidth)
+        );
+        console.log('[EventDisplay][AutoScroll] Right edge reached', {
+          playbackTime,
+          renderTime,
+          targetTime: autoScrollTargetRef.current,
+          pixelsPerSecond: autoScrollPixelsPerSecondRef.current,
+          startTime,
+          playheadPixelX,
+          currentScrollLeft,
+          rightEdge,
+          viewportWidth,
+          targetPage,
+          containerScrollWidth: container.scrollWidth,
+          maxScrollLeft,
+          targetScrollLeft,
+          isAutoScrollEnabled: autoScrollEnabledRef.current
+        });
+        bottomScrollbar.scrollLeft = targetScrollLeft;
+        console.log('[EventDisplay][AutoScroll] Horizontal scroll applied', {
+          prevScrollLeft: currentScrollLeft,
+          newScrollLeft: bottomScrollbar.scrollLeft,
+          delta: bottomScrollbar.scrollLeft - currentScrollLeft
+        });
       }
-
-      bottomScrollbar.scrollLeft = targetScrollLeft;
 
       if (Math.abs(autoScrollTargetRef.current - renderTime) > 0.001) {
         autoScrollRafRef.current = requestAnimationFrame(tick);
