@@ -347,7 +347,7 @@ export const useSustainPedal = ({
         
         // 마우스가 움직이지 않았으면 (단순 클릭) 한 박자 길이만큼 생성
         const currentDrawing = drawingSustainRef.current;
-        let endTime = hasMouseMovedRef.current && currentDrawing.endTime !== undefined
+        const endTime = hasMouseMovedRef.current && currentDrawing.endTime !== undefined
           ? currentDrawing.endTime
           : currentDrawing.startTime + secondsPerBeat;
         

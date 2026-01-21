@@ -110,6 +110,7 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
     if (!rulerContentRef.current) return;
 
     const rulerContent = rulerContentRef.current;
+    const rulerContainer = containerRef.current;
     const bottomScrollbar = document.getElementById('timeline-scrollbar');
     
     if (!rulerContent || !bottomScrollbar) return;
@@ -125,12 +126,23 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
     updateScrollbarWidth();
 
     // 스크롤 동기화: 하단 스크롤바를 움직이면 룰러도 움직임
+    // EventDisplay와 동일하게 container.scrollLeft도 업데이트해야 함
+    let isUpdating = false;
     const handleScroll = (e: Event) => {
+      if (isUpdating) return;
       if (!(e.target instanceof HTMLElement)) return;
       const target = e.target;
       if (target === bottomScrollbar) {
+        isUpdating = true;
         const scrollLeft = target.scrollLeft;
         rulerContent.style.transform = `translateX(-${scrollLeft}px)`;
+        // EventDisplay와 동일하게 container.scrollLeft도 업데이트
+        if (rulerContainer) {
+          rulerContainer.scrollLeft = scrollLeft;
+        }
+        requestAnimationFrame(() => {
+          isUpdating = false;
+        });
       }
     };
 
@@ -176,9 +188,28 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
     bottomScrollbar.addEventListener('scroll', handleScroll);
     window.addEventListener('resize', updateScrollbarWidth);
 
+    // MeasureRuler container의 스크롤 이벤트 처리 (EventDisplay와 동기화)
+    const handleRulerContainerScroll = () => {
+      if (isUpdating) return;
+      if (!rulerContainer) return;
+      isUpdating = true;
+      const scrollLeft = rulerContainer.scrollLeft;
+      bottomScrollbar.scrollLeft = scrollLeft;
+      requestAnimationFrame(() => {
+        isUpdating = false;
+      });
+    };
+
+    if (rulerContainer) {
+      rulerContainer.addEventListener('scroll', handleRulerContainerScroll, { passive: true });
+    }
+
     return () => {
       bottomScrollbar.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', updateScrollbarWidth);
+      if (rulerContainer) {
+        rulerContainer.removeEventListener('scroll', handleRulerContainerScroll);
+      }
       const element = document.getElementById(styleId);
       if (element) {
         element.remove();

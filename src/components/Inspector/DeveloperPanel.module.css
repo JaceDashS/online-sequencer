@@ -8,11 +8,50 @@
   gap: 8px;
 }
 
+.headerContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .header {
   font-size: 11px;
   letter-spacing: 1px;
   color: #aaaaaa;
   font-weight: 600;
+  user-select: none;
+}
+
+.header.clickable {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.header.clickable:hover {
+  color: #cccccc;
+}
+
+.roomsButton {
+  padding: 4px 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.roomsButton:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: #7aaa7a;
+}
+
+.roomsButton:active {
+  transform: scale(0.98);
 }
 
 .controls {

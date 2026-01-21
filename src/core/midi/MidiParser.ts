@@ -195,7 +195,7 @@ export function parseSmfFromBinary(data: Uint8Array): SmfFile {
       if (offset >= trackEnd) break;
       
       // 이벤트 타입 읽기
-      let statusByte = data[offset];
+      const statusByte = data[offset];
       
       // Meta 이벤트
       if (statusByte === 0xFF) {

@@ -174,10 +174,17 @@ export class SignalingClient {
   /**
    * 서버 메시지 처리
    */
-  private handleMessage(message: ServerToClientMessage): void {    // 특정 액션에 대한 콜백 호출
+  private handleMessage(message: ServerToClientMessage): void {
+    console.log('[SignalingClient] Message received:', { action: message.action, roomCode: message.roomCode, error: message.error });
+    
+    // 특정 액션에 대한 콜백 호출
     const callbacks = this.messageCallbacks.get(message.action);
-    if (callbacks) {      callbacks.forEach(callback => callback(message));
-    } else {    }
+    if (callbacks) {
+      console.log('[SignalingClient] Calling callbacks for action:', message.action, 'count:', callbacks.length);
+      callbacks.forEach(callback => callback(message));
+    } else {
+      console.log('[SignalingClient] No callbacks registered for action:', message.action);
+    }
 
     // 시그널링 메시지 처리
     if (message.action === 'signaling' && message.data) {
@@ -262,18 +269,30 @@ export class SignalingClient {
       throw new Error(error.error || `HTTP ${response.status}`);
     }
 
-    const data = await response.json();    const roomCode = data.roomCode;
+    const data = await response.json();
+    console.log('[SignalingClient] Room creation response:', data);
+    
+    const roomCode = data.roomCode;
+    console.log('[SignalingClient] Extracted roomCode:', roomCode);
+
+    if (!roomCode) {
+      console.error('[SignalingClient] Room creation response missing roomCode:', data);
+      throw new Error('Room creation failed: roomCode not returned');
+    }
 
     // WebSocket으로 룸 등록
     this.roomCode = roomCode;
-    this.sendWebSocketMessage({
+    console.log('[SignalingClient] Sending register message with roomCode:', roomCode);
+    const registerMessage = {
       action: 'register',
       roomCode,
       clientId: this.clientId,
       data: {
         role: 'host'
       }
-    });
+    };
+    console.log('[SignalingClient] Register message to send:', JSON.stringify(registerMessage));
+    this.sendWebSocketMessage(registerMessage);
 
     // 등록 확인 대기
     return new Promise((resolve, reject) => {
@@ -282,17 +301,23 @@ export class SignalingClient {
       }, 5000);
 
       const callback = (message: ServerToClientMessage) => {
+        console.log('[SignalingClient] Registered callback received message:', { action: message.action, roomCode: message.roomCode, expectedRoomCode: roomCode });
         if (message.action === 'registered' && message.roomCode === roomCode) {
+          console.log('[SignalingClient] Registration confirmed for roomCode:', roomCode);
           clearTimeout(timeout);
           this.offMessage('registered', callback);
           resolve(roomCode);
-        } else if (message.action === 'error' && message.roomCode === roomCode) {
+        } else if (message.action === 'error') {
+          console.log('[SignalingClient] Registration error received:', message.error);
           clearTimeout(timeout);
           this.offMessage('registered', callback);
           reject(new Error(message.error || 'Registration failed'));
+        } else {
+          console.log('[SignalingClient] Ignoring message in registered callback:', { action: message.action, roomCode: message.roomCode });
         }
       };
 
+      console.log('[SignalingClient] Registering callback for "registered" action, waiting for roomCode:', roomCode);
       this.onMessage('registered', callback);
     });
   }
@@ -496,10 +521,13 @@ export class SignalingClient {
    */
   private sendWebSocketMessage(message: any): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error('[SignalingClient] WebSocket is not connected, readyState:', this.ws?.readyState);
       throw new Error('WebSocket is not connected');
     }
 
-    this.ws.send(JSON.stringify(message));
+    const messageStr = JSON.stringify(message);
+    console.log('[SignalingClient] Sending WebSocket message:', messageStr);
+    this.ws.send(messageStr);
   }
 
   /**

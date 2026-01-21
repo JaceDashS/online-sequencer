@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './LevelMeter.module.css';
 import { audioLevelStore } from '../../utils/audioLevelStore';
+import { getPartyTimeFakeLevel, subscribePartyTime, isPartyTimeEnabled } from '../../utils/partyTime';
 
 interface LevelMeterProps {
   trackId: string;
@@ -12,10 +13,28 @@ const LevelMeter: React.FC<LevelMeterProps> = ({ trackId, channel = 'left' }) =>
   const smoothedLevelRef = useRef<number>(-Infinity);
   const animationFrameRef = useRef<number | null>(null);
   const targetLevelRef = useRef<number>(-Infinity);
+  const [isPartyTimeMode, setIsPartyTimeMode] = useState(false);
 
   useEffect(() => {
+    // 파티타임 모드 구독
+    const unsubscribePartyTime = subscribePartyTime((isActive) => {
+      setIsPartyTimeMode(isActive);
+    });
+    
+    // 초기 상태 확인
+    setIsPartyTimeMode(isPartyTimeEnabled());
+
     const unsubscribe = audioLevelStore.subscribe(trackId, (audioLevel) => {
-      if (audioLevel) {
+      // 파티타임 모드일 때는 실제 오디오 레벨 무시
+      if (isPartyTimeEnabled()) {
+        const fakeLevel = getPartyTimeFakeLevel(trackId, channel);
+        if (fakeLevel) {
+          const db = channel === 'left' ? fakeLevel.left : fakeLevel.right;
+          targetLevelRef.current = db;
+        } else {
+          targetLevelRef.current = -Infinity;
+        }
+      } else if (audioLevel) {
         const db = channel === 'left' ? audioLevel.left : audioLevel.right;
         targetLevelRef.current = db;
       } else {
@@ -25,6 +44,17 @@ const LevelMeter: React.FC<LevelMeterProps> = ({ trackId, channel = 'left' }) =>
 
     // 스무딩 애니메이션 루프
     const smoothUpdate = () => {
+      // 파티타임 모드일 때는 가짜 레벨 사용
+      if (isPartyTimeEnabled()) {
+        const fakeLevel = getPartyTimeFakeLevel(trackId, channel);
+        if (fakeLevel) {
+          const db = channel === 'left' ? fakeLevel.left : fakeLevel.right;
+          targetLevelRef.current = db;
+        } else {
+          targetLevelRef.current = -Infinity;
+        }
+      }
+      
       const target = targetLevelRef.current;
       const current = smoothedLevelRef.current;
 
@@ -39,17 +69,23 @@ const LevelMeter: React.FC<LevelMeterProps> = ({ trackId, channel = 'left' }) =>
           setLevel(-Infinity);
         }
       } else {
-        // 레벨이 올라갈 때는 빠르게, 내려갈 때는 천천히
-        if (target > current) {
-          // Attack: 빠르게 올라감 (즉시 반영)
+        // 파티타임 모드일 때는 즉시 반영 (애니메이션 없이)
+        if (isPartyTimeEnabled()) {
           smoothedLevelRef.current = target;
           setLevel(target);
         } else {
-          // Release: 천천히 내려감 (exponential decay)
-          const decayRate = 0.15; // 15% 감소 per frame (약 60fps 기준)
-          const newLevel = target + (current - target) * (1 - decayRate);
-          smoothedLevelRef.current = newLevel;
-          setLevel(newLevel);
+          // 레벨이 올라갈 때는 빠르게, 내려갈 때는 천천히
+          if (target > current) {
+            // Attack: 빠르게 올라감 (즉시 반영)
+            smoothedLevelRef.current = target;
+            setLevel(target);
+          } else {
+            // Release: 천천히 내려감 (exponential decay)
+            const decayRate = 0.15; // 15% 감소 per frame (약 60fps 기준)
+            const newLevel = target + (current - target) * (1 - decayRate);
+            smoothedLevelRef.current = newLevel;
+            setLevel(newLevel);
+          }
         }
       }
 
@@ -60,11 +96,12 @@ const LevelMeter: React.FC<LevelMeterProps> = ({ trackId, channel = 'left' }) =>
 
     return () => {
       unsubscribe();
+      unsubscribePartyTime();
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [trackId, channel]);
+  }, [trackId, channel, isPartyTimeMode]);
 
   // 각 바의 dB 임계값을 정의 (아래에서 위로, 지수적 분할)
   // 데시벨 로직에 맞게 지수적으로 표시 (각 바는 특정 dB 레벨을 나타냄)

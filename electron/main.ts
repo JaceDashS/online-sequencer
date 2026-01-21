@@ -40,11 +40,11 @@ function createWindow() {
 
   // 로드 실패/크래시 디버깅을 위한 최소 로그
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-    // eslint-disable-next-line no-console
+     
     console.error('[main] did-fail-load', { errorCode, errorDescription, validatedURL });
   });
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
-    // eslint-disable-next-line no-console
+     
     console.error('[main] render-process-gone', details);
   });
 }

@@ -19,6 +19,7 @@ import { APP_VERSION } from '../constants/app';
 import { getBpm, getTimeSignature } from '../utils/midiTickUtils';
 import { cleanupAllResources } from '../utils/resourceCleanup';
 import { importMidiFileToProject } from '../core/midi/MidiParser';
+import { checkAndUpdatePartyTime } from '../utils/partyTime';
 
 // 초기 로드할 MIDI 파일 목록
 const DEFAULT_MIDI_FILES = [
@@ -121,6 +122,11 @@ const DawPage: React.FC = () => {
 
     loadRandomMidiFile();
   }, []); // 빈 배열: 컴포넌트 마운트 시 한 번만 실행
+  
+  // 초기 파티타임 체크 (컴포넌트 마운트 시)
+  useEffect(() => {
+    checkAndUpdatePartyTime();
+  }, []);
   
   // 페이지 언마운트 시 모든 리소스 정리
   useEffect(() => {

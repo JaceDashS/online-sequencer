@@ -9,6 +9,7 @@ import { selectProject } from '../../store/selectors';
 import type { CollaborationManager } from '../../core/sync/CollaborationManager';
 import type { P2PMessage, TransportMessage } from '../../core/sync/types/p2p';
 import { subscribeCollaborationManager } from '../../core/sync/collaborationSession';
+import { isPartyTimeEnabled, subscribePartyTime } from '../../utils/partyTime';
 
 /**
  * íŠ¸ëžœìŠ¤í¬íŠ¸ ì»¨íŠ¸ë¡¤ ì»´í¬ë„ŒíŠ¸ Props
@@ -34,6 +35,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   const ui = useUIState();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPartyTimeMode, setIsPartyTimeMode] = useState(() => isPartyTimeEnabled());
   const currentTimeRef = useRef<number>(ui.currentPlaybackTime);
   const lastWorkerTimeRef = useRef<number>(ui.currentPlaybackTime);
   const isPlayingRef = useRef<boolean>(isPlaying);
@@ -65,6 +67,25 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
+
+  // 파티타임 모드 구독
+  useEffect(() => {
+    const unsubscribe = subscribePartyTime((isActive) => {
+      setIsPartyTimeMode(isActive);
+      // 파티타임 모드가 활성화되면 재생 중지
+      if (isActive && isPlaying) {
+        setIsPlaying(false);
+        setPlaybackRunning(false);
+        stopPlaybackClock(0);
+        playbackController.stop();
+        ui.setCurrentPlaybackTime(0);
+        currentTimeRef.current = 0;
+        lastWorkerTimeRef.current = 0;
+      }
+    });
+    
+    return unsubscribe;
+  }, [isPlaying, ui]);
 
   useEffect(() => {
     const bufferSize = Number.isFinite(ui.audioBufferSize)
@@ -316,6 +337,11 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   }, [isPlaying, ui.setCurrentPlaybackTime]);
 
   const togglePlayPause = useCallback(() => {
+    // 파티타임 모드일 때는 재생 불가
+    if (isPartyTimeEnabled()) {
+      return;
+    }
+    
     setIsPlaying((prev) => {
       const next = !prev;
       lastLocalActionRef.current = { action: next ? 'play' : 'pause', at: Date.now() };

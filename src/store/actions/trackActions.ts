@@ -9,6 +9,7 @@ import type { Track, Effect } from '../../types/project';
 import { getProject, addTrackToProject, removeTrackFromProject, findTrackById, findMidiPartsByTrackId } from '../projectState';
 import { notifyProjectChange, notifyTrackChange } from '../projectEvents';
 import { removeMidiPart } from '../midiPartActions';
+import { checkAndUpdatePartyTime } from '../../utils/partyTime';
 
 /**
  * ID로 트랙을 찾습니다 (인덱스 사용).
@@ -46,6 +47,11 @@ export const addTrack = (track: Track): void => {
   }
   addTrackToProject(track);
   notifyProjectChange({ type: 'track' as const, trackId: track.id });
+  
+  // 파티타임 확인 (트랙 추가 시)
+  setTimeout(() => {
+    checkAndUpdatePartyTime();
+  }, 0);
 };
 
 /**
@@ -79,6 +85,15 @@ export const updateTrack = (trackId: string, updates: Partial<Track>): void => {
   if (track) {
     Object.assign(track, updates);
     notifyTrackChange(trackId, updates, 'update');
+    
+    // 파티타임 확인 (트랙명이 변경된 경우)
+    // 트랙명이 완전히 저장된 후 확인
+    if (updates.name !== undefined) {
+      // 다음 틱에서 확인하여 트랙명이 완전히 반영된 후 체크
+      setTimeout(() => {
+        checkAndUpdatePartyTime();
+      }, 0);
+    }
   }
 };
 
