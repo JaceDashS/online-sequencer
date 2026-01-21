@@ -186,9 +186,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
         onStartHost();
       }
     } catch (err) {
-      console.error('Failed to start host:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to start hosting';
-      console.log('[CollaborationButtons] Calling showError with message:', errorMessage);
       showError(errorMessage);
       setMode('idle');
     }

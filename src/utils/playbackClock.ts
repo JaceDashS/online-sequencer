@@ -1,5 +1,3 @@
-import { enqueueDebugLog } from './debugLogger';
-
 /**
  * 재생 클럭 명령 타입
  */
@@ -39,21 +37,7 @@ function ensureWorker(): Worker | null {
       worker = new Worker(new URL('../workers/playbackClock.worker.ts', import.meta.url), { type: 'module' });
       worker.onmessage = (event: MessageEvent<PlaybackTick>) => {
         if (event.data?.type !== 'tick') return;
-        const mainPerfNow = performance.now();
         const receivedTime = event.data.time;
-        
-        enqueueDebugLog({
-          location: 'playbackClock.ts:29',
-          message: 'main thread received tick',
-          data: {
-            mainPerfNow,
-            receivedTime,
-          },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          runId: 'run1',
-          hypothesisId: 'B',
-        });
         
         for (const listener of listeners) {
           listener(receivedTime);

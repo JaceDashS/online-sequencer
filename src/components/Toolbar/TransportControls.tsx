@@ -154,14 +154,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     } else {
       manager.sendToHost(message);
     }
-    console.log('[TransportControls] sendTransport', {
-      action,
-      time,
-      isHost: manager.getIsHost(),
-      isPlaying: isPlayingRef.current,
-      suppress: suppressTransportRef.current,
-      timestamp: message.timestamp,
-    });
   }, []);
 
   const applyTransport = useCallback((message: TransportMessage) => {
@@ -172,16 +164,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     const applyLatency = action === 'seek' && isPlayingRef.current;
     const effectiveTime = applyLatency ? normalizedTime + latencySec : normalizedTime;
     suppressTransportRef.current = true;
-    console.log('[TransportControls] applyTransport', {
-      action,
-      time: normalizedTime,
-      effectiveTime,
-      latencySec,
-      from: message.from,
-      isHost: manager?.getIsHost(),
-      isPlaying: isPlayingRef.current,
-      timestamp: message.timestamp,
-    });
 
     switch (action) {
       case 'play':
@@ -248,11 +230,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   }, [clearScheduledPause, schedulePauseAt, ui]);
 
   const handleTransportMessage = useCallback((message: P2PMessage) => {
-    console.log('[TransportControls] p2pMessage', {
-      type: message.type,
-      from: message.from,
-      timestamp: message.timestamp,
-    });
     if (message.type !== 'transport') {
       return;
     }
@@ -281,7 +258,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   useEffect(() => {
     if (isPlaying) {
       clearScheduledPause();
-      console.log('[TransportControls] localPlayStart', { time: currentTimeRef.current });
       setPlaybackRunning(true);
       // í”Œë ˆì´ ì‹œìž‘ ì‹œ ì‹¤ì œ ì‹œê°„ê³¼ í”Œë ˆì´ë°± ì‹œê°„ ê¸°ë¡
       const playbackStartTime = currentTimeRef.current;
@@ -301,7 +277,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
       void playbackController.start(playbackStartTime, project);
     } else {
       clearScheduledPause();
-      console.log('[TransportControls] localPlayPause', { time: getPlaybackTime() });
       // ì¼ì‹œì •ì§€ ì§ì „ì— ìµœì‹  ìž¬ìƒ ì‹œê°„ì„ ê°€ì ¸ì˜´
       const useRemoteTime = skipLocalPauseRef.current;
       const currentPlaybackTime = useRemoteTime ? currentTimeRef.current : getPlaybackTime();
@@ -378,7 +353,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
 
     const diff = Math.abs(ui.currentPlaybackTime - lastWorkerTimeRef.current);
     if (diff > 0.02) {
-      console.log('[TransportControls] localSeekWhilePlaying', { uiTime: ui.currentPlaybackTime, workerTime: lastWorkerTimeRef.current, diff });
       seekPlaybackClock(ui.currentPlaybackTime);
       const project = selectProject();
       void playbackController.seek(ui.currentPlaybackTime, project);
@@ -407,7 +381,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
       return;
     }
     lastSeekSyncRef.current = time;
-    console.log('[TransportControls] localSeekWhilePaused', { time, lastSent: lastSeekSyncRef.current });
     sendTransport('seek', time);
   }, [ui.currentPlaybackTime, isPlaying, sendTransport]);
 

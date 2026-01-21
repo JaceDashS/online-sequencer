@@ -82,11 +82,6 @@ export class CollaborationManager {
 
   private attachWebRTCMessageBridge(): void {
     this.webRTCManager.onMessage((message) => {
-      console.log('[CollaborationManager] P2P message', {
-        type: message.type,
-        from: message.from,
-        isHost: this.isHost,
-      });
       this.dispatchP2PMessage(message);
     });
   }
@@ -629,14 +624,12 @@ export class CollaborationManager {
         if (role === 'host') {
           // 호스트: 게스트의 offer를 기다림 (게스트가 재연결 시도)
           // 여기서는 게스트가 재연결을 시도하도록 기다림
-          console.log(`[CollaborationManager] Waiting for guest ${peerId} to reconnect...`);
         } else {
           // 게스트: 호스트에게 재연결 시도
           if (!this.hostId) {
             throw new Error('Host ID not available');
           }
           
-          console.log(`[CollaborationManager] Attempting P2P reconnect to host ${this.hostId}...`);
           await this.connectToHost(this.hostId);
         }
       } catch (error) {

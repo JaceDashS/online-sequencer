@@ -28,11 +28,6 @@ const PasswordModal: React.FC<PasswordModalProps> = ({ isOpen, onClose, onSucces
       const serverUrl = import.meta.env.VITE_COLLABORATION_SERVER_URL || 'http://10.0.0.79:3000';
       const requestBody = { password: password.trim() };
       
-      console.log('[PasswordModal] Sending password verification request:', {
-        url: `${serverUrl}/api/auth/verify-password`,
-        body: { password: '***' } // 실제 비밀번호는 로그에 출력하지 않음
-      });
-      
       const response = await fetch(`${serverUrl}/api/auth/verify-password`, {
         method: 'POST',
         headers: {
@@ -41,16 +36,11 @@ const PasswordModal: React.FC<PasswordModalProps> = ({ isOpen, onClose, onSucces
         body: JSON.stringify(requestBody),
       });
 
-      console.log('[PasswordModal] Response status:', response.status);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[PasswordModal] Error response:', errorText);
         throw new Error('비밀번호 검증 실패');
       }
 
       const result = await response.json();
-      console.log('[PasswordModal] Response data:', result);
       
       // 응답 형식: { valid: true } 또는 { valid: false }
       if (result.valid === true) {
@@ -61,7 +51,6 @@ const PasswordModal: React.FC<PasswordModalProps> = ({ isOpen, onClose, onSucces
         setError('비밀번호가 올바르지 않습니다.');
       }
     } catch (err) {
-      console.error('[PasswordModal] Error:', err);
       setError(err instanceof Error ? err.message : '비밀번호 검증 중 오류가 발생했습니다.');
     } finally {
       setIsVerifying(false);

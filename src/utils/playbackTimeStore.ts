@@ -1,4 +1,3 @@
-import { enqueueDebugLog } from './debugLogger';
 import { subscribePlaybackClock } from './playbackClock';
 
 type PlaybackListener = (time: number) => void;
@@ -13,10 +12,8 @@ let rafId: number | null = null;
 let isSubscribed = false;
 const listeners = new Set<PlaybackListener>();
 let lastSourceUpdatePerf = 0;
-let lastLogPerf = 0;
 
 const MIN_SOURCE_UPDATE_INTERVAL_MS = 1;
-const DRIFT_LOG_INTERVAL_MS = 250;
 
 /**
  * 고해상도 타임스탬프를 가져옵니다
@@ -35,7 +32,7 @@ function getPerfNow(): number {
  * 
  * @param params - 드리프트 보정 파라미터
  */
-function maybeLogDrift(params: {
+function maybeLogDrift(_params: {
   nowPerf: number;
   predicted: number;
   prevDisplayTime: number;
@@ -44,31 +41,7 @@ function maybeLogDrift(params: {
   hardResetMs: number;
   correctionType: string;
 }): void {
-  if (params.absDrift < driftThresholdMs) return;
-  if (params.nowPerf - lastLogPerf < DRIFT_LOG_INTERVAL_MS) return;
-  lastLogPerf = params.nowPerf;
-
-  enqueueDebugLog({
-    location: 'playbackTimeStore.ts:log',
-    message: 'drift correction',
-    data: {
-      sourceTime,
-      sourcePerf,
-      predicted: params.predicted,
-      prevDisplayTime: params.prevDisplayTime,
-      newDisplayTime: displayTime,
-      driftMs: params.driftMs,
-      absDrift: params.absDrift,
-      driftThresholdMs,
-      hardResetMs: params.hardResetMs,
-      correctionType: params.correctionType,
-      isRunning,
-    },
-    timestamp: Date.now(),
-    sessionId: 'debug-session',
-    runId: 'run1',
-    hypothesisId: 'C',
-  });
+  // Debug logging removed for production
 }
 
 /**

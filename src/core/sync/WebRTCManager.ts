@@ -489,17 +489,6 @@ export class WebRTCManager {
     dataChannel.onmessage = (event) => {
       try {
         const message: P2PMessage = JSON.parse(event.data);
-        if (message.type === 'transport') {
-          const action = (message as any).data?.action;
-          const time = (message as any).data?.time;
-          console.log('[WebRTCManager] transport-received', {
-            peerId,
-            from: message.from,
-            action,
-            time,
-            timestamp: message.timestamp,
-          });
-        }
 
         if (this.isHost) {
           // φÿ╕∞èñφè╕: Ω▓î∞èñφè╕δí£δ╢Çφä░ δ⌐ö∞ï£∞ºÇ ∞êÿ∞ïá

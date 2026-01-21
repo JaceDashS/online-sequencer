@@ -87,10 +87,6 @@ function checkPartyTimeTrigger(): boolean {
   const triggerName = PARTY_TIME_TRACK_NAME.toLowerCase();
   const matches = trackName === triggerName;
   
-  if (matches) {
-    console.log('[PartyTime] 트리거 감지! 첫 번째 트랙명:', firstTrack.name);
-  }
-  
   return matches;
 }
 
@@ -105,7 +101,6 @@ function setPartyTimeActive(active: boolean): void {
   isPartyTimeActive = active;
   
   if (active) {
-    console.log('[PartyTime] 파티타임 시작! 🎉');
     startTime = performance.now();
     
     // 각 트랙별 랜덤 애니메이션 파라미터 생성
@@ -120,7 +115,6 @@ function setPartyTimeActive(active: boolean): void {
     
     startAnimation();
   } else {
-    console.log('[PartyTime] 파티타임 종료');
     stopAnimation();
     
     // 랜덤 파라미터 초기화
