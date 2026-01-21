@@ -1,6 +1,7 @@
 import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom';
 import DawPage from './pages/DawPage';
 import { UIProvider } from './store/uiStore';
+import { ToastContainer } from './components/Floating/Toast';
 import './App.css';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Route path="/" element={<DawPage />} />
         </Routes>
       </Router>
+      <ToastContainer />
     </UIProvider>
   );
 }

@@ -4,6 +4,7 @@ import { CollaborationManager } from '../../core/sync/CollaborationManager';
 import { setCollaborationManager } from '../../core/sync/collaborationSession';
 import { getOrCreateClientId } from '../../core/sync/utils/uuid';
 import type { ConnectionState } from '../../core/sync/types/p2p';
+import { showError } from '../../utils/toastStore';
 
 interface Participant {
   id: string;
@@ -30,7 +31,6 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
   const [isHost, setIsHost] = useState(false);
   const [allowCountdown, setAllowCountdown] = useState<number | null>(null);
   const [hostCooldown, setHostCooldown] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const joinInputRef = useRef<HTMLInputElement>(null);
   const collaborationManagerRef = useRef<CollaborationManager | null>(null);
@@ -51,7 +51,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
       setShowParticipantsDropdown(false);
       setIsHost(false);
       setAllowCountdown(null);
-      setError('The host has ended the session');
+      showError('The host has ended the session');
     };
 
     // participant-joined 메시지 핸들러 등록
@@ -101,7 +101,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
       setParticipants([]);
       setShowParticipantsDropdown(false);
       setIsHost(false);
-      setError('You have been kicked from the session');
+      showError('You have been kicked from the session');
     };
 
     // 연결 상태 변화 핸들러 등록
@@ -118,7 +118,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
           setParticipants([]);
           setShowParticipantsDropdown(false);
           setIsHost(false);
-          setError('Host disconnected');
+          showError('Host disconnected');
         }
       } else {
         // 연결 상태 업데이트
@@ -154,23 +154,15 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
     };
   }, []);
 
-  // 에러 메시지 자동 제거
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
 
   const handleStartHost = async () => {
     if (!collaborationManagerRef.current) {
-      setError('Collaboration manager not initialized');
+      showError('Collaboration manager not initialized');
       return;
     }
 
     try {
       setMode('loading');
-      setError(null);
 
       // WebSocket 연결
       if (!collaborationManagerRef.current.connected) {
@@ -195,7 +187,9 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
       }
     } catch (err) {
       console.error('Failed to start host:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start hosting');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to start hosting';
+      console.log('[CollaborationButtons] Calling showError with message:', errorMessage);
+      showError(errorMessage);
       setMode('idle');
     }
   };
@@ -214,7 +208,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
     }
 
     if (!collaborationManagerRef.current) {
-      setError('Collaboration manager not initialized');
+      showError('Collaboration manager not initialized');
       return;
     }
 
@@ -222,7 +216,6 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
 
     try {
       setMode('loading');
-      setError(null);
 
       // WebSocket 연결
       if (!collaborationManagerRef.current.connected) {
@@ -262,7 +255,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
       }
     } catch (err) {
       console.error('Failed to join room:', err);
-      setError(err instanceof Error ? err.message : 'Failed to join room');
+      showError(err instanceof Error ? err.message : 'Failed to join room');
       setMode('joining');
     }
   };
@@ -274,7 +267,6 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
     setJoinRoomCode('');
     setShowParticipantsDropdown(false);
     setIsHost(false);
-    setError(null);
   };
 
   const handleStopHost = async () => {
@@ -284,7 +276,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
         collaborationManagerRef.current.disconnect();
       } catch (err) {
         console.error('Error stopping host:', err);
-        setError(err instanceof Error ? err.message : 'Failed to stop hosting');
+        showError(err instanceof Error ? err.message : 'Failed to stop hosting');
       }
     }
 
@@ -295,7 +287,6 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
     setIsHost(false);
     setAllowCountdown(null);
     setHostCooldown(5);
-    setError(null);
   };
 
   const handleLeave = async () => {
@@ -312,22 +303,20 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
     setParticipants([]);
     setShowParticipantsDropdown(false);
     setIsHost(false);
-    setError(null);
   };
 
   const handleAllowParticipant = async () => {
     if (!collaborationManagerRef.current || !roomCode) {
-      setError('Not connected to a room');
+      showError('Not connected to a room');
       return;
     }
 
     if (!collaborationManagerRef.current.connected) {
-      setError('Unknown error occurred. Please try again later.');
+      showError('Unknown error occurred. Please try again later.');
       return;
     }
 
     try {
-      setError(null);
       await collaborationManagerRef.current.allowJoin(60);
       
       // Allow join for 60 seconds
@@ -335,18 +324,17 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
     } catch (err) {
       console.error('Failed to allow join:', err);
       setAllowCountdown(null);
-      setError(collaborationManagerRef.current?.connected ? (err instanceof Error ? err.message : 'Failed to allow join') : 'Unknown error occurred. Please try again later.');
+      showError(collaborationManagerRef.current?.connected ? (err instanceof Error ? err.message : 'Failed to allow join') : 'Unknown error occurred. Please try again later.');
     }
   };
 
   const handleKickParticipant = async (participantId: string) => {
     if (!collaborationManagerRef.current || !isHost) {
-      setError('Only host can kick participants');
+      showError('Only host can kick participants');
       return;
     }
 
     try {
-      setError(null);
       await collaborationManagerRef.current.kickParticipant(participantId);
       
       // 참가자 목록에서 제거 (서버에서 participant-left 메시지가 올 때까지 기다리지 않고 즉시 제거)
@@ -354,7 +342,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
       
     } catch (err) {
       console.error('Failed to kick participant:', err);
-      setError(err instanceof Error ? err.message : 'Failed to kick participant');
+      showError(err instanceof Error ? err.message : 'Failed to kick participant');
     }
   };
 
@@ -385,7 +373,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
       const manager = collaborationManagerRef.current;
       if (manager && !manager.connected) {
         setAllowCountdown(null);
-        setError('Unknown error occurred. Please try again later.');
+        showError('Unknown error occurred. Please try again later.');
       }
     }, 1000);
 
@@ -446,13 +434,6 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
 
   return (
     <div className={styles.collaborationButtons}>
-      {/* 에러 메시지 표시 */}
-      {error && (
-        <div className={styles.errorMessage} title={error}>
-          {error}
-        </div>
-      )}
-
       {/* Loading 상태 */}
       {mode === 'loading' && (
         <div className={styles.loadingIndicator}>

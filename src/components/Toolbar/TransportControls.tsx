@@ -35,7 +35,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   const ui = useUIState();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [isPartyTimeMode, setIsPartyTimeMode] = useState(() => isPartyTimeEnabled());
   const currentTimeRef = useRef<number>(ui.currentPlaybackTime);
   const lastWorkerTimeRef = useRef<number>(ui.currentPlaybackTime);
   const isPlayingRef = useRef<boolean>(isPlaying);
@@ -71,7 +70,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   // 파티타임 모드 구독
   useEffect(() => {
     const unsubscribe = subscribePartyTime((isActive) => {
-      setIsPartyTimeMode(isActive);
       // 파티타임 모드가 활성화되면 재생 중지
       if (isActive && isPlaying) {
         setIsPlaying(false);

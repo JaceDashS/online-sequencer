@@ -107,11 +107,22 @@ export class SignalingClient {
     }
 
     return new Promise((resolve, reject) => {
-      const wsUrl = `${this.wsUrl}/api/online-daw/signaling?clientId=${this.clientId}`;      
+      const wsUrl = `${this.wsUrl}/api/online-daw/signaling?clientId=${this.clientId}`;
+      
+      // WebSocket 연결 타임아웃 (10초)
+      const connectionTimeout = setTimeout(() => {
+        if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
+          this.ws.close();
+          console.error('[SignalingClient] WebSocket connection timeout');
+          reject(new Error('WebSocket connection timeout: Unable to connect to server. Please check your connection and try again.'));
+        }
+      }, 10000);
+      
       try {
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
+          clearTimeout(connectionTimeout);
           this.isConnected = true;
           this.reconnectAttempts = 0;
           
@@ -134,12 +145,14 @@ export class SignalingClient {
         };
 
         this.ws.onerror = (error) => {
+          clearTimeout(connectionTimeout);
           console.error('[SignalingClient] WebSocket error:', error);
           console.error('[SignalingClient] WebSocket URL:', wsUrl);
-          reject(error);
+          reject(new Error('WebSocket connection failed. Please check your connection and try again.'));
         };
 
         this.ws.onclose = () => {
+          clearTimeout(connectionTimeout);
           this.isConnected = false;          
           // 자동 재연결 시도
           if (this.reconnectAttempts < this.maxReconnectAttempts) {
@@ -147,8 +160,9 @@ export class SignalingClient {
           }
         };
       } catch (error) {
+        clearTimeout(connectionTimeout);
         console.error('[SignalingClient] Failed to create WebSocket:', error);
-        reject(error);
+        reject(error instanceof Error ? error : new Error('Failed to create WebSocket connection'));
       }
     });
   }
@@ -252,32 +266,49 @@ export class SignalingClient {
     if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {      await this.connect();
     }
 
-    // REST API로 룸 생성
-    const url = `${this.apiBaseUrl}/rooms`;    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Client-Id': this.clientId,
-        'X-Host-Id': hostId
-      },
-      body: JSON.stringify({ hostId })
-    });
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Failed to create room' }));
-      console.error('[SignalingClient] Room creation failed:', error);
-      throw new Error(error.error || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('[SignalingClient] Room creation response:', data);
+    // REST API로 룸 생성 (타임아웃 처리)
+    const url = `${this.apiBaseUrl}/rooms`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
     
-    const roomCode = data.roomCode;
-    console.log('[SignalingClient] Extracted roomCode:', roomCode);
+    let roomCode: string;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-Id': this.clientId,
+          'X-Host-Id': hostId
+        },
+        body: JSON.stringify({ hostId }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to create room' }));
+        console.error('[SignalingClient] Room creation failed:', error);
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
 
-    if (!roomCode) {
-      console.error('[SignalingClient] Room creation response missing roomCode:', data);
-      throw new Error('Room creation failed: roomCode not returned');
+      const data = await response.json();
+      console.log('[SignalingClient] Room creation response:', data);
+      
+      roomCode = data.roomCode;
+      console.log('[SignalingClient] Extracted roomCode:', roomCode);
+
+      if (!roomCode) {
+        console.error('[SignalingClient] Room creation response missing roomCode:', data);
+        throw new Error('Room creation failed: roomCode not returned');
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error('Server did not respond. Please check your connection and try again.');
+      }
+      throw err;
     }
 
     // WebSocket으로 룸 등록
@@ -296,10 +327,6 @@ export class SignalingClient {
 
     // 등록 확인 대기
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Registration timeout'));
-      }, 5000);
-
       const callback = (message: ServerToClientMessage) => {
         console.log('[SignalingClient] Registered callback received message:', { action: message.action, roomCode: message.roomCode, expectedRoomCode: roomCode });
         if (message.action === 'registered' && message.roomCode === roomCode) {
@@ -316,6 +343,12 @@ export class SignalingClient {
           console.log('[SignalingClient] Ignoring message in registered callback:', { action: message.action, roomCode: message.roomCode });
         }
       };
+
+      const timeout = setTimeout(() => {
+        console.error('[SignalingClient] Registration timeout - no response from server');
+        this.offMessage('registered', callback);
+        reject(new Error('Registration timeout: Server did not respond within 5 seconds. Please check your connection and try again.'));
+      }, 5000);
 
       console.log('[SignalingClient] Registering callback for "registered" action, waiting for roomCode:', roomCode);
       this.onMessage('registered', callback);
