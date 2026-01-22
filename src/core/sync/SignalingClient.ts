@@ -4,6 +4,8 @@
  */
 
 import { getOrCreateClientId } from './utils/uuid';
+import { getTransport } from '../../transport';
+import type { ITransport, IWebSocket } from '../../transport';
 
 /**
  * 상세 로그 출력 여부 확인
@@ -89,7 +91,8 @@ export interface HostInfo {
  * SignalingClient 클래스
  */
 export class SignalingClient {
-  private ws: WebSocket | null = null;
+  private transport: ITransport;
+  private ws: IWebSocket | null = null;
   private serverUrl: string;
   private wsUrl: string;
   private apiBaseUrl: string;
@@ -105,8 +108,14 @@ export class SignalingClient {
   
   // 재연결 시 룸 상태 복원 콜백
   private roomRestoreCallbacks: Array<() => Promise<void>> = [];
+  
+  // 중복 연결 방지: 연결 중인 Promise 저장
+  private connectingPromise: Promise<void> | null = null;
 
   constructor(serverUrl?: string) {
+    // Transport 인스턴스 가져오기 (플랫폼 자동 감지)
+    this.transport = getTransport();
+    
     // 환경 변수에서 서버 URL 가져오기
     this.serverUrl = serverUrl || import.meta.env.VITE_COLLABORATION_SERVER_URL || 'http://10.0.0.79:3000';
     this.wsUrl = import.meta.env.VITE_COLLABORATION_WS_URL || this.serverUrl.replace('http://', 'ws://').replace('https://', 'wss://');
@@ -118,30 +127,78 @@ export class SignalingClient {
    * WebSocket 연결
    */
   async connect(): Promise<void> {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    const OPEN = 1; // WebSocket.OPEN 상수
+    const CONNECTING = 0; // WebSocket.CONNECTING 상수
+    
+    // 이미 연결되어 있으면 즉시 반환
+    if (this.ws && this.ws.readyState === OPEN) {
       return; // 이미 연결됨
     }
 
-    return new Promise((resolve, reject) => {
-      const wsUrl = `${this.wsUrl}/api/online-daw/signaling?clientId=${this.clientId}`;
-      verboseLog('Connecting to WebSocket:', wsUrl);
-      
-      // WebSocket 연결 타임아웃 (10초)
-      const connectionTimeout = setTimeout(() => {
-        if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
-          this.ws.close();
-          console.error('[SignalingClient] WebSocket connection timeout');
+    // 이미 연결 중이면 기존 Promise 반환 (중복 연결 방지)
+    if (this.connectingPromise) {
+      verboseLog('[SignalingClient] Connection already in progress, waiting...');
+      return this.connectingPromise;
+    }
+
+    // CONNECTING 상태일 때도 기존 연결 완료 대기
+    if (this.ws && this.ws.readyState === CONNECTING) {
+      verboseLog('[SignalingClient] WebSocket is connecting, waiting for completion...');
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
           reject(new Error('WebSocket connection timeout: Unable to connect to server. Please check your connection and try again.'));
-        }
-      }, 10000);
-      
+        }, 10000);
+
+        const originalOnOpen = this.ws!.onopen;
+        this.ws!.onopen = () => {
+          clearTimeout(timeout);
+          if (originalOnOpen) {
+            originalOnOpen();
+          }
+          resolve();
+        };
+
+        const originalOnError = this.ws!.onerror;
+        this.ws!.onerror = (error) => {
+          clearTimeout(timeout);
+          if (originalOnError) {
+            originalOnError(error);
+          }
+          reject(new Error('WebSocket connection failed. Please check your connection and try again.'));
+        };
+      });
+    }
+
+    const wsUrl = `${this.wsUrl}/api/online-daw/signaling?clientId=${this.clientId}`;
+    verboseLog('Connecting to WebSocket:', wsUrl);
+    
+    // WebSocket 연결 타임아웃 (10초)
+    let resolveOpen: (() => void) | null = null;
+    let rejectOpen: ((error: Error) => void) | null = null;
+    const openPromise = new Promise<void>((resolve, reject) => {
+      resolveOpen = resolve;
+      rejectOpen = reject;
+    });
+    const connectionTimeout = setTimeout(() => {
+      if (this.ws && this.ws.readyState !== OPEN) {
+        this.ws.close();
+        console.error('[SignalingClient] WebSocket connection timeout');
+        this.connectingPromise = null; // Promise 초기화
+        rejectOpen?.(new Error('WebSocket connection timeout: Unable to connect to server. Please check your connection and try again.'));
+      }
+    }, 10000);
+    
+    // 연결 Promise 생성 (중복 방지)
+    this.connectingPromise = (async () => {
       try {
-        this.ws = new WebSocket(wsUrl);
+        // Transport를 통해 WebSocket 연결
+        this.ws = await this.transport.connectWebSocket(wsUrl);
 
         this.ws.onopen = () => {
           clearTimeout(connectionTimeout);
           this.isConnected = true;
           this.reconnectAttempts = 0;
+          this.connectingPromise = null; // 연결 완료 시 Promise 초기화
           verboseLog('WebSocket connection opened');
           
           // 재연결 시 룸 상태 복원
@@ -150,8 +207,7 @@ export class SignalingClient {
               console.error('[SignalingClient] Failed to restore room state:', error);
             });
           }
-          
-          resolve();
+          resolveOpen?.();
         };
 
         this.ws.onmessage = (event) => {
@@ -164,25 +220,38 @@ export class SignalingClient {
           }
         };
 
-        this.ws.onerror = () => {
+        this.ws.onerror = (error) => {
           clearTimeout(connectionTimeout);
-          reject(new Error('WebSocket connection failed. Please check your connection and try again.'));
+          this.connectingPromise = null; // 에러 시 Promise 초기화
+          console.error('[SignalingClient] WebSocket error:', error);
+          rejectOpen?.(new Error('WebSocket connection failed. Please check your connection and try again.'));
         };
 
         this.ws.onclose = () => {
           clearTimeout(connectionTimeout);
-          this.isConnected = false;          
+          this.isConnected = false;
+          this.connectingPromise = null; // 종료 시 Promise 초기화
           // 자동 재연결 시도
           if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.scheduleReconnect();
           }
         };
+
+        // 이미 OPEN 상태인 경우(예: Electron Transport) 즉시 처리
+        if (this.ws.readyState === OPEN) {
+          this.ws.onopen?.();
+        }
+
+        return openPromise;
       } catch (error) {
         clearTimeout(connectionTimeout);
+        this.connectingPromise = null; // 에러 시 Promise 초기화
         console.error('[SignalingClient] Failed to create WebSocket:', error);
-        reject(error instanceof Error ? error : new Error('Failed to create WebSocket connection'));
+        throw error instanceof Error ? error : new Error('Failed to create WebSocket connection');
       }
-    });
+    })();
+
+    return this.connectingPromise;
   }
 
   /**
@@ -277,8 +346,10 @@ export class SignalingClient {
    * 룸 생성 (호스트)
    */
   async registerRoom(hostId: string): Promise<string> {    
+    const OPEN = 1; // WebSocket.OPEN 상수
     // WebSocket 연결 확인
-    if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {      await this.connect();
+    if (!this.isConnected || !this.ws || this.ws.readyState !== OPEN) {
+      await this.connect();
     }
 
     // REST API로 룸 생성 (타임아웃 처리)
@@ -289,7 +360,8 @@ export class SignalingClient {
     let roomCode: string;
     
     try {
-      const response = await fetch(url, {
+      const response = await this.transport.request({
+        url,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -303,12 +375,12 @@ export class SignalingClient {
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to create room' }));
+        const error = (await response.json().catch(() => ({ error: 'Failed to create room' }))) as { error?: string };
         console.error('[SignalingClient] Room creation failed:', error);
         throw new Error(error.error || `HTTP ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as { roomCode: string };
       
       roomCode = data.roomCode;
 
@@ -363,7 +435,8 @@ export class SignalingClient {
    * 룸 정보 조회
    */
   async getRoom(roomCode: string): Promise<RoomInfo> {
-    const response = await fetch(`${this.apiBaseUrl}/rooms/${roomCode}`, {
+    const response = await this.transport.request({
+      url: `${this.apiBaseUrl}/rooms/${roomCode}`,
       method: 'GET',
       headers: {
         'X-Client-Id': this.clientId
@@ -371,18 +444,19 @@ export class SignalingClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Failed to get room' }));
+      const error = (await response.json().catch(() => ({ error: 'Failed to get room' }))) as { error?: string };
       throw new Error(error.error || `HTTP ${response.status}`);
     }
 
-    return await response.json();
+    return (await response.json()) as RoomInfo;
   }
 
   /**
    * 조인 허용 활성화 (호스트)
    */
   async allowJoin(roomCode: string, duration: number = 60): Promise<void> {
-    const response = await fetch(`${this.apiBaseUrl}/rooms/${roomCode}/allow-join`, {
+    const response = await this.transport.request({
+      url: `${this.apiBaseUrl}/rooms/${roomCode}/allow-join`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -392,7 +466,7 @@ export class SignalingClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Failed to allow join' }));
+      const error = (await response.json().catch(() => ({ error: 'Failed to allow join' }))) as { error?: string };
       throw new Error(error.error || `HTTP ${response.status}`);
     }
   }
@@ -401,8 +475,9 @@ export class SignalingClient {
    * 룸 참여 (참가자)
    */
   async joinRoom(roomCode: string): Promise<HostInfo> {
+    const OPEN = 1; // WebSocket.OPEN 상수
     // WebSocket 연결 확인
-    if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+    if (!this.isConnected || !this.ws || this.ws.readyState !== OPEN) {
       await this.connect();
     }
 
@@ -459,7 +534,8 @@ export class SignalingClient {
    * 참가자 강퇴 (호스트)
    */
   async kickParticipant(roomCode: string, participantId: string): Promise<void> {
-    const response = await fetch(`${this.apiBaseUrl}/rooms/${roomCode}/kick`, {
+    const response = await this.transport.request({
+      url: `${this.apiBaseUrl}/rooms/${roomCode}/kick`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -469,7 +545,7 @@ export class SignalingClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Failed to kick participant' }));
+      const error = (await response.json().catch(() => ({ error: 'Failed to kick participant' }))) as { error?: string };
       throw new Error(error.error || `HTTP ${response.status}`);
     }
   }
@@ -478,7 +554,8 @@ export class SignalingClient {
    * 룸 삭제 (호스트)
    */
   async deleteRoom(roomCode: string): Promise<void> {    
-    const response = await fetch(`${this.apiBaseUrl}/rooms/${roomCode}`, {
+    const response = await this.transport.request({
+      url: `${this.apiBaseUrl}/rooms/${roomCode}`,
       method: 'DELETE',
       headers: {
         'X-Client-Id': this.clientId
@@ -486,7 +563,7 @@ export class SignalingClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Failed to delete room' }));
+      const error = (await response.json().catch(() => ({ error: 'Failed to delete room' }))) as { error?: string };
       console.error('[SignalingClient] Room deletion failed:', error);
       throw new Error(error.error || `HTTP ${response.status}`);
     }    
@@ -498,7 +575,8 @@ export class SignalingClient {
    * 시그널링 메시지 전송
    */
   sendSignalingMessage(message: SignalingMessage): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+    const OPEN = 1; // WebSocket.OPEN 상수
+    if (!this.ws || this.ws.readyState !== OPEN) {
       throw new Error('WebSocket is not connected');
     }
 
@@ -559,7 +637,8 @@ export class SignalingClient {
    * WebSocket 메시지 전송
    */
   private sendWebSocketMessage(message: any): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+    const OPEN = 1; // WebSocket.OPEN 상수
+    if (!this.ws || this.ws.readyState !== OPEN) {
       console.error('[SignalingClient] WebSocket is not connected, readyState:', this.ws?.readyState);
       throw new Error('WebSocket is not connected');
     }
@@ -600,7 +679,8 @@ export class SignalingClient {
    * 현재 연결 상태
    */
   get connected(): boolean {
-    return this.isConnected && this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+    const OPEN = 1; // WebSocket.OPEN 상수
+    return this.isConnected && this.ws !== null && this.ws.readyState === OPEN;
   }
 
   /**
@@ -617,5 +697,4 @@ export class SignalingClient {
     return this.clientId;
   }
 }
-
 
