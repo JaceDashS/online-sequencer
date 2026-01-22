@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from './CollaborationButtons.module.css';
 import { CollaborationManager } from '../../core/sync/CollaborationManager';
-import { setCollaborationManager } from '../../core/sync/collaborationSession';
+import { getCollaborationManager, setCollaborationManager } from '../../core/sync/collaborationSession';
 import { getOrCreateClientId } from '../../core/sync/utils/uuid';
 import type { ConnectionState } from '../../core/sync/types/p2p';
 import { showError } from '../../utils/toastStore';
@@ -39,8 +39,11 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
   // CollaborationManager 초기화
   useEffect(() => {
     if (!collaborationManagerRef.current) {
-      collaborationManagerRef.current = new CollaborationManager();
-      setCollaborationManager(collaborationManagerRef.current);
+      const existingManager = getCollaborationManager();
+      collaborationManagerRef.current = existingManager || new CollaborationManager();
+      if (!existingManager) {
+        setCollaborationManager(collaborationManagerRef.current);
+      }
     }
 
     // room-closed 메시지 핸들러 등록
@@ -145,12 +148,7 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
         collaborationManagerRef.current.offServerMessage('kicked', handleKicked);
         collaborationManagerRef.current.offConnectionStateChange(handleConnectionStateChange);
       }
-      // 컴포넌트 언마운트 시 연결 종료
-      if (collaborationManagerRef.current) {
-        collaborationManagerRef.current.disconnect();
-        collaborationManagerRef.current = null;
-        setCollaborationManager(null);
-      }
+      // 컴포넌트 언마운트 시에는 연결을 유지하고 리스너만 해제 (중복 언마운트/마운트 보호)
     };
   }, []);
 

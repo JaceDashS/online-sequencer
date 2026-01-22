@@ -471,10 +471,12 @@ export class CollaborationManager {
   disconnect(): void {
 
     if (this.isHost && this.roomCode) {
-      // 호스트: 룸 삭제
-      this.signalingClient.deleteRoom(this.roomCode).catch((err: Error) => {
-        console.error('[CollaborationManager] Failed to delete room:', err);
-      });
+      // 호스트: 연결이 살아있으면 leave로 삭제가 처리되므로 REST 삭제는 생략
+      if (!this.signalingClient.connected) {
+        this.signalingClient.deleteRoom(this.roomCode).catch((err: Error) => {
+          console.error('[CollaborationManager] Failed to delete room:', err);
+        });
+      }
     }
     // 게스트는 SignalingClient.disconnect()가 자동으로 leave 메시지를 전송
 
