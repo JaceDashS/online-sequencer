@@ -47,6 +47,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   const scheduledPauseTimeRef = useRef<number | null>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const collaborationManagerRef = useRef<CollaborationManager | null>(null);
+  const pendingLatencyHintRef = useRef<number | null>(null);
   
   // ë””ë²„ê¹…ìš© ë…ë¦½ íƒ€ì´ë¨¸ (ì‹¤ì œ ì‹œê°„ ê¸°ë°˜)
   const realTimeStartRef = useRef<number | null>(null);
@@ -94,7 +95,34 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
       Math.round((bufferSize / AUDIO_BUFFER_CONSTANTS.SAMPLE_RATE) * AUDIO_BUFFER_CONSTANTS.PERIODS * 1000)
     );
     setPlaybackClockInterval(intervalMs);
+    const latencySeconds = Math.max(
+      0.001,
+      (bufferSize / AUDIO_BUFFER_CONSTANTS.SAMPLE_RATE) * AUDIO_BUFFER_CONSTANTS.PERIODS
+    );
+    const needsRecreate = playbackController.getEngine().setOutputLatencyHintSeconds(latencySeconds);
+    if (isPlayingRef.current) {
+      pendingLatencyHintRef.current = latencySeconds;
+      return;
+    }
+    if (needsRecreate) {
+      void playbackController.getEngine().recreateContextForLatencyHint();
+    }
   }, [ui.audioBufferSize]);
+
+  useEffect(() => {
+    if (isPlaying) {
+      return;
+    }
+    if (pendingLatencyHintRef.current === null) {
+      return;
+    }
+    const latencySeconds = pendingLatencyHintRef.current;
+    pendingLatencyHintRef.current = null;
+    const needsRecreate = playbackController.getEngine().setOutputLatencyHintSeconds(latencySeconds);
+    if (needsRecreate) {
+      void playbackController.getEngine().recreateContextForLatencyHint();
+    }
+  }, [isPlaying]);
 
   const clearScheduledPause = useCallback(() => {
     if (pauseTimerRef.current !== null) {

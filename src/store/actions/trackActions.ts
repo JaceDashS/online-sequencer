@@ -10,6 +10,7 @@ import { getProject, addTrackToProject, removeTrackFromProject, findTrackById, f
 import { notifyProjectChange, notifyTrackChange } from '../projectEvents';
 import { removeMidiPart } from '../midiPartActions';
 import { checkAndUpdatePartyTime } from '../../utils/partyTime';
+import { preloadPlaybackSamples } from '../../utils/audioPreload';
 
 /**
  * ID로 트랙을 찾습니다 (인덱스 사용).
@@ -47,6 +48,7 @@ export const addTrack = (track: Track): void => {
   }
   addTrackToProject(track);
   notifyProjectChange({ type: 'track' as const, trackId: track.id });
+  void preloadPlaybackSamples();
   
   // 파티타임 확인 (트랙 추가 시)
   setTimeout(() => {
@@ -83,8 +85,12 @@ export const removeTrack = (trackId: string): void => {
 export const updateTrack = (trackId: string, updates: Partial<Track>): void => {
   const track = findTrack(trackId);
   if (track) {
+    const previousInstrument = track.instrument;
     Object.assign(track, updates);
     notifyTrackChange(trackId, updates, 'update');
+    if (updates.instrument !== undefined && updates.instrument !== previousInstrument) {
+      void preloadPlaybackSamples();
+    }
     
     // 파티타임 확인 (트랙명이 변경된 경우)
     // 트랙명이 완전히 저장된 후 확인

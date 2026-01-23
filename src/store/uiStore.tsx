@@ -1,6 +1,7 @@
 import { createContext, useContext, useCallback, useReducer, useMemo, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { setDebugLogBufferSize as setDebugLogBufferSizeInLogger } from '../utils/debugLogger';
+import { audioLevelStore } from '../utils/audioLevelStore';
 import { AUDIO_BUFFER_CONSTANTS } from '../constants/ui';
 import { setPlaybackDriftThresholdMs, setPlaybackTime } from '../utils/playbackTimeStore';
 
@@ -47,6 +48,9 @@ export interface UIState {
   audioBufferSize: number;
   playbackDriftMs: number;
   pitchOffsetMaxMs: number; // 같은 음계 간섭 방지를 위한 최대 시간 오프셋 (밀리초)
+  scheduleLookaheadSeconds: number;
+  levelMeterEnabled: boolean;
+  freezeTimelineRender: boolean;
   devModeEnabled: boolean;
   
   // 커서 모드 상태
@@ -118,6 +122,9 @@ export interface UIActions {
   setAudioBufferSize: (size: number) => void;
   setPlaybackDriftMs: (value: number) => void;
   setPitchOffsetMaxMs: (value: number) => void;
+  setScheduleLookaheadSeconds: (value: number) => void;
+  setLevelMeterEnabled: (enabled: boolean) => void;
+  setFreezeTimelineRender: (enabled: boolean) => void;
   setDevModeEnabled: (enabled: boolean) => void;
   toggleDevMode: () => void;
   
@@ -189,6 +196,9 @@ export type UIAction =
   | { type: 'SET_AUDIO_BUFFER_SIZE'; payload: number }
   | { type: 'SET_PLAYBACK_DRIFT_MS'; payload: number }
   | { type: 'SET_PITCH_OFFSET_MAX_MS'; payload: number }
+  | { type: 'SET_SCHEDULE_LOOKAHEAD_SECONDS'; payload: number }
+  | { type: 'SET_LEVEL_METER_ENABLED'; payload: boolean }
+  | { type: 'SET_FREEZE_TIMELINE_RENDER'; payload: boolean }
   | { type: 'SET_DEV_MODE_ENABLED'; payload: boolean }
   | { type: 'TOGGLE_DEV_MODE' }
   
@@ -307,6 +317,9 @@ const initialState: UIState = {
   audioBufferSize: AUDIO_BUFFER_CONSTANTS.DEFAULT_BUFFER_SIZE,
   playbackDriftMs: 20,
   pitchOffsetMaxMs: 3, // 기본값: 3ms
+  scheduleLookaheadSeconds: 0.5,
+  levelMeterEnabled: true,
+  freezeTimelineRender: false,
   devModeEnabled: false,
   cursorMode: null,
     mergeFlashActive: false,
@@ -433,6 +446,21 @@ const uiReducer = (state: UIState, action: UIAction): UIState => {
         ? Math.max(0, Math.min(20, Math.floor(action.payload))) 
         : initialState.pitchOffsetMaxMs;
       return { ...state, pitchOffsetMaxMs: nextValue };
+    }
+    case 'SET_SCHEDULE_LOOKAHEAD_SECONDS': {
+      const nextValue = Number.isFinite(action.payload)
+        ? Math.max(0, Math.min(5, Math.round(action.payload * 100) / 100))
+        : initialState.scheduleLookaheadSeconds;
+      return { ...state, scheduleLookaheadSeconds: nextValue };
+    }
+    case 'SET_LEVEL_METER_ENABLED': {
+      const nextValue = Boolean(action.payload);
+      audioLevelStore.setEnabled(nextValue);
+      return { ...state, levelMeterEnabled: nextValue };
+    }
+    case 'SET_FREEZE_TIMELINE_RENDER': {
+      const nextValue = Boolean(action.payload);
+      return { ...state, freezeTimelineRender: nextValue };
     }
     case 'SET_DEV_MODE_ENABLED':
       return { ...state, devModeEnabled: action.payload };
@@ -634,6 +662,15 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
     }, []),
     setPitchOffsetMaxMs: useCallback((value: number) => {
       dispatch({ type: 'SET_PITCH_OFFSET_MAX_MS', payload: value });
+    }, []),
+    setScheduleLookaheadSeconds: useCallback((value: number) => {
+      dispatch({ type: 'SET_SCHEDULE_LOOKAHEAD_SECONDS', payload: value });
+    }, []),
+    setLevelMeterEnabled: useCallback((enabled: boolean) => {
+      dispatch({ type: 'SET_LEVEL_METER_ENABLED', payload: enabled });
+    }, []),
+    setFreezeTimelineRender: useCallback((enabled: boolean) => {
+      dispatch({ type: 'SET_FREEZE_TIMELINE_RENDER', payload: enabled });
     }, []),
     setDevModeEnabled: useCallback((enabled: boolean) => {
       dispatch({ type: 'SET_DEV_MODE_ENABLED', payload: enabled });

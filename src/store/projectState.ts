@@ -6,6 +6,7 @@ import {
 } from '../domain/timing/timingUtils';
 import { migrateProjectAtLoad } from './projectMigration';
 import { notifyProjectChange, notifyTrackChange } from './projectEvents';
+import { preloadPlaybackSamples } from '../utils/audioPreload';
 
 /**
  * 초기 프로젝트 상태
@@ -131,6 +132,7 @@ export const setProject = (project: Project, skipMigration = false): void => {
   currentProject.tracks.forEach(track => {
     notifyTrackChange(track.id, {}, 'update');
   });
+  void preloadPlaybackSamples();
   
   // 파티타임 확인 (프로젝트 로드 시)
   import('../utils/partyTime').then(({ checkAndUpdatePartyTime }) => {

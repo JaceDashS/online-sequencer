@@ -26,6 +26,17 @@ export type NoteEvent = {
   track: Track;
 };
 
+const PERF_LOG_THRESHOLD_MS = 8;
+const PERF_LOG_THROTTLE_MS = 1000;
+let lastPerfLogAt = 0;
+
+function getPerfNow(): number {
+  if (typeof performance !== 'undefined' && performance.now) {
+    return performance.now();
+  }
+  return Date.now();
+}
+
 /**
  * 프로젝트 데이터로부터 재생 가능한 노트 이벤트 배열을 생성합니다.
  * 
@@ -33,10 +44,12 @@ export type NoteEvent = {
  * @returns 재생 가능한 노트 이벤트 배열 (시간순 정렬)
  */
 export function buildPlaybackEvents(project: Project): NoteEvent[] {
+  const startPerf = getPerfNow();
   const trackById = new Map(project.tracks.map((track) => [track.id, track]));
   const soloTracks = project.tracks.filter((track) => track.solo);
   const hasSolo = soloTracks.length > 0;
   const events: NoteEvent[] = [];
+  let noteCount = 0;
 
   // 프로젝트에서 타이밍 정보 추출
   const timeSignature = getTimeSignature(project);
@@ -76,6 +89,7 @@ export function buildPlaybackEvents(project: Project): NoteEvent[] {
     }
 
     for (const note of part.notes) {
+      noteCount += 1;
       // 노트의 상대 위치가 음수이거나 파트 범위 밖이면 재생하지 않음
       const noteStartTickRelative = note.startTick;
       const noteEndTickRelative = noteStartTickRelative + note.durationTicks;
@@ -127,6 +141,18 @@ export function buildPlaybackEvents(project: Project): NoteEvent[] {
   }
 
   events.sort((a, b) => a.startTime - b.startTime);
+  const elapsedMs = getPerfNow() - startPerf;
+  const now = getPerfNow();
+  if (elapsedMs >= PERF_LOG_THRESHOLD_MS && now - lastPerfLogAt > PERF_LOG_THROTTLE_MS) {
+    lastPerfLogAt = now;
+    console.log('[perf] buildPlaybackEvents', {
+      elapsedMs: Math.round(elapsedMs),
+      tracks: project.tracks.length,
+      parts: project.midiParts.length,
+      notes: noteCount,
+      events: events.length,
+    });
+  }
   return events;
 }
 

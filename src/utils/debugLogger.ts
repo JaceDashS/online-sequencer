@@ -30,6 +30,7 @@ export interface DebugLogEntry {
 const INGEST_URL = 'http://127.0.0.1:7242/ingest/870903ce-f6b4-4dbe-9e94-841bab6b23ed';
 const DEFAULT_BUFFER_SIZE = 0;
 const IDLE_FLUSH_MS = 4000;
+const DISABLE_DEBUG_LOG = true;
 
 // 환경별 로깅 설정
 // 프로덕션 환경에서는 기본적으로 로깅 비활성화
@@ -140,6 +141,10 @@ export function setDebugLogBufferSize(size: number): void {
 export function enqueueDebugLog(entry: DebugLogEntry): void {
   // 로깅이 비활성화되어 있으면 즉시 반환
   if (!loggingEnabled) {
+    return;
+  }
+
+  if (DISABLE_DEBUG_LOG) {
     return;
   }
   

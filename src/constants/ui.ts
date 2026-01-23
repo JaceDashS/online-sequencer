@@ -36,7 +36,7 @@ export const AUDIO_CONSTANTS = {
   WHEEL_DELTA: 1,
 } as const;
 
-// Audio buffer sizing (UI scheduling only; Web Audio buffer is fixed in browsers)
+// Audio buffer sizing (playback clock + AudioContext latency hint)
 export const AUDIO_BUFFER_CONSTANTS = {
   SAMPLE_RATE: 48000,
   PERIODS: 2,

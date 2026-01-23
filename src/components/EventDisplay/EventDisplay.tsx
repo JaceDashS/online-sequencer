@@ -16,13 +16,24 @@ import { MIDI_CONSTANTS } from '../../constants/midi';
 import { TimelineView } from './TimelineView';
 import type { EventDisplayProps, MeasureMarker } from './EventDisplayTypes';
 import { RESIZE_HANDLE_WIDTH_PX } from './EventDisplayTypes';
-import { usePlaybackTime } from '../../hooks/usePlaybackTime';
+import { usePlaybackTimeControlled } from '../../hooks/usePlaybackTime';
 import {
   calculateMeasureMarkers,
   calculateTotalWidth,
   calculateSplitPreviewX,
   calculateSplitMeasure
 } from './EventDisplayCalculations';
+
+const PERF_LOG_THRESHOLD_MS = 8;
+const PERF_LOG_THROTTLE_MS = 1000;
+let lastEventDisplayPerfLogAt = 0;
+
+const getPerfNow = (): number => {
+  if (typeof performance !== 'undefined' && performance.now) {
+    return performance.now();
+  }
+  return Date.now();
+};
 
 const EventDisplay: React.FC<EventDisplayProps> = ({
   bpm = 120,
@@ -41,7 +52,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   
   // Step 10: ??? ??? - useEventDisplayData ??? ??? ????
-  const { tracks } = useEventDisplayData();
+  const { tracks } = useEventDisplayData({ freeze: ui.freezeTimelineRender });
   
   // PPQN ????
   const project = selectProject();
@@ -378,7 +389,19 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   // ?? ?? ??? ??/??? ?? ??? timeSignature? ???? ??? ?? ?? ??
   // 4/4 ?? ???? 300??? ?? ??? ??
   const totalWidth = useMemo(() => {
-    return calculateTotalWidth(bpm, pixelsPerSecond);
+    const startPerf = getPerfNow();
+    const value = calculateTotalWidth(bpm, pixelsPerSecond);
+    const elapsedMs = getPerfNow() - startPerf;
+    const now = getPerfNow();
+    if (elapsedMs > PERF_LOG_THRESHOLD_MS && now - lastEventDisplayPerfLogAt > PERF_LOG_THROTTLE_MS) {
+      lastEventDisplayPerfLogAt = now;
+      console.log('[perf] EventDisplay.calculateTotalWidth', {
+        elapsedMs: Math.round(elapsedMs),
+        bpm,
+        pixelsPerSecond,
+      });
+    }
+    return value;
   }, [bpm, pixelsPerSecond]);
 
   // ?? ??? ??? (MeasureRuler? ??? ??)
@@ -455,7 +478,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   }, [onScrollSync]);
 
   // ?????: ?????? ??? ??
-  const playbackTime = usePlaybackTime();
+  const playbackTime = usePlaybackTimeControlled(ui.freezeTimelineRender);
   const autoScrollTargetRef = useRef(playbackTime);
   const autoScrollPixelsPerSecondRef = useRef(pixelsPerSecond);
   const autoScrollViewportWidthRef = useRef<number>(0);
@@ -547,7 +570,20 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   // ?? ????? ??? ?? ?? ?? ??
   // props? ?? timeSignature? ???? ?? ???? ?? ? ?? ??
   const measureMarkers = useMemo<MeasureMarker[]>(() => {
-    return calculateMeasureMarkers(bpm, timeSignature, pixelsPerSecond, startTime, 150);
+    const startPerf = getPerfNow();
+    const markers = calculateMeasureMarkers(bpm, timeSignature, pixelsPerSecond, startTime, 150);
+    const elapsedMs = getPerfNow() - startPerf;
+    const now = getPerfNow();
+    if (elapsedMs > PERF_LOG_THRESHOLD_MS && now - lastEventDisplayPerfLogAt > PERF_LOG_THROTTLE_MS) {
+      lastEventDisplayPerfLogAt = now;
+      console.log('[perf] EventDisplay.calculateMeasureMarkers', {
+        elapsedMs: Math.round(elapsedMs),
+        bpm,
+        pixelsPerSecond,
+        measures: markers.length,
+      });
+    }
+    return markers;
   }, [bpm, pixelsPerSecond, startTime, timeSignature]);
 
   // Step 9.2: ????? ?? ????? TimelineView ??? ???

@@ -4,9 +4,15 @@ import { getBpm, getTimeSignature } from '../../utils/midiTickUtils';
 import type { Project } from '../../types/project';
 import { AudioEngine } from './AudioEngine';
 import { buildPlaybackEvents, type NoteEvent } from './buildPlaybackEvents';
+import { enqueueDebugLog } from '../../utils/debugLogger';
 
-const SCHEDULE_LOOKAHEAD_SECONDS = 0.5;
+const DEFAULT_SCHEDULE_LOOKAHEAD_SECONDS = 0.5;
 const SCHEDULE_INTERVAL_MS = 100;
+const SCHEDULE_SPIKE_MS = 8;
+const SCHEDULE_LAG_FACTOR = 2.2;
+const LOOKAHEAD_DEPLETION_SECONDS = 0.05;
+const LARGE_BATCH_COUNT = 1000;
+const LOG_THROTTLE_MS = 1000;
 
 export class PlaybackController {
   private engine = new AudioEngine();
@@ -17,13 +23,25 @@ export class PlaybackController {
   getEngine(): AudioEngine {
     return this.engine;
   }
+  
+  setScheduleLookaheadSeconds(seconds: number): void {
+    if (!Number.isFinite(seconds)) return;
+    this.scheduleLookaheadSeconds = Math.max(0, Math.min(5, seconds));
+  }
   private isPlaying = false;
   private startToken = 0;
   private scheduleTimer: number | null = null;
   private scheduledUntil = 0;
+  private scheduleLookaheadSeconds = DEFAULT_SCHEDULE_LOOKAHEAD_SECONDS;
   private events: NoteEvent[] = [];
   private eventIndex = 0;
   private projectSnapshot: Project | null = null;
+  private lastScheduleTickPerf = 0;
+  private lastSpikeLogAt = 0;
+  private lastLagLogAt = 0;
+  private lastUnderrunLogAt = 0;
+  private lastLargeBatchLogAt = 0;
+  private lastWindowLogAt = 0;
 
   constructor() {
     // 프로젝트 변경을 구독하여 BPM/time signature 변경 시 타이밍 업데이트
@@ -292,15 +310,63 @@ export class PlaybackController {
    * SCHEDULE_LOOKAHEAD_SECONDS만큼 앞서서 스케줄링하여 지연을 방지합니다
    */
   private scheduleLookahead(): void {
+    const nowPerf = getPerfNow();
+    if (this.lastScheduleTickPerf > 0) {
+      const tickDelta = nowPerf - this.lastScheduleTickPerf;
+      if (tickDelta > SCHEDULE_INTERVAL_MS * SCHEDULE_LAG_FACTOR && nowPerf - this.lastLagLogAt > LOG_THROTTLE_MS) {
+        this.lastLagLogAt = nowPerf;
+        logScheduleDebug('schedule_tick_lag', {
+          tickDeltaMs: Math.round(tickDelta),
+          expectedIntervalMs: SCHEDULE_INTERVAL_MS,
+        });
+      }
+    }
+    this.lastScheduleTickPerf = nowPerf;
     const playbackTime = getPlaybackTime();
     if (!Number.isFinite(playbackTime)) {
       return;
     }
-    const windowEnd = playbackTime + SCHEDULE_LOOKAHEAD_SECONDS;
+    const remaining = this.scheduledUntil - playbackTime;
+    if (remaining <= 0 && nowPerf - this.lastUnderrunLogAt > LOG_THROTTLE_MS) {
+      this.lastUnderrunLogAt = nowPerf;
+      logScheduleDebug('lookahead_depleted', {
+        remainingSeconds: Number(remaining.toFixed(3)),
+        playbackTime: Number(playbackTime.toFixed(3)),
+        scheduledUntil: Number(this.scheduledUntil.toFixed(3)),
+        lookaheadSeconds: this.scheduleLookaheadSeconds,
+      });
+    } else if (remaining > 0 && remaining < LOOKAHEAD_DEPLETION_SECONDS && nowPerf - this.lastUnderrunLogAt > LOG_THROTTLE_MS) {
+      this.lastUnderrunLogAt = nowPerf;
+      logScheduleDebug('lookahead_low', {
+        remainingSeconds: Number(remaining.toFixed(3)),
+        lookaheadSeconds: this.scheduleLookaheadSeconds,
+      });
+    }
+    const windowEnd = playbackTime + this.scheduleLookaheadSeconds;
     if (windowEnd <= this.scheduledUntil) {
       return;
     }
+    const beforeIndex = this.eventIndex;
+    const scheduleStartPerf = getPerfNow();
     this.scheduleWindow(playbackTime, this.scheduledUntil, windowEnd);
+    const scheduleElapsed = getPerfNow() - scheduleStartPerf;
+    const scheduledCount = this.eventIndex - beforeIndex;
+    if (scheduleElapsed > SCHEDULE_SPIKE_MS && nowPerf - this.lastSpikeLogAt > LOG_THROTTLE_MS) {
+      this.lastSpikeLogAt = nowPerf;
+      logScheduleDebug('schedule_spike', {
+        elapsedMs: Math.round(scheduleElapsed),
+        scheduledCount,
+        windowStart: Number(this.scheduledUntil.toFixed(3)),
+        windowEnd: Number(windowEnd.toFixed(3)),
+      });
+    }
+    if (scheduledCount >= LARGE_BATCH_COUNT && nowPerf - this.lastLargeBatchLogAt > LOG_THROTTLE_MS) {
+      this.lastLargeBatchLogAt = nowPerf;
+      logScheduleDebug('schedule_large_batch', {
+        scheduledCount,
+        lookaheadSeconds: this.scheduleLookaheadSeconds,
+      });
+    }
     this.scheduledUntil = windowEnd;
   }
 
@@ -316,9 +382,13 @@ export class PlaybackController {
       return;
     }
 
+    const windowStartPerf = getPerfNow();
+    let scannedCount = 0;
+    let scheduledCount = 0;
     const audioOffset = this.engine.getCurrentTime() - playbackTime;
 
     while (this.eventIndex < this.events.length) {
+      scannedCount += 1;
       const event = this.events[this.eventIndex];
       if (event.startTime >= windowEnd) {
         break;
@@ -342,8 +412,22 @@ export class PlaybackController {
           trackPan,
           instrument: event.track.instrument,
         });
+        scheduledCount += 1;
       }
       this.eventIndex += 1;
+    }
+
+    const elapsedMs = getPerfNow() - windowStartPerf;
+    const nowPerf = getPerfNow();
+    if ((elapsedMs > 6 || scannedCount > 2000) && nowPerf - this.lastWindowLogAt > 1000) {
+      this.lastWindowLogAt = nowPerf;
+      console.log('[perf] scheduleWindow', {
+        elapsedMs: Math.round(elapsedMs),
+        scannedCount,
+        scheduledCount,
+        windowStart: Number(windowStart.toFixed(3)),
+        windowEnd: Number(windowEnd.toFixed(3)),
+      });
     }
   }
 
@@ -403,3 +487,19 @@ export class PlaybackController {
 }
 
 export const playbackController = new PlaybackController();
+
+function getPerfNow(): number {
+  if (typeof performance !== 'undefined' && performance.now) {
+    return performance.now();
+  }
+  return Date.now();
+}
+function logScheduleDebug(message: string, data: Record<string, unknown>): void {
+  console.log('[schedule]', message, data);
+  enqueueDebugLog({
+    location: 'PlaybackController.scheduleLookahead',
+    message,
+    timestamp: Date.now(),
+    data,
+  });
+}

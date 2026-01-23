@@ -20,6 +20,8 @@ import { getBpm, getTimeSignature } from '../utils/midiTickUtils';
 import { cleanupAllResources } from '../utils/resourceCleanup';
 import { importMidiFileToProject } from '../core/midi/MidiParser';
 import { checkAndUpdatePartyTime } from '../utils/partyTime';
+import { subscribeAudioLoading } from '../utils/audioLoadingStore';
+import { initLongTaskLogger } from '../utils/longTaskLogger';
 
 // 초기 로드할 MIDI 파일 목록
 const DEFAULT_MIDI_FILES = [
@@ -127,6 +129,10 @@ const DawPage: React.FC = () => {
   useEffect(() => {
     checkAndUpdatePartyTime();
   }, []);
+
+  useEffect(() => {
+    initLongTaskLogger();
+  }, []);
   
   // 페이지 언마운트 시 모든 리소스 정리
   useEffect(() => {
@@ -165,6 +171,7 @@ const DawPage: React.FC = () => {
   const project = getProject();
   const [bpm, setBpm] = useState(getBpm(project));
   const [timeSignature, setTimeSignature] = useState<[number, number]>(getTimeSignature(project));
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
   
   // 프로젝트 변경 구독
   useEffect(() => {
@@ -182,6 +189,12 @@ const DawPage: React.FC = () => {
 
 
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    return subscribeAudioLoading((isLoading) => {
+      setIsAudioLoading(isLoading);
+    });
   }, []);
 
   // BPM 및 Time Signature 변경 핸들러
@@ -337,6 +350,14 @@ const DawPage: React.FC = () => {
         )}
       </div>
       <div className={styles.versionLabel}>v{APP_VERSION}</div>
+      {isAudioLoading && (
+        <div className={styles.audioLoadingOverlay}>
+          <div className={styles.audioLoadingCard}>
+            <div className={styles.audioLoadingSpinner} />
+            <div className={styles.audioLoadingText}>Loading samples...</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

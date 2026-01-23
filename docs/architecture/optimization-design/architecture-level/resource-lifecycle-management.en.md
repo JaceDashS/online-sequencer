@@ -1,8 +1,8 @@
 # Resource Lifecycle Management
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-23
 
 **Category**: Architecture Level - Resource Management
 
@@ -32,6 +32,8 @@ An optimization technique that systematically manages the lifecycle of audio eng
 - `src/utils/resourceCleanup.ts`: Global cleanup function
 - `src/pages/DawPage.tsx`: Cleanup call on page transition
 - `src/components/MidiEditor/MidiEditor.tsx`: Cleanup on component unmount
+- `src/utils/audioPreload.ts`: Sample preload entry point
+- `src/utils/audioLoadingStore.ts`: Sample loading state broadcast
 
 ---
 
@@ -118,6 +120,41 @@ async dispose(): Promise<void> {
 #### Usage Location
 
 - `MidiEditor.tsx`: Called in `useEffect` cleanup on component unmount
+
+---
+
+## Sample Loading Lifecycle
+
+### Trigger Points
+- MIDI load (`setProject`)
+- Track add (`addTrack`)
+- Instrument change (`updateTrack` + instrument change)
+
+### Loading Flow
+
+```mermaid
+sequenceDiagram
+    participant UI as UI
+    participant Store as Store
+    participant Preload as audioPreload
+    participant Engine as AudioEngine
+    participant Overlay as Loading Overlay
+
+    UI->>Store: MIDI load/track add/instrument change
+    Store->>Preload: preloadPlaybackSamples()
+    Preload->>Engine: ensureReady()
+    Engine->>Overlay: beginAudioLoading()
+    Engine-->>Engine: Sample load/decode
+    Engine->>Overlay: endAudioLoading()
+```
+
+### UI Display
+- `DawPage` subscribes to loading state and shows a global overlay (spinner)
+- Automatically hidden when sample loading completes
+
+### Notes
+- `AudioContext.resume()` can be blocked until a user gesture; loading does not wait on it
+- On load failures, the loading counter is still cleared and playback retries later
 - `PlaybackController.ts`: dispose method of singleton instance (called in global cleanup)
 
 ### PlaybackController Lifecycle Management
@@ -439,5 +476,5 @@ useEffect(() => {
 
 ---
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-23
 

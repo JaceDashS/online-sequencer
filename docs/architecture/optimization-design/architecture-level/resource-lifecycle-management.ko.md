@@ -1,8 +1,8 @@
 # 리소스 생명주기 관리
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-23
 
 **카테고리**: 아키텍처 수준 - 리소스 관리
 
@@ -32,6 +32,8 @@
 - `src/utils/resourceCleanup.ts`: 전역 cleanup 함수
 - `src/pages/DawPage.tsx`: 페이지 전환 시 cleanup 호출
 - `src/components/MidiEditor/MidiEditor.tsx`: 컴포넌트 언마운트 시 cleanup
+- `src/utils/audioPreload.ts`: 샘플 프리로드 진입점
+- `src/utils/audioLoadingStore.ts`: 샘플 로딩 상태 브로드캐스트
 
 ---
 
@@ -118,6 +120,41 @@ async dispose(): Promise<void> {
 #### 사용 위치
 
 - `MidiEditor.tsx`: 컴포넌트 언마운트 시 `useEffect` cleanup에서 호출
+
+---
+
+## 샘플 로딩 라이프사이클
+
+### 트리거 시점
+- MIDI 로드 (`setProject`) 시
+- 트랙 추가 (`addTrack`) 시
+- 악기 변경 (`updateTrack` + instrument 변경) 시
+
+### 로딩 흐름
+
+```mermaid
+sequenceDiagram
+    participant UI as UI
+    participant Store as Store
+    participant Preload as audioPreload
+    participant Engine as AudioEngine
+    participant Overlay as Loading Overlay
+
+    UI->>Store: MIDI 로드/트랙 추가/악기 변경
+    Store->>Preload: preloadPlaybackSamples()
+    Preload->>Engine: ensureReady()
+    Engine->>Overlay: beginAudioLoading()
+    Engine-->>Engine: 샘플 로드/디코딩
+    Engine->>Overlay: endAudioLoading()
+```
+
+### UI 표시
+- `DawPage`가 로딩 상태를 구독하여 전역 오버레이(스피너)를 표시
+- 샘플 로딩이 끝나면 자동으로 숨김
+
+### 주의사항
+- `AudioContext.resume()`는 사용자 제스처가 없으면 지연될 수 있으므로 로딩을 block하지 않음
+- 샘플 로딩 실패 시에도 로딩 카운트는 정리되며, 재생 시점에 재시도됨
 - `PlaybackController.ts`: 싱글톤 인스턴스의 dispose 메서드 (전역 cleanup에서 호출)
 
 ### PlaybackController 생명주기 관리
@@ -439,5 +476,5 @@ useEffect(() => {
 
 ---
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-23
 

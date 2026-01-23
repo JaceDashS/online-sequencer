@@ -137,3 +137,50 @@
   transition: color 0.3s ease;
 }
 
+.audioLoadingOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.audioLoadingCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(20, 20, 20, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f4f4f4;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.audioLoadingSpinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
+  animation: audioLoadingSpin 0.9s linear infinite;
+}
+
+.audioLoadingText {
+  white-space: nowrap;
+}
+
+@keyframes audioLoadingSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+

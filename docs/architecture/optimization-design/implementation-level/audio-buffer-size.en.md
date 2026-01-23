@@ -1,8 +1,8 @@
 # Adjustable Audio Buffer Size
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-23
 
 **Category**: Implementation Level - Audio Playback Optimization
 
@@ -27,6 +27,7 @@ A feature that allows users to adjust the audio buffer size according to their s
 - `src/store/uiStore.tsx`: State management
 - `src/components/Toolbar/AudioBufferControl.tsx`: UI control
 - `src/components/Toolbar/TransportControls.tsx`: Tick interval calculation
+- `src/core/audio/AudioEngine.ts`: AudioContext latencyHint application/recreation
 
 ---
 
@@ -101,11 +102,24 @@ graph TD
 
 ---
 
+## AudioContext latencyHint
+
+```typescript
+latencyHintSeconds = (bufferSize / SAMPLE_RATE) * PERIODS
+```
+
+- Applied to `AudioContext` creation via `latencyHint`
+- Changes during playback are deferred and applied after stopping (context recreation)
+- Browsers may ignore the hint; actual latency can vary by environment
+
+---
+
 ## Notes
 
 ### Current Status
-- Currently only affects UI scheduling (AudioContext not implemented)
-- Web Audio API uses fixed 128-frame render quantum
+- Affects both UI scheduling (PlaybackClock tick interval) and AudioContext `latencyHint`
+- Web Audio API uses a fixed 128-frame render quantum, so render block size is not configurable
+- Updating `latencyHint` requires recreating the AudioContext and is deferred while playing
 
 ### Future Plans
 - May be used as scheduling hint or removed when actual audio rendering is added in the future
@@ -142,5 +156,5 @@ graph TD
 
 ---
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-23
 

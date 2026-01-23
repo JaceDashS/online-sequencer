@@ -23,6 +23,29 @@ class AudioLevelStore {
   private subscribers = new Map<string, Set<AudioLevelCallback>>();
   private animationFrameId: number | null = null;
   private levels = new Map<string, AudioLevel | null>();
+  private enabled = true;
+
+  setEnabled(enabled: boolean): void {
+    if (this.enabled === enabled) return;
+    this.enabled = enabled;
+    if (!enabled) {
+      if (this.animationFrameId !== null) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+      for (const trackId of this.subscribers.keys()) {
+        this.levels.set(trackId, null);
+        const callbacks = this.subscribers.get(trackId);
+        if (callbacks) {
+          callbacks.forEach(callback => callback(null));
+        }
+      }
+      return;
+    }
+    if (this.subscribers.size > 0 && this.animationFrameId === null) {
+      this.startAnimationLoop();
+    }
+  }
 
   /**
    * 트랙 또는 마스터 채널의 오디오 레벨 업데이트를 구독합니다
@@ -38,7 +61,7 @@ class AudioLevelStore {
     this.subscribers.get(trackId)!.add(callback);
 
     // Start animation loop if not already running
-    if (this.animationFrameId === null) {
+    if (this.enabled && this.animationFrameId === null) {
       this.startAnimationLoop();
     }
 
@@ -66,6 +89,10 @@ class AudioLevelStore {
    */
   private startAnimationLoop(): void {
     const update = () => {
+      if (!this.enabled) {
+        this.animationFrameId = null;
+        return;
+      }
       // 구독 중인 모든 트랙의 레벨 업데이트
       for (const trackId of this.subscribers.keys()) {
         let level: AudioLevel | null = null;

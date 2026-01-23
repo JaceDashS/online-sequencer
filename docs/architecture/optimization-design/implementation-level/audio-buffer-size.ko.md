@@ -1,8 +1,8 @@
 # 조절 가능한 오디오 버퍼 사이즈
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-23
 
 **카테고리**: 구현 수준 - 오디오 재생 최적화
 
@@ -27,6 +27,7 @@
 - `src/store/uiStore.tsx`: 상태 관리
 - `src/components/Toolbar/AudioBufferControl.tsx`: UI 컨트롤
 - `src/components/Toolbar/TransportControls.tsx`: 틱 간격 계산
+- `src/core/audio/AudioEngine.ts`: AudioContext latencyHint 적용/재생성
 
 ---
 
@@ -101,11 +102,24 @@ graph TD
 
 ---
 
+## AudioContext latencyHint 적용
+
+```typescript
+latencyHintSeconds = (bufferSize / SAMPLE_RATE) * PERIODS
+```
+
+- `AudioContext` 생성 시 `latencyHint`로 적용됨
+- 재생 중 변경은 즉시 적용하지 않고, 재생이 멈춘 뒤 컨텍스트 재생성으로 반영
+- 브라우저가 힌트를 수용하지 않을 수 있음 (환경에 따라 실제 레이턴시 상이)
+
+---
+
 ## 주의사항
 
 ### 현재 상태
-- 현재는 UI 스케줄링에만 영향 (AudioContext 미구현)
-- Web Audio API는 고정 128-frame render quantum 사용
+- UI 스케줄링(PlaybackClock tick 간격)과 AudioContext `latencyHint`에 모두 영향
+- Web Audio API는 고정 128-frame render quantum을 사용하므로 실제 렌더링 블록 크기는 변경 불가
+- `latencyHint` 변경은 컨텍스트 재생성이 필요하며, 재생 중에는 지연 적용됨
 
 ### 향후 계획
 - 향후 실제 오디오 렌더링 추가 시 스케줄링 힌트로 사용하거나 제거 필요
@@ -142,5 +156,5 @@ graph TD
 
 ---
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-01-23
 

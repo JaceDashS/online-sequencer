@@ -119,3 +119,18 @@
   color: var(--text-primary);
   border-color: #7aaa7a;
 }
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #aaaaaa;
+}
+
+.checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: #7aaa7a;
+  cursor: pointer;
+}

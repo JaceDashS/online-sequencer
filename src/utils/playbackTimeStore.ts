@@ -7,6 +7,7 @@ let sourcePerf = 0;
 let displayTime = 0;
 let hasSource = false;
 let isRunning = false;
+const runningListeners = new Set<(running: boolean) => void>();
 let driftThresholdMs = 20;
 let rafId: number | null = null;
 let isSubscribed = false;
@@ -241,6 +242,9 @@ export function setPlaybackRunning(running: boolean): void {
   }
 
   isRunning = running;
+  for (const listener of runningListeners) {
+    listener(isRunning);
+  }
 
   if (hasSource) {
     displayTime = sourceTime;
@@ -256,6 +260,18 @@ export function setPlaybackRunning(running: boolean): void {
       notify(displayTime);
     }
   }
+}
+
+export function getPlaybackRunning(): boolean {
+  return isRunning;
+}
+
+export function subscribePlaybackRunning(listener: (running: boolean) => void): () => void {
+  runningListeners.add(listener);
+  listener(isRunning);
+  return () => {
+    runningListeners.delete(listener);
+  };
 }
 
 /**

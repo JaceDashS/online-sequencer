@@ -21,6 +21,11 @@ const DeveloperPanel: React.FC = () => {
     if (!ui.devModeEnabled) return;
     playbackController.getEngine().setPitchOffsetMaxMs(ui.pitchOffsetMaxMs);
   }, [ui.devModeEnabled, ui.pitchOffsetMaxMs]);
+  
+  useEffect(() => {
+    if (!ui.devModeEnabled) return;
+    playbackController.setScheduleLookaheadSeconds(ui.scheduleLookaheadSeconds);
+  }, [ui.devModeEnabled, ui.scheduleLookaheadSeconds]);
 
   // 파티타임 상태 구독
   useEffect(() => {
@@ -47,6 +52,23 @@ const DeveloperPanel: React.FC = () => {
       playbackController.getEngine().setPitchOffsetMaxMs(nextValue);
     }
   };
+
+  const handleLookaheadChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = Number.parseFloat(event.target.value);
+    if (Number.isFinite(nextValue)) {
+      ui.setScheduleLookaheadSeconds(nextValue);
+      playbackController.setScheduleLookaheadSeconds(nextValue);
+    }
+  };
+
+  const handleLevelMeterToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+    ui.setLevelMeterEnabled(event.target.checked);
+  };
+
+  const handleFreezeTimelineToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+    ui.setFreezeTimelineRender(event.target.checked);
+  };
+
 
   const handleBufferChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextValue = Number.parseInt(event.target.value, 10);
@@ -194,6 +216,49 @@ const DeveloperPanel: React.FC = () => {
               onChange={handlePitchOffsetChange}
             />
             <span className={styles.unit}>ms</span>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>LOOKAHEAD</span>
+          <div className={styles.field}>
+            <input
+              className={styles.input}
+              type="number"
+              min={0}
+              max={5}
+              step={0.05}
+              value={ui.scheduleLookaheadSeconds}
+              onChange={handleLookaheadChange}
+            />
+            <span className={styles.unit}>s</span>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>METER</span>
+          <div className={styles.field}>
+            <label className={styles.checkboxLabel}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={ui.levelMeterEnabled}
+                onChange={handleLevelMeterToggle}
+              />
+              <span>{ui.levelMeterEnabled ? 'ON' : 'OFF'}</span>
+            </label>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>FREEZE TL</span>
+          <div className={styles.field}>
+            <label className={styles.checkboxLabel}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={ui.freezeTimelineRender}
+                onChange={handleFreezeTimelineToggle}
+              />
+              <span>{ui.freezeTimelineRender ? 'ON' : 'OFF'}</span>
+            </label>
           </div>
         </div>
       </div>

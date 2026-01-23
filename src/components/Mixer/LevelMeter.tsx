@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './LevelMeter.module.css';
 import { audioLevelStore } from '../../utils/audioLevelStore';
 import { getPartyTimeFakeLevel, subscribePartyTime, isPartyTimeEnabled } from '../../utils/partyTime';
+import { useUIStateOnly } from '../../store/uiStore';
 
 interface LevelMeterProps {
   trackId: string;
@@ -9,6 +10,10 @@ interface LevelMeterProps {
 }
 
 const LevelMeter: React.FC<LevelMeterProps> = ({ trackId, channel = 'left' }) => {
+  const ui = useUIStateOnly();
+  if (!ui.levelMeterEnabled) {
+    return null;
+  }
   const [level, setLevel] = useState<number>(-Infinity);
   const smoothedLevelRef = useRef<number>(-Infinity);
   const animationFrameRef = useRef<number | null>(null);

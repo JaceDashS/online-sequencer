@@ -85,6 +85,7 @@ const clamp = (value: number, min: number, max: number): number => Math.max(min,
 
 import type { Effect } from '../../types/project';
 import { EffectChain } from '../effects/EffectChain';
+import { beginAudioLoading, endAudioLoading } from '../../utils/audioLoadingStore';
 
 type TrackAudioNodes = {
   gain: GainNode;
@@ -116,6 +117,8 @@ export class AudioEngine {
   // 마스터 패닝은 현재 마스터 레벨에서 적용되지 않지만, 나중을 위해 저장
   // private masterPan: number = 0;
   private pitchOffsetMaxMs: number = 3; // 같은 음계 간섭 방지를 위한 최대 시간 오프셋 (밀리초)
+  private desiredLatencyHintSeconds: number | null = null;
+  private appliedLatencyHintSeconds: number | null = null;
   
   // 같은 음계 감지를 위한 활성 노트 추적 (pitch class -> 활성 노트 정보 배열)
   // pitch class: MIDI note % 12 (0-11, C=0, C#=1, ..., B=11)
@@ -127,6 +130,31 @@ export class AudioEngine {
 
   getCurrentTime(): number {
     return this.context?.currentTime ?? 0;
+  }
+
+  /**
+   * Output latency hint (seconds) for AudioContext creation.
+   * Returns true if a context recreation is needed to apply the change.
+   */
+  setOutputLatencyHintSeconds(seconds: number): boolean {
+    if (!Number.isFinite(seconds)) return false;
+    const next = Math.max(0.001, seconds);
+    this.desiredLatencyHintSeconds = next;
+    if (!this.context) {
+      return false;
+    }
+    if (this.appliedLatencyHintSeconds === null) {
+      return true;
+    }
+    return Math.abs(this.appliedLatencyHintSeconds - next) > 0.0001;
+  }
+
+  async recreateContextForLatencyHint(): Promise<void> {
+    if (!this.context && !this.readyPromise) {
+      return;
+    }
+    await this.dispose();
+    await this.ensureReady();
   }
 
   isReady(): boolean {
@@ -240,71 +268,84 @@ export class AudioEngine {
     }
 
     this.readyPromise = (async () => {
+      beginAudioLoading();
       if (typeof window === 'undefined') {
+        endAudioLoading();
         return;
       }
 
-      if (!this.context) {
-        const AudioContextClass =
-          window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-        if (!AudioContextClass) {
-          console.error('[AudioEngine] AudioContext not available');
-          return;
+      try {
+        if (!this.context) {
+          const AudioContextClass =
+            window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+          if (!AudioContextClass) {
+            console.error('[AudioEngine] AudioContext not available');
+            return;
+          }
+          const latencyHint = this.desiredLatencyHintSeconds ?? undefined;
+          this.context = new AudioContextClass(
+            latencyHint ? { latencyHint } : undefined
+          );
+          this.appliedLatencyHintSeconds = latencyHint ?? null;
+          this.masterGain = this.context.createGain();
+          this.masterGain.gain.value = this.masterVolume;
+          
+          // Create master effect chain (마스터 이펙트 체인)
+          this.masterEffectChain = new EffectChain(this.context);
+          this.masterEffectChain.setTiming(this.bpm, this.timeSignature);
+          this.masterEffectChain.updateEffects([]); // 초기에는 빈 배열
+          
+          // Create master analysers for left and right channels
+          this.masterLeftAnalyser = this.context.createAnalyser();
+          this.masterLeftAnalyser.fftSize = 2048;
+          this.masterLeftAnalyser.smoothingTimeConstant = 0.8;
+          
+          this.masterRightAnalyser = this.context.createAnalyser();
+          this.masterRightAnalyser.fftSize = 2048;
+          this.masterRightAnalyser.smoothingTimeConstant = 0.8;
+          
+          // Create splitter to separate left/right channels for metering
+          // masterGain은 여러 트랙의 effectChain 출력을 합산하므로 스테레오 출력입니다
+          this.masterSplitter = this.context.createChannelSplitter(2);
+          
+          // Connect: masterEffectChain -> masterGain -> splitter -> analysers (for metering)
+          this.masterEffectChain.getOutput().connect(this.masterGain);
+          this.masterGain.connect(this.masterSplitter);
+          // Left channel (splitter output 0) -> left analyser (input 0)
+          this.masterSplitter.connect(this.masterLeftAnalyser, 0, 0);
+          // Right channel (splitter output 1) -> right analyser (input 0)
+          this.masterSplitter.connect(this.masterRightAnalyser, 1, 0);
+          
+          // Connect master gain to destination for audio output (오디오 출력 연결)
+          // GainNode는 여러 곳에 연결할 수 있으므로 splitter와 destination 모두에 연결 가능
+          this.masterGain.connect(this.context.destination);
         }
-        this.context = new AudioContextClass();
-        this.masterGain = this.context.createGain();
-        this.masterGain.gain.value = this.masterVolume;
-        
-        // Create master effect chain (마스터 이펙트 체인)
-        this.masterEffectChain = new EffectChain(this.context);
-        this.masterEffectChain.setTiming(this.bpm, this.timeSignature);
-        this.masterEffectChain.updateEffects([]); // 초기에는 빈 배열
-        
-        // Create master analysers for left and right channels
-        this.masterLeftAnalyser = this.context.createAnalyser();
-        this.masterLeftAnalyser.fftSize = 2048;
-        this.masterLeftAnalyser.smoothingTimeConstant = 0.8;
-        
-        this.masterRightAnalyser = this.context.createAnalyser();
-        this.masterRightAnalyser.fftSize = 2048;
-        this.masterRightAnalyser.smoothingTimeConstant = 0.8;
-        
-        // Create splitter to separate left/right channels for metering
-        // masterGain은 여러 트랙의 effectChain 출력을 합산하므로 스테레오 출력입니다
-        this.masterSplitter = this.context.createChannelSplitter(2);
-        
-        // Connect: masterEffectChain -> masterGain -> splitter -> analysers (for metering)
-        this.masterEffectChain.getOutput().connect(this.masterGain);
-        this.masterGain.connect(this.masterSplitter);
-        // Left channel (splitter output 0) -> left analyser (input 0)
-        this.masterSplitter.connect(this.masterLeftAnalyser, 0, 0);
-        // Right channel (splitter output 1) -> right analyser (input 0)
-        this.masterSplitter.connect(this.masterRightAnalyser, 1, 0);
-        
-        // Connect master gain to destination for audio output (오디오 출력 연결)
-        // GainNode는 여러 곳에 연결할 수 있으므로 splitter와 destination 모두에 연결 가능
-        this.masterGain.connect(this.context.destination);
-      }
 
-      if (this.context.state === 'suspended') {
-        await this.context.resume();
-      }
-
-      if (!this.pianoKeyMap) {
-        this.pianoKeyMap = await this.loadPianoKeyMap();
-      }
-
-      if (!this.drumSampleMap) {
-        this.drumSampleMap = await this.loadDrumSampleMap();
-      }
-
-      if (this.sampleBuffers.size === 0) {
-        if (this.pianoKeyMap) {
-        await this.loadSampleBuffers(this.pianoKeyMap);
+        if (this.context.state === 'suspended') {
+          // Resume can be blocked until a user gesture; don't block loading on it.
+          void this.context.resume().catch(() => {
+            // Ignore resume failures; playback will retry on demand.
+          });
         }
-        if (this.drumSampleMap) {
-          await this.loadDrumSampleBuffers(this.drumSampleMap);
+
+        if (!this.pianoKeyMap) {
+          this.pianoKeyMap = await this.loadPianoKeyMap();
         }
+
+        if (!this.drumSampleMap) {
+          this.drumSampleMap = await this.loadDrumSampleMap();
+        }
+
+        if (this.sampleBuffers.size === 0) {
+          if (this.pianoKeyMap) {
+          await this.loadSampleBuffers(this.pianoKeyMap);
+          }
+          if (this.drumSampleMap) {
+            await this.loadDrumSampleBuffers(this.drumSampleMap);
+          }
+        }
+      } finally {
+        endAudioLoading();
       }
     })();
 
@@ -1130,5 +1171,6 @@ export class AudioEngine {
     this.previewSources.clear();
     this.previewGainNodes.clear();
     this.readyPromise = null;
+    this.appliedLatencyHintSeconds = null;
   }
 }
