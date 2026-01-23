@@ -17,7 +17,7 @@
 ### 1. Room Registration (When Host Clicks "Host")
 
 ```
-POST /api/online-daw/rooms
+POST /api/online-sequencer/rooms
 Content-Type: application/json
 Headers: { "X-Client-Id": "client-uuid", "X-Host-Id": "host-uuid" }
 
@@ -62,7 +62,7 @@ Response 200: (When host already has a room)
 ### 2. Room Query (When Participant Joins)
 
 ```
-GET /api/online-daw/rooms/:roomCode
+GET /api/online-sequencer/rooms/:roomCode
 Headers: { "X-Client-Id": "client-uuid" }  // Optional, for kick verification
 
 Response 200:
@@ -105,7 +105,7 @@ Response 403:
 - If already in join-allowed state, timer restarts (extends by 60 seconds)
 
 ```
-POST /api/online-daw/rooms/:roomCode/allow-join
+POST /api/online-sequencer/rooms/:roomCode/allow-join
 Headers: { "X-Client-Id": "client-uuid" }
 Content-Type: application/json
 
@@ -136,7 +136,7 @@ Response 403:
 ### 3. Delete Room (When Host Clicks "Stop Hosting", or Automatically After 6 Hours)
 
 ```
-DELETE /api/online-daw/rooms/:roomCode
+DELETE /api/online-sequencer/rooms/:roomCode
 Headers: { "X-Client-Id": "client-uuid" }
 
 Response 200:
@@ -156,7 +156,7 @@ Response 403:
 ### 4. Kick Participant (When Host Clicks Kick Button)
 
 ```
-POST /api/online-daw/rooms/:roomCode/kick
+POST /api/online-sequencer/rooms/:roomCode/kick
 Headers: { "X-Client-Id": "client-uuid" }
 Content-Type: application/json
 
@@ -215,7 +215,7 @@ WebSocket Message (Server → All Clients)
 ### Connection
 
 ```
-ws://<host>:3000/api/online-daw/signaling?clientId=<client-uuid>
+ws://<host>:3000/api/online-sequencer/signaling?clientId=<client-uuid>
 ```
 
 ### Message Format
@@ -255,17 +255,17 @@ sequenceDiagram
     participant P2P as P2P Connection
 
     Note over Host: "Host" button click
-    Host->>Server: POST /api/online-daw/rooms<br/>{ hostId: "uuid" }
+    Host->>Server: POST /api/online-sequencer/rooms<br/>{ hostId: "uuid" }
     Server->>Server: Generate room code (e.g., "1234")
     Server->>Host: { roomCode: "1234", allowJoin: false }
     
     Note over Host: "Allow Join" button click
-    Host->>Server: POST /api/online-daw/rooms/:roomCode/allow-join<br/>{ duration: 60 }
+    Host->>Server: POST /api/online-sequencer/rooms/:roomCode/allow-join<br/>{ duration: 60 }
     Server->>Server: allowJoin = true (60-second timer)
     Server->>Host: { allowJoin: true, allowJoinExpiresAt: ... }
     
     Note over Guest1: "Join" button click<br/>Enter room code
-    Guest1->>Server: GET /api/online-daw/rooms/:roomCode
+    Guest1->>Server: GET /api/online-sequencer/rooms/:roomCode
     Server->>Guest1: { hostId, allowJoin: true }
     
     Guest1->>Server: WebSocket: Send offer
@@ -348,4 +348,5 @@ sequenceDiagram
 ```
 
 ---
+
 

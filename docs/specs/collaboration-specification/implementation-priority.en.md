@@ -10,7 +10,7 @@
 
 1. SignalingClient implementation
 2. WebRTCManager basic implementation (Star topology)
-3. Server API implementation (port 3000, `/api/online-daw/rooms`)
+3. Server API implementation (port 3000, `/api/online-sequencer/rooms`)
 4. Room creation (6-hour maintenance) and "Allow Join" feature implementation (60-second join window)
 5. Host kick feature implementation
 
@@ -34,4 +34,5 @@
 3. Documentation
 
 ---
+
 

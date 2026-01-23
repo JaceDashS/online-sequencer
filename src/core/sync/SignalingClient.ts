@@ -6,6 +6,7 @@
 import { getOrCreateClientId } from './utils/uuid';
 import { getTransport } from '../../transport';
 import type { ITransport, IWebSocket } from '../../transport';
+import { buildApiUrl, buildWebSocketUrl } from '../../utils/apiConfig';
 
 /**
  * 상세 로그 출력 여부 확인
@@ -93,9 +94,6 @@ export interface HostInfo {
 export class SignalingClient {
   private transport: ITransport;
   private ws: IWebSocket | null = null;
-  private serverUrl: string;
-  private wsUrl: string;
-  private apiBaseUrl: string;
   private clientId: string;
   private roomCode: string | null = null;
   private isConnected: boolean = false;
@@ -112,14 +110,13 @@ export class SignalingClient {
   // 중복 연결 방지: 연결 중인 Promise 저장
   private connectingPromise: Promise<void> | null = null;
 
-  constructor(serverUrl?: string) {
+  constructor(_serverUrl?: string) {
     // Transport 인스턴스 가져오기 (플랫폼 자동 감지)
     this.transport = getTransport();
     
-    // 환경 변수에서 서버 URL 가져오기
-    this.serverUrl = serverUrl || import.meta.env.VITE_COLLABORATION_SERVER_URL || 'http://10.0.0.79:3000';
-    this.wsUrl = import.meta.env.VITE_COLLABORATION_WS_URL || this.serverUrl.replace('http://', 'ws://').replace('https://', 'wss://');
-    this.apiBaseUrl = import.meta.env.VITE_API_BASE_URL || `${this.serverUrl}/api/online-daw`;
+    // VITE_API_BASE_URL은 apiConfig 유틸리티를 통해 직접 사용
+    // 모든 API 요청은 buildApiUrl() 및 buildWebSocketUrl() 함수를 통해 생성됨
+    
     this.clientId = getOrCreateClientId();
   }
 
@@ -169,7 +166,8 @@ export class SignalingClient {
       });
     }
 
-    const wsUrl = `${this.wsUrl}/api/online-daw/signaling?clientId=${this.clientId}`;
+    // VITE_API_BASE_URL을 기반으로 WebSocket URL 생성
+    const wsUrl = buildWebSocketUrl('/signaling', { clientId: this.clientId });
     verboseLog('Connecting to WebSocket:', wsUrl);
     
     // WebSocket 연결 타임아웃 (10초)
@@ -353,7 +351,7 @@ export class SignalingClient {
     }
 
     // REST API로 룸 생성 (타임아웃 처리)
-    const url = `${this.apiBaseUrl}/rooms`;
+    const url = buildApiUrl('/rooms');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
     
@@ -436,7 +434,7 @@ export class SignalingClient {
    */
   async getRoom(roomCode: string): Promise<RoomInfo> {
     const response = await this.transport.request({
-      url: `${this.apiBaseUrl}/rooms/${roomCode}`,
+      url: buildApiUrl(`/rooms/${roomCode}`),
       method: 'GET',
       headers: {
         'X-Client-Id': this.clientId
@@ -456,7 +454,7 @@ export class SignalingClient {
    */
   async allowJoin(roomCode: string, duration: number = 60): Promise<void> {
     const response = await this.transport.request({
-      url: `${this.apiBaseUrl}/rooms/${roomCode}/allow-join`,
+      url: buildApiUrl(`/rooms/${roomCode}/allow-join`),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -535,7 +533,7 @@ export class SignalingClient {
    */
   async kickParticipant(roomCode: string, participantId: string): Promise<void> {
     const response = await this.transport.request({
-      url: `${this.apiBaseUrl}/rooms/${roomCode}/kick`,
+      url: buildApiUrl(`/rooms/${roomCode}/kick`),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -555,7 +553,7 @@ export class SignalingClient {
    */
   async deleteRoom(roomCode: string): Promise<void> {    
     const response = await this.transport.request({
-      url: `${this.apiBaseUrl}/rooms/${roomCode}`,
+      url: buildApiUrl(`/rooms/${roomCode}`),
       method: 'DELETE',
       headers: {
         'X-Client-Id': this.clientId
@@ -697,4 +695,5 @@ export class SignalingClient {
     return this.clientId;
   }
 }
+
 

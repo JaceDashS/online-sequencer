@@ -17,7 +17,7 @@
 ### 1. 룸 등록 (호스트가 "Host" 클릭 시)
 
 ```
-POST /api/online-daw/rooms
+POST /api/online-sequencer/rooms
 Content-Type: application/json
 Headers: { "X-Client-Id": "client-uuid", "X-Host-Id": "host-uuid" }
 
@@ -62,7 +62,7 @@ Response 200: (호스트가 이미 룸이 있는 경우)
 ### 2. 룸 조회 (참가자가 조인 시)
 
 ```
-GET /api/online-daw/rooms/:roomCode
+GET /api/online-sequencer/rooms/:roomCode
 Headers: { "X-Client-Id": "client-uuid" }  // 선택사항, 강퇴 확인용
 
 Response 200:
@@ -105,7 +105,7 @@ Response 403:
 - 이미 조인 허용 상태인 경우 타이머가 재시작됨 (60초 연장)
 
 ```
-POST /api/online-daw/rooms/:roomCode/allow-join
+POST /api/online-sequencer/rooms/:roomCode/allow-join
 Headers: { "X-Client-Id": "client-uuid" }
 Content-Type: application/json
 
@@ -136,7 +136,7 @@ Response 403:
 ### 3. 룸 삭제 (호스트가 "Stop Hosting" 클릭 시, 또는 6시간 후 자동)
 
 ```
-DELETE /api/online-daw/rooms/:roomCode
+DELETE /api/online-sequencer/rooms/:roomCode
 Headers: { "X-Client-Id": "client-uuid" }
 
 Response 200:
@@ -156,7 +156,7 @@ Response 403:
 ### 4. 참가자 강퇴 (호스트가 강퇴 버튼 클릭 시)
 
 ```
-POST /api/online-daw/rooms/:roomCode/kick
+POST /api/online-sequencer/rooms/:roomCode/kick
 Headers: { "X-Client-Id": "client-uuid" }
 Content-Type: application/json
 
@@ -215,7 +215,7 @@ WebSocket 메시지 (서버 → 모든 클라이언트)
 ### 연결
 
 ```
-ws://<host>:3000/api/online-daw/signaling?clientId=<client-uuid>
+ws://<host>:3000/api/online-sequencer/signaling?clientId=<client-uuid>
 ```
 
 ### 메시지 형식
@@ -255,17 +255,17 @@ sequenceDiagram
     participant P2P as P2P 연결
 
     Note over Host: "Host" 버튼 클릭
-    Host->>Server: POST /api/online-daw/rooms<br/>{ hostId: "uuid" }
+    Host->>Server: POST /api/online-sequencer/rooms<br/>{ hostId: "uuid" }
     Server->>Server: 룸 코드 생성 (예: "1234")
     Server->>Host: { roomCode: "1234", allowJoin: false }
     
     Note over Host: "Allow Join" 버튼 클릭
-    Host->>Server: POST /api/online-daw/rooms/:roomCode/allow-join<br/>{ duration: 60 }
+    Host->>Server: POST /api/online-sequencer/rooms/:roomCode/allow-join<br/>{ duration: 60 }
     Server->>Server: allowJoin = true (60초 타이머)
     Server->>Host: { allowJoin: true, allowJoinExpiresAt: ... }
     
     Note over Guest1: "Join" 버튼 클릭<br/>룸 코드 입력
-    Guest1->>Server: GET /api/online-daw/rooms/:roomCode
+    Guest1->>Server: GET /api/online-sequencer/rooms/:roomCode
     Server->>Guest1: { hostId, allowJoin: true }
     
     Guest1->>Server: WebSocket: offer 전송
@@ -348,3 +348,4 @@ sequenceDiagram
 ```
 
 ---
+

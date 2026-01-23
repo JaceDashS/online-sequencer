@@ -15,7 +15,7 @@ sequenceDiagram
     participant WebRTC as WebRTCManager
     
     Host->>Server: "Host" button click
-    Host->>Server: POST /api/online-daw/rooms<br/>{ hostId: "uuid" }
+    Host->>Server: POST /api/online-sequencer/rooms<br/>{ hostId: "uuid" }
     Server->>Server: Generate 4-digit room code<br/>(e.g., "1234")
     Server->>Server: Store room info<br/>(Maintain for 6 hours)
     Server->>Host: Return room code
@@ -24,7 +24,7 @@ sequenceDiagram
     Note over Host: "Allow Join" button activated
     
     Host->>Server: "Allow Join" button click
-    Host->>Server: POST /api/online-daw/rooms/:roomCode/allow-join<br/>{ duration: 60 }
+    Host->>Server: POST /api/online-sequencer/rooms/:roomCode/allow-join<br/>{ duration: 60 }
     Server->>Server: allowJoin = true<br/>(Start 60-second timer)
     Note over Server: Allow joining for 60 seconds only
     
@@ -42,7 +42,7 @@ sequenceDiagram
 
 1. Host clicks "Host" button
    - SignalingClient connects to server
-   - Request room registration to server: `POST /api/online-daw/rooms` with `{ hostId: "uuid" }`
+   - Request room registration to server: `POST /api/online-sequencer/rooms` with `{ hostId: "uuid" }`
    - Server generates and returns available 4-digit room code (e.g., "1234")
    - Server stores room information (maintained for 6 hours)
    - Host receives and displays room code
@@ -51,7 +51,7 @@ sequenceDiagram
    - "Allow Join" button activated (disabled by default)
 
 2. Host clicks "Allow Join" button
-   - Request join permission to server: `POST /api/online-daw/rooms/:roomCode/allow-join` with `{ duration: 60 }`
+   - Request join permission to server: `POST /api/online-sequencer/rooms/:roomCode/allow-join` with `{ duration: 60 }`
    - Server sets room's allowJoin state to true (starts 60-second timer)
    - 60-second countdown begins
    - Participants can join only during this 60 seconds
@@ -114,7 +114,7 @@ sequenceDiagram
     Note over Guest: No pre-join warning in current client
     
     Guest->>Server: SignalingClient connection
-    Guest->>Server: GET /api/online-daw/rooms/:roomCode
+    Guest->>Server: GET /api/online-sequencer/rooms/:roomCode
     Server->>Guest: { hostId, hostInfo, status, allowJoin }
     
     alt allowJoin = false
@@ -141,7 +141,7 @@ sequenceDiagram
 2. No pre-join warning is shown in the current client (join proceeds immediately)
 3. SignalingClient connects to server
 4. Query host information from server:
-   - `GET /api/online-daw/rooms/:roomCode`
+   - `GET /api/online-sequencer/rooms/:roomCode`
    - Response: `{ hostId: "uuid", hostInfo: {...}, status: "active", allowJoin: true/false }`
 5. Check join permission:
    - If allowJoin is false, show error message: "Cannot join now. The host must enable 'Allow Join'."
@@ -149,7 +149,7 @@ sequenceDiagram
 6. Participant initializes WebRTCManager
 7. Participant creates WebRTC offer
 8. Participant sends offer to host through server:
-   - WebSocket: `/api/online-daw/signaling`
+   - WebSocket: `/api/online-sequencer/signaling`
    - `{ action: "signaling", type: "offer", from: "clientId", to: "hostId", data: {...} }`
 9. Server forwards offer to host (WebSocket)
 10. Host creates answer and sends to participant through server
@@ -219,4 +219,5 @@ Broadcast to Guest2    Broadcast to Guest3
 ```
 
 ---
+
 

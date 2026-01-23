@@ -22,8 +22,8 @@ The server implementation for collaboration features will proceed in the followi
 - Example: `server/` or `temp-server/` directory
 
 **Implementation Scope:**
-- REST API endpoints (`/api/online-daw/rooms`)
-- WebSocket signaling server (`/api/online-daw/signaling`)
+- REST API endpoints (`/api/online-sequencer/rooms`)
+- WebSocket signaling server (`/api/online-sequencer/signaling`)
 - Basic room management features
 - 6-hour room expiration logic
 - "Allow Join" 60-second timer
@@ -190,4 +190,5 @@ online-daw/
    - Also version control in actual server project after migration
 
 ---
+
 

@@ -15,7 +15,7 @@ sequenceDiagram
     participant WebRTC as WebRTCManager
     
     Host->>Server: "Host" 버튼 클릭
-    Host->>Server: POST /api/online-daw/rooms<br/>{ hostId: "uuid" }
+    Host->>Server: POST /api/online-sequencer/rooms<br/>{ hostId: "uuid" }
     Server->>Server: 4자리 룸 코드 생성<br/>(예: "1234")
     Server->>Server: 룸 정보 저장<br/>(6시간 유지)
     Server->>Host: 룸 코드 반환
@@ -24,7 +24,7 @@ sequenceDiagram
     Note over Host: "Allow Join" 버튼 활성화
     
     Host->>Server: "Allow Join" 버튼 클릭
-    Host->>Server: POST /api/online-daw/rooms/:roomCode/allow-join<br/>{ duration: 60 }
+    Host->>Server: POST /api/online-sequencer/rooms/:roomCode/allow-join<br/>{ duration: 60 }
     Server->>Server: allowJoin = true<br/>(60초 타이머 시작)
     Note over Server: 60초 동안만 조인 허용
     
@@ -42,7 +42,7 @@ sequenceDiagram
 
 1. 호스트가 "Host" 버튼 클릭
    - SignalingClient가 서버에 연결
-   - 서버에 룸 등록 요청: `POST /api/online-daw/rooms` with `{ hostId: "uuid" }`
+   - 서버에 룸 등록 요청: `POST /api/online-sequencer/rooms` with `{ hostId: "uuid" }`
    - 서버가 비어있는 4자리 룸 코드 생성 및 반환 (예: "1234")
    - 서버가 룸 정보 저장 (6시간 유지)
    - 호스트가 룸 코드 수신 및 표시
@@ -51,7 +51,7 @@ sequenceDiagram
    - "Allow Join" 버튼 활성화 (기본적으로 비활성 상태)
 
 2. 호스트가 "Allow Join" 버튼 클릭
-   - 서버에 조인 허용 요청: `POST /api/online-daw/rooms/:roomCode/allow-join` with `{ duration: 60 }`
+   - 서버에 조인 허용 요청: `POST /api/online-sequencer/rooms/:roomCode/allow-join` with `{ duration: 60 }`
    - 서버가 룸의 allowJoin 상태를 true로 설정 (60초 타이머 시작)
    - 60초 카운트다운 시작
    - 이 60초 동안만 참가자 조인 가능
@@ -115,7 +115,7 @@ sequenceDiagram
     Note over Guest: 현재 클라이언트는 조인 전 경고를 표시하지 않음
     
     Guest->>Server: SignalingClient 연결
-    Guest->>Server: GET /api/online-daw/rooms/:roomCode
+    Guest->>Server: GET /api/online-sequencer/rooms/:roomCode
     Server->>Guest: { hostId, hostInfo, status, allowJoin }
     
     alt allowJoin = false
@@ -142,7 +142,7 @@ sequenceDiagram
 2. 현재 클라이언트는 조인 전 경고 없이 바로 진행
 3. SignalingClient가 서버에 연결
 4. 서버에서 호스트 정보 조회:
-   - `GET /api/online-daw/rooms/:roomCode`
+   - `GET /api/online-sequencer/rooms/:roomCode`
    - 응답: `{ hostId: "uuid", hostInfo: {...}, status: "active", allowJoin: true/false }`
 5. 조인 허용 여부 확인:
    - allowJoin이 false이면 에러 메시지 표시: "현재 조인할 수 없습니다. 호스트가 'Allow Join'을 활성화해야 합니다."
@@ -150,7 +150,7 @@ sequenceDiagram
 6. 참가자가 WebRTCManager 초기화
 7. 참가자가 WebRTC offer 생성
 8. 참가자가 서버를 통해 호스트에게 offer 전송:
-   - WebSocket: `/api/online-daw/signaling`
+   - WebSocket: `/api/online-sequencer/signaling`
    - `{ action: "signaling", type: "offer", from: "clientId", to: "hostId", data: {...} }`
 9. 서버가 호스트에게 offer 전달 (WebSocket)
 10. 호스트가 answer 생성 및 서버를 통해 참가자에게 전송
@@ -220,3 +220,4 @@ WebRTC 연결 수립 후:
 ```
 
 ---
+

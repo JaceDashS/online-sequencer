@@ -61,7 +61,7 @@ ip addr show
 # 서버 컴퓨터의 로컬 IP 주소 사용
 VITE_COLLABORATION_SERVER_URL=http://192.168.0.100:3000
 VITE_COLLABORATION_WS_URL=ws://192.168.0.100:3000
-VITE_API_BASE_URL=http://192.168.0.100:3000/api/online-daw
+VITE_API_BASE_URL=http://192.168.0.100:3000/api/online-sequencer
 NODE_ENV=development
 VITE_APP_ENV=development
 VITE_ENABLE_DEBUG_LOGS=true
@@ -120,7 +120,7 @@ ngrok http 3000
 # ngrok URL 사용
 VITE_COLLABORATION_SERVER_URL=https://abc123.ngrok.io
 VITE_COLLABORATION_WS_URL=wss://abc123.ngrok.io
-VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-daw
+VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-sequencer
 ```
 
 **참고:**
@@ -139,7 +139,7 @@ VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-daw
 # 서버 컴퓨터의 로컬 IP 주소 사용
 VITE_COLLABORATION_SERVER_URL=http://192.168.43.100:3000
 VITE_COLLABORATION_WS_URL=ws://192.168.43.100:3000
-VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-daw
+VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-sequencer
 ```
 
 **주의사항:**
@@ -158,7 +158,7 @@ VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-daw
 # 라우터의 공인 IP 주소 사용
 VITE_COLLABORATION_SERVER_URL=http://[라우터 공인 IP]:3000
 VITE_COLLABORATION_WS_URL=ws://[라우터 공인 IP]:3000
-VITE_API_BASE_URL=http://[라우터 공인 IP]:3000/api/online-daw
+VITE_API_BASE_URL=http://[라우터 공인 IP]:3000/api/online-sequencer
 ```
 
 **주의사항:**
@@ -233,10 +233,10 @@ pc.onicecandidate = (event) => {
 
 ```bash
 # 서버가 실행 중인지 확인
-curl http://localhost:3000/api/online-daw/rooms
+curl http://localhost:3000/api/online-sequencer/rooms
 
 # 네트워크에서 접근 가능한지 확인
-curl http://192.168.0.100:3000/api/online-daw/rooms
+curl http://192.168.0.100:3000/api/online-sequencer/rooms
 ```
 
 ## 문제 해결
@@ -271,3 +271,4 @@ curl http://192.168.0.100:3000/api/online-daw/rooms
 **참고:** ngrok이 가장 간단하고 안전한 방법입니다. 무료 버전으로도 충분히 테스트 가능합니다.
 
 ---
+

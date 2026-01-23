@@ -44,7 +44,7 @@ class SignalingClient {
 
 **Notes:**
 - Server URL is resolved from `VITE_COLLABORATION_SERVER_URL` (fallback: `http://10.0.0.79:3000`).
-- WebSocket URL uses `VITE_COLLABORATION_WS_URL` and connects to `/api/online-daw/signaling?clientId=...`.
+- WebSocket URL uses `VITE_COLLABORATION_WS_URL` and connects to `/api/online-sequencer/signaling?clientId=...`.
 - REST APIs include `X-Client-Id` (and `X-Host-Id` on room registration).
 
 ## 2. WebRTCManager
@@ -191,4 +191,5 @@ class GuestSyncManager {
 ```
 
 ---
+
 

@@ -61,7 +61,7 @@ ip addr show
 # Use local IP address of server computer
 VITE_COLLABORATION_SERVER_URL=http://192.168.0.100:3000
 VITE_COLLABORATION_WS_URL=ws://192.168.0.100:3000
-VITE_API_BASE_URL=http://192.168.0.100:3000/api/online-daw
+VITE_API_BASE_URL=http://192.168.0.100:3000/api/online-sequencer
 NODE_ENV=development
 VITE_APP_ENV=development
 VITE_ENABLE_DEBUG_LOGS=true
@@ -120,7 +120,7 @@ ngrok http 3000
 # Use ngrok URL
 VITE_COLLABORATION_SERVER_URL=https://abc123.ngrok.io
 VITE_COLLABORATION_WS_URL=wss://abc123.ngrok.io
-VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-daw
+VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-sequencer
 ```
 
 **Note:**
@@ -139,7 +139,7 @@ VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-daw
 # Use local IP address of server computer
 VITE_COLLABORATION_SERVER_URL=http://192.168.43.100:3000
 VITE_COLLABORATION_WS_URL=ws://192.168.43.100:3000
-VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-daw
+VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-sequencer
 ```
 
 **Notes:**
@@ -158,7 +158,7 @@ VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-daw
 # Use router's public IP address
 VITE_COLLABORATION_SERVER_URL=http://[router public IP]:3000
 VITE_COLLABORATION_WS_URL=ws://[router public IP]:3000
-VITE_API_BASE_URL=http://[router public IP]:3000/api/online-daw
+VITE_API_BASE_URL=http://[router public IP]:3000/api/online-sequencer
 ```
 
 **Notes:**
@@ -233,10 +233,10 @@ pc.onicecandidate = (event) => {
 
 ```bash
 # Check if server is running
-curl http://localhost:3000/api/online-daw/rooms
+curl http://localhost:3000/api/online-sequencer/rooms
 
 # Check if accessible from network
-curl http://192.168.0.100:3000/api/online-daw/rooms
+curl http://192.168.0.100:3000/api/online-sequencer/rooms
 ```
 
 ## Troubleshooting
@@ -271,4 +271,5 @@ curl http://192.168.0.100:3000/api/online-daw/rooms
 **Note:** ngrok is the simplest and safest method. The free version is sufficient for testing.
 
 ---
+
 

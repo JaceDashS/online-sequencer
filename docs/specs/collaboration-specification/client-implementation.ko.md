@@ -44,7 +44,7 @@ class SignalingClient {
 
 **참고:**
 - 서버 URL은 `VITE_COLLABORATION_SERVER_URL`에서 읽고, 기본값은 `http://10.0.0.79:3000`.
-- WebSocket URL은 `VITE_COLLABORATION_WS_URL`을 사용하며 `/api/online-daw/signaling?clientId=...`로 연결함.
+- WebSocket URL은 `VITE_COLLABORATION_WS_URL`을 사용하며 `/api/online-sequencer/signaling?clientId=...`로 연결함.
 - REST API는 `X-Client-Id`를 포함하고, 룸 등록 시에는 `X-Host-Id`를 추가로 사용함.
 
 ## 2. WebRTCManager
@@ -191,3 +191,4 @@ class GuestSyncManager {
 ```
 
 ---
+

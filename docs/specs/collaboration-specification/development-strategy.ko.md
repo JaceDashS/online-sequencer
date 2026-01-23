@@ -22,8 +22,8 @@
 - 예: `server/` 또는 `temp-server/` 디렉토리
 
 **구현 범위:**
-- REST API 엔드포인트 (`/api/online-daw/rooms`)
-- WebSocket 시그널링 서버 (`/api/online-daw/signaling`)
+- REST API 엔드포인트 (`/api/online-sequencer/rooms`)
+- WebSocket 시그널링 서버 (`/api/online-sequencer/signaling`)
 - 기본 룸 관리 기능
 - 6시간 룸 만료 로직
 - "Allow Join" 60초 타이머
@@ -190,3 +190,4 @@ online-daw/
    - 이식 후 실제 서버 프로젝트에서도 버전 관리
 
 ---
+

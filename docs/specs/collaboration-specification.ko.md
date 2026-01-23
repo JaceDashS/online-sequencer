@@ -154,7 +154,7 @@ sequenceDiagram
     participant WebRTC as WebRTCManager
     
     Host->>Server: "Host" 버튼 클릭
-    Host->>Server: POST /api/online-daw/rooms<br/>{ hostId: "uuid" }
+    Host->>Server: POST /api/online-sequencer/rooms<br/>{ hostId: "uuid" }
     Server->>Server: 4자리 룸 코드 생성<br/>(예: "1234")
     Server->>Server: 룸 정보 저장<br/>(6시간 유지)
     Server->>Host: 룸 코드 반환
@@ -163,7 +163,7 @@ sequenceDiagram
     Note over Host: "Allow Join" 버튼 활성화
     
     Host->>Server: "Allow Join" 버튼 클릭
-    Host->>Server: POST /api/online-daw/rooms/:roomCode/allow-join<br/>{ duration: 60 }
+    Host->>Server: POST /api/online-sequencer/rooms/:roomCode/allow-join<br/>{ duration: 60 }
     Server->>Server: allowJoin = true<br/>(60초 타이머 시작)
     Note over Server: 60초 동안만 조인 허용
     
@@ -181,7 +181,7 @@ sequenceDiagram
 
 1. 호스트가 "Host" 버튼 클릭
    - SignalingClient가 서버에 연결
-   - 서버에 룸 등록 요청: `POST /api/online-daw/rooms` with `{ hostId: "uuid" }`
+   - 서버에 룸 등록 요청: `POST /api/online-sequencer/rooms` with `{ hostId: "uuid" }`
    - 서버가 비어있는 4자리 룸 코드 생성 및 반환 (예: "1234")
    - 서버가 룸 정보 저장 (6시간 유지)
    - 호스트가 룸 코드 수신 및 표시
@@ -190,7 +190,7 @@ sequenceDiagram
    - "Allow Join" 버튼 활성화 (기본적으로 비활성 상태)
 
 2. 호스트가 "Allow Join" 버튼 클릭
-   - 서버에 조인 허용 요청: `POST /api/online-daw/rooms/:roomCode/allow-join` with `{ duration: 60 }`
+   - 서버에 조인 허용 요청: `POST /api/online-sequencer/rooms/:roomCode/allow-join` with `{ duration: 60 }`
    - 서버가 룸의 allowJoin 상태를 true로 설정 (60초 타이머 시작)
    - 60초 카운트다운 시작
    - 이 60초 동안만 참가자 조인 가능
@@ -259,7 +259,7 @@ sequenceDiagram
     end
     
     Guest->>Server: SignalingClient 연결
-    Guest->>Server: GET /api/online-daw/rooms/:roomCode
+    Guest->>Server: GET /api/online-sequencer/rooms/:roomCode
     Server->>Guest: { hostId, hostInfo, status, allowJoin }
     
     alt allowJoin = false
@@ -288,7 +288,7 @@ sequenceDiagram
    - 사용자가 확인하면 계속, 취소하면 중단
 3. SignalingClient가 서버에 연결
 4. 서버에서 호스트 정보 조회:
-   - `GET /api/online-daw/rooms/:roomCode`
+   - `GET /api/online-sequencer/rooms/:roomCode`
    - 응답: `{ hostId: "uuid", hostInfo: {...}, status: "active", allowJoin: true/false }`
 5. 조인 허용 여부 확인:
    - allowJoin이 false이면 에러 메시지 표시: "현재 조인할 수 없습니다. 호스트가 'Allow Join'을 활성화해야 합니다."
@@ -296,7 +296,7 @@ sequenceDiagram
 6. 참가자가 WebRTCManager 초기화
 7. 참가자가 WebRTC offer 생성
 8. 참가자가 서버를 통해 호스트에게 offer 전송:
-   - WebSocket: `/api/online-daw/signaling`
+   - WebSocket: `/api/online-sequencer/signaling`
    - `{ action: "signaling", type: "offer", from: "clientId", to: "hostId", data: {...} }`
 9. 서버가 호스트에게 offer 전달 (WebSocket)
 10. 호스트가 answer 생성 및 서버를 통해 참가자에게 전송
@@ -512,7 +512,7 @@ interface RoomClosedMessage {
 #### 1. 룸 등록 (호스트가 "Host" 클릭 시)
 
 ```
-POST /api/online-daw/rooms
+POST /api/online-sequencer/rooms
 Content-Type: application/json
 
 Request Body:
@@ -555,7 +555,7 @@ Response 200: (호스트가 이미 룸이 있는 경우)
 #### 2. 룸 조회 (참가자가 조인 시)
 
 ```
-GET /api/online-daw/rooms/:roomCode
+GET /api/online-sequencer/rooms/:roomCode
 Headers: { "X-Client-Id": "client-uuid" }  // 선택사항, 강퇴 확인용
 
 Response 200:
@@ -597,7 +597,7 @@ Response 403:
 - 이미 조인 허용 상태인 경우 타이머가 재시작됨 (60초 연장)
 
 ```
-POST /api/online-daw/rooms/:roomCode/allow-join
+POST /api/online-sequencer/rooms/:roomCode/allow-join
 Headers: { "X-Host-Id": "uuid-here" }
 Content-Type: application/json
 
@@ -628,7 +628,7 @@ Response 403:
 #### 3. 룸 삭제 (호스트가 "Stop Hosting" 클릭 시, 또는 6시간 후 자동)
 
 ```
-DELETE /api/online-daw/rooms/:roomCode
+DELETE /api/online-sequencer/rooms/:roomCode
 Headers: { "X-Host-Id": "uuid-here" }
 
 Response 200:
@@ -648,7 +648,7 @@ Response 403:
 #### 4. 참가자 강퇴 (호스트가 강퇴 버튼 클릭 시)
 
 ```
-POST /api/online-daw/rooms/:roomCode/kick
+POST /api/online-sequencer/rooms/:roomCode/kick
 Headers: { "X-Host-Id": "uuid-here" }
 Content-Type: application/json
 
@@ -707,7 +707,7 @@ WebSocket 메시지 (서버 → 모든 클라이언트)
 #### 연결
 
 ```
-ws://localhost:3000/api/online-daw/signaling
+ws://localhost:3000/api/online-sequencer/signaling
 ```
 
 #### 메시지 형식
@@ -745,17 +745,17 @@ sequenceDiagram
     participant P2P as P2P 연결
 
     Note over Host: "Host" 버튼 클릭
-    Host->>Server: POST /api/online-daw/rooms<br/>{ hostId: "uuid" }
+    Host->>Server: POST /api/online-sequencer/rooms<br/>{ hostId: "uuid" }
     Server->>Server: 룸 코드 생성 (예: "1234")
     Server->>Host: { roomCode: "1234", allowJoin: false }
     
     Note over Host: "Allow Join" 버튼 클릭
-    Host->>Server: POST /api/online-daw/rooms/:roomCode/allow-join<br/>{ duration: 60 }
+    Host->>Server: POST /api/online-sequencer/rooms/:roomCode/allow-join<br/>{ duration: 60 }
     Server->>Server: allowJoin = true (60초 타이머)
     Server->>Host: { allowJoin: true, allowJoinExpiresAt: ... }
     
     Note over Guest1: "Join" 버튼 클릭<br/>룸 코드 입력
-    Guest1->>Server: GET /api/online-daw/rooms/:roomCode
+    Guest1->>Server: GET /api/online-sequencer/rooms/:roomCode
     Server->>Guest1: { hostId, allowJoin: true }
     
     Guest1->>Server: WebSocket: offer 전송
@@ -2698,8 +2698,8 @@ class HostSyncManager {
 - 예: `server/` 또는 `temp-server/` 디렉토리
 
 **구현 범위:**
-- REST API 엔드포인트 (`/api/online-daw/rooms`)
-- WebSocket 시그널링 서버 (`/api/online-daw/signaling`)
+- REST API 엔드포인트 (`/api/online-sequencer/rooms`)
+- WebSocket 시그널링 서버 (`/api/online-sequencer/signaling`)
 - 기본 룸 관리 기능
 - 6시간 룸 만료 로직
 - "Allow Join" 60초 타이머
@@ -2872,7 +2872,7 @@ online-daw/
 ### Phase 1: 기본 연결
 1. SignalingClient 구현
 2. WebRTCManager 기본 구현 (Star 토폴로지)
-3. 서버 API 구현 (포트 3000, `/api/online-daw/rooms`)
+3. 서버 API 구현 (포트 3000, `/api/online-sequencer/rooms`)
 4. 룸 생성 (6시간 유지) 및 "Allow Join" 기능 구현 (60초 조인 허용)
 5. 호스트 강퇴 기능 구현
 
@@ -2951,7 +2951,7 @@ ip addr show
 # 서버 컴퓨터의 로컬 IP 주소 사용
 VITE_COLLABORATION_SERVER_URL=http://192.168.0.100:3000
 VITE_COLLABORATION_WS_URL=ws://192.168.0.100:3000
-VITE_API_BASE_URL=http://192.168.0.100:3000/api/online-daw
+VITE_API_BASE_URL=http://192.168.0.100:3000/api/online-sequencer
 NODE_ENV=development
 VITE_APP_ENV=development
 VITE_ENABLE_DEBUG_LOGS=true
@@ -3010,7 +3010,7 @@ ngrok http 3000
 # ngrok URL 사용
 VITE_COLLABORATION_SERVER_URL=https://abc123.ngrok.io
 VITE_COLLABORATION_WS_URL=wss://abc123.ngrok.io
-VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-daw
+VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-sequencer
 ```
 
 **참고:**
@@ -3029,7 +3029,7 @@ VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-daw
 # 서버 컴퓨터의 로컬 IP 주소 사용
 VITE_COLLABORATION_SERVER_URL=http://192.168.43.100:3000
 VITE_COLLABORATION_WS_URL=ws://192.168.43.100:3000
-VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-daw
+VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-sequencer
 ```
 
 **주의사항:**
@@ -3048,7 +3048,7 @@ VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-daw
 # 라우터의 공인 IP 주소 사용
 VITE_COLLABORATION_SERVER_URL=http://[라우터 공인 IP]:3000
 VITE_COLLABORATION_WS_URL=ws://[라우터 공인 IP]:3000
-VITE_API_BASE_URL=http://[라우터 공인 IP]:3000/api/online-daw
+VITE_API_BASE_URL=http://[라우터 공인 IP]:3000/api/online-sequencer
 ```
 
 **주의사항:**
@@ -3123,10 +3123,10 @@ pc.onicecandidate = (event) => {
 
 ```bash
 # 서버가 실행 중인지 확인
-curl http://localhost:3000/api/online-daw/rooms
+curl http://localhost:3000/api/online-sequencer/rooms
 
 # 네트워크에서 접근 가능한지 확인
-curl http://192.168.0.100:3000/api/online-daw/rooms
+curl http://192.168.0.100:3000/api/online-sequencer/rooms
 ```
 
 ### 문제 해결
@@ -3248,5 +3248,6 @@ P2P 연결 완료     ~100 bytes    활성        true
 - 확장 용이: 새 게스트는 호스트와만 연결
 
 ---
+
 
 

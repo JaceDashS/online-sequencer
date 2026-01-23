@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styles from './RoomsListModal.module.css';
+import { buildApiUrl } from '../../utils/apiConfig';
 
 interface Room {
   roomCode: string;
@@ -54,8 +55,7 @@ const RoomsListModal: React.FC<RoomsListModalProps> = ({ isOpen, onClose }) => {
     setError(null);
 
     try {
-      const serverUrl = import.meta.env.VITE_COLLABORATION_SERVER_URL || 'http://10.0.0.79:3000';
-      const response = await fetch(`${serverUrl}/api/online-daw/rooms`, {
+      const response = await fetch(buildApiUrl('/rooms'), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -157,8 +157,7 @@ const RoomsListModal: React.FC<RoomsListModalProps> = ({ isOpen, onClose }) => {
   const handleRoomClick = async (room: Room) => {
     // 방 상세 정보 가져오기
     try {
-      const serverUrl = import.meta.env.VITE_COLLABORATION_SERVER_URL || 'http://10.0.0.79:3000';
-      const response = await fetch(`${serverUrl}/api/online-daw/rooms/${room.roomCode}`, {
+      const response = await fetch(buildApiUrl(`/rooms/${room.roomCode}`), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -189,8 +188,7 @@ const RoomsListModal: React.FC<RoomsListModalProps> = ({ isOpen, onClose }) => {
 
     setDeleting(true);
     try {
-      const serverUrl = import.meta.env.VITE_COLLABORATION_SERVER_URL || 'http://10.0.0.79:3000';
-      const response = await fetch(`${serverUrl}/api/online-daw/rooms/${roomCode}`, {
+      const response = await fetch(buildApiUrl(`/rooms/${roomCode}`), {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -379,4 +377,5 @@ const RoomsListModal: React.FC<RoomsListModalProps> = ({ isOpen, onClose }) => {
 };
 
 export default RoomsListModal;
+
 

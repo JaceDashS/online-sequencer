@@ -9,7 +9,7 @@
 ## Phase 1: 기본 연결
 1. SignalingClient 구현
 2. WebRTCManager 기본 구현 (Star 토폴로지)
-3. 서버 API 구현 (포트 3000, `/api/online-daw/rooms`)
+3. 서버 API 구현 (포트 3000, `/api/online-sequencer/rooms`)
 4. 룸 생성 (6시간 유지) 및 "Allow Join" 기능 구현 (60초 조인 허용)
 5. 호스트 강퇴 기능 구현
 
@@ -30,3 +30,4 @@
 3. 문서화
 
 ---
+
