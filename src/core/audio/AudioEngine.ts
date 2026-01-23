@@ -135,6 +135,20 @@ export class AudioEngine {
   }
 
   /**
+   * AudioContext 인스턴스를 가져옵니다 (메트로놈 등에서 사용)
+   */
+  getContext(): AudioContext | null {
+    return this.context;
+  }
+
+  /**
+   * 마스터 GainNode 인스턴스를 가져옵니다 (메트로놈 등에서 사용)
+   */
+  getMasterGain(): GainNode | null {
+    return this.masterGain;
+  }
+
+  /**
    * Output latency hint (seconds) for AudioContext creation.
    * Returns true if a context recreation is needed to apply the change.
    */

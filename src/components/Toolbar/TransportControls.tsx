@@ -124,6 +124,11 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     }
   }, [isPlaying]);
 
+  // 메트로놈 상태 변경 시 PlaybackController에 전달
+  useEffect(() => {
+    playbackController.setMetronomeEnabled(ui.isMetronomeOn);
+  }, [ui.isMetronomeOn]);
+
   const clearScheduledPause = useCallback(() => {
     if (pauseTimerRef.current !== null) {
       clearTimeout(pauseTimerRef.current);

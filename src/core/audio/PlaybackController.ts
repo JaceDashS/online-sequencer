@@ -6,6 +6,7 @@ import { AudioEngine } from './AudioEngine';
 import { buildPlaybackEvents, type NoteEvent } from './buildPlaybackEvents';
 import { getScheduleLogEnabled } from '../../utils/debugLogToggles';
 import { enqueueDebugLog } from '../../utils/debugLogger';
+import { Metronome } from './Metronome';
 
 const DEFAULT_SCHEDULE_LOOKAHEAD_SECONDS = 0.5;
 const SCHEDULE_INTERVAL_MS = 100;
@@ -17,12 +18,24 @@ const LOG_THROTTLE_MS = 1000;
 
 export class PlaybackController {
   private engine = new AudioEngine();
+  private metronome = new Metronome();
+  private isMetronomeEnabled = false;
   
   /**
    * AudioEngine 인스턴스 접근 (내부 설정용)
    */
   getEngine(): AudioEngine {
     return this.engine;
+  }
+  
+  /**
+   * 메트로놈 활성화 여부를 설정합니다
+   */
+  setMetronomeEnabled(enabled: boolean): void {
+    this.isMetronomeEnabled = enabled;
+    if (!enabled) {
+      this.metronome.clearScheduledTicks();
+    }
   }
   
   setScheduleLookaheadSeconds(seconds: number): void {
@@ -52,6 +65,7 @@ export class PlaybackController {
         const bpm = getBpm(project);
         const timeSignature = getTimeSignature(project);
         this.engine.setTiming(bpm, timeSignature);
+        this.metronome.setTiming(bpm, timeSignature);
       }
       
       // 마스터 볼륨/패닝/이펙트 변경 시 즉시 업데이트
@@ -107,6 +121,7 @@ export class PlaybackController {
     const bpm = getBpm(project);
     const timeSignature = getTimeSignature(project);
     this.engine.setTiming(bpm, timeSignature);
+    this.metronome.setTiming(bpm, timeSignature);
   }
 
   /**
@@ -117,10 +132,11 @@ export class PlaybackController {
   updateProjectSnapshot(project: Project): void {
     this.projectSnapshot = project;
     
-    // BPM과 time signature 업데이트
-    const bpm = getBpm(project);
-    const timeSignature = getTimeSignature(project);
-    this.engine.setTiming(bpm, timeSignature);
+      // BPM과 time signature 업데이트
+      const bpm = getBpm(project);
+      const timeSignature = getTimeSignature(project);
+      this.engine.setTiming(bpm, timeSignature);
+      this.metronome.setTiming(bpm, timeSignature);
     
     // 마스터 볼륨/패닝/이펙트 업데이트
     this.engine.updateMasterVolume(project.masterVolume ?? 1);
@@ -208,6 +224,14 @@ export class PlaybackController {
     const bpm = getBpm(project);
     const timeSignature = getTimeSignature(project);
     this.engine.setTiming(bpm, timeSignature);
+    
+    // 메트로놈 초기화
+    const context = this.engine.getContext();
+    const masterGain = this.engine.getMasterGain();
+    if (context && masterGain) {
+      this.metronome.setContext(context, masterGain);
+      this.metronome.setTiming(bpm, timeSignature);
+    }
 
     // 마스터 볼륨/패닝/이펙트 초기화
     this.engine.updateMasterVolume(project.masterVolume ?? 1);
@@ -236,6 +260,7 @@ export class PlaybackController {
     this.startToken += 1;
     this.clearScheduleTimer();
     this.engine.stopAll();
+    this.metronome.clearScheduledTicks();
   }
 
   /**
@@ -246,6 +271,7 @@ export class PlaybackController {
     this.startToken += 1;
     this.clearScheduleTimer();
     this.engine.stopAll();
+    this.metronome.clearScheduledTicks();
   }
 
   /**
@@ -392,6 +418,11 @@ export class PlaybackController {
     let scannedCount = 0;
     let scheduledCount = 0;
     const audioOffset = this.engine.getCurrentTime() - playbackTime;
+
+    // 메트로놈 틱 스케줄링
+    if (this.isMetronomeEnabled) {
+      this.metronome.scheduleTicks(windowStart, windowEnd, audioOffset);
+    }
 
     while (this.eventIndex < this.events.length) {
       scannedCount += 1;
