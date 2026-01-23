@@ -8,6 +8,7 @@ import type { Project, Track, MidiPart } from '../types/project';
  */
 export interface UseEventDisplayDataProps {
   freeze?: boolean;
+  subscribeProjectChanges?: boolean;
 }
 
 /**
@@ -27,14 +28,14 @@ export interface UseEventDisplayDataReturn {
  * EventDisplay의 데이터 처리 로직을 관리하는 훅
  * Phase 8: EventDisplay 데이터 레이어 분리
  */
-export const useEventDisplayData = ({ freeze = false }: UseEventDisplayDataProps = {}): UseEventDisplayDataReturn => {
+export const useEventDisplayData = ({ freeze = false, subscribeProjectChanges = false }: UseEventDisplayDataProps = {}): UseEventDisplayDataReturn => {
   
   // 프로젝트 변경 감지를 위한 카운터
   const [updateCounter, setUpdateCounter] = useState(0);
   
   // pub-sub 패턴을 사용하여 프로젝트 변경 감지
   useEffect(() => {
-    if (freeze) {
+    if (freeze || !subscribeProjectChanges) {
       return;
     }
     const unsubscribe = subscribeToProjectChanges((event) => {
@@ -56,6 +57,19 @@ export const useEventDisplayData = ({ freeze = false }: UseEventDisplayDataProps
       clearTimeout(timeoutId);
       unsubscribe();
     };
+  }, [freeze, subscribeProjectChanges]);
+
+  useEffect(() => {
+    if (freeze) {
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      setUpdateCounter(prev => prev + 1);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [freeze]);
   // 항상 최신 tracks와 midiParts를 읽기 위해 getProject()를 사용 (메모이제이션)
   const project = useMemo(() => getProject(), [updateCounter]);
@@ -69,4 +83,5 @@ export const useEventDisplayData = ({ freeze = false }: UseEventDisplayDataProps
     updateCounter,
   };
 };
+
 

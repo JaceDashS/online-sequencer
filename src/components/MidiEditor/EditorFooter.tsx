@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styles from './MidiEditor.module.css';
 import { MIDI_EDITOR_CONSTANTS } from '../../constants/ui';
 import { ticksToSecondsPure, getTimeSignature, getPpqn } from '../../utils/midiTickUtils';
@@ -76,7 +76,7 @@ export interface EditorFooterProps {
  * EditorFooter 컴포넌트
  * 벨로시티 탭 및 서스테인 페달 표시를 담당합니다.
  */
-export const EditorFooter: React.FC<EditorFooterProps> = ({
+export const EditorFooter: React.FC<EditorFooterProps> = React.memo(({
   part,
   visibleNotes,
   sustainRanges,
@@ -129,18 +129,20 @@ export const EditorFooter: React.FC<EditorFooterProps> = ({
   if (!part) return null;
 
   // Tick 기반으로 시간 계산 (SMF 표준 정합)
-  const project = getProject();
-  const projectTimeSignature = getTimeSignature(project);
-  const ppqn = getPpqn(project);
-  const tempoMap = project.timing?.tempoMap ?? [];
-  const { startTime: partStartTime } = ticksToSecondsPure(
-    part.startTick,
-    part.durationTicks,
-    tempoMap,
-    projectTimeSignature,
-    ppqn
-  );
-
+  const partStartTime = useMemo(() => {
+    const project = getProject();
+    const projectTimeSignature = getTimeSignature(project);
+    const ppqn = getPpqn(project);
+    const tempoMap = project.timing?.tempoMap ?? [];
+    const { startTime } = ticksToSecondsPure(
+      part.startTick,
+      part.durationTicks,
+      tempoMap,
+      projectTimeSignature,
+      ppqn
+    );
+    return startTime;
+  }, [part]);
   const pianoKeysWidth = MIDI_EDITOR_CONSTANTS.PIANO_KEYS_WIDTH; // 80px
 
   return (
@@ -642,5 +644,6 @@ export const EditorFooter: React.FC<EditorFooterProps> = ({
       </div>
     </div>
   );
-};
+});
 
+EditorFooter.displayName = 'EditorFooter';

@@ -48,7 +48,7 @@ export const addTrack = (track: Track): void => {
   }
   addTrackToProject(track);
   notifyProjectChange({ type: 'track' as const, trackId: track.id });
-  void preloadPlaybackSamples();
+  void preloadPlaybackSamples(getProject());
   
   // 파티타임 확인 (트랙 추가 시)
   setTimeout(() => {
@@ -89,7 +89,7 @@ export const updateTrack = (trackId: string, updates: Partial<Track>): void => {
     Object.assign(track, updates);
     notifyTrackChange(trackId, updates, 'update');
     if (updates.instrument !== undefined && updates.instrument !== previousInstrument) {
-      void preloadPlaybackSamples();
+      void preloadPlaybackSamples(getProject());
     }
     
     // 파티타임 확인 (트랙명이 변경된 경우)

@@ -45,6 +45,35 @@ export function calculateMeasureMarkers(
   return markers;
 }
 
+export function calculateMeasureMarkersInRange(
+  bpm: number,
+  timeSignature: [number, number],
+  pixelsPerSecond: number,
+  startTime: number,
+  rangeStartTime: number,
+  rangeEndTime: number,
+  maxMeasures: number = 150
+): MeasureMarker[] {
+  const beatsPerMeasure = timeSignature[0];
+  const beatUnit = timeSignature[1];
+  const noteValueRatio = 4 / beatUnit;
+  const secondsPerBeat = (60 / bpm) * noteValueRatio;
+  const secondsPerMeasure = beatsPerMeasure * secondsPerBeat;
+  if (secondsPerMeasure <= 0) {
+    return [];
+  }
+
+  const startMeasure = Math.max(0, Math.floor(rangeStartTime / secondsPerMeasure));
+  const endMeasure = Math.min(maxMeasures, Math.ceil(rangeEndTime / secondsPerMeasure));
+  const markers: MeasureMarker[] = [];
+  for (let i = startMeasure; i <= endMeasure; i++) {
+    const measureTime = i * secondsPerMeasure;
+    const xPosition = (measureTime - startTime) * pixelsPerSecond;
+    markers.push({ measure: i, x: xPosition });
+  }
+  return markers;
+}
+
 /**
  * 전체 타임라인 너비를 계산합니다.
  * 박자 변경 시에도 확대/축소가 되지 않도록 timeSignature에 관계없이 고정된 시간 범위 사용

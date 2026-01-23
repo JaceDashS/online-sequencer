@@ -4,6 +4,7 @@ import { getBpm, getTimeSignature } from '../../utils/midiTickUtils';
 import type { Project } from '../../types/project';
 import { AudioEngine } from './AudioEngine';
 import { buildPlaybackEvents, type NoteEvent } from './buildPlaybackEvents';
+import { getScheduleLogEnabled } from '../../utils/debugLogToggles';
 import { enqueueDebugLog } from '../../utils/debugLogger';
 
 const DEFAULT_SCHEDULE_LOOKAHEAD_SECONDS = 0.5;
@@ -194,6 +195,11 @@ export class PlaybackController {
     const token = ++this.startToken;
 
     await this.engine.ensureReady();
+    if (!this.isPlaying || token !== this.startToken) {
+      return;
+    }
+
+    await this.engine.prefetchSamplesForProject(project);
     if (!this.isPlaying || token !== this.startToken) {
       return;
     }
@@ -495,6 +501,9 @@ function getPerfNow(): number {
   return Date.now();
 }
 function logScheduleDebug(message: string, data: Record<string, unknown>): void {
+  if (!getScheduleLogEnabled()) {
+    return;
+  }
   console.log('[schedule]', message, data);
   enqueueDebugLog({
     location: 'PlaybackController.scheduleLookahead',

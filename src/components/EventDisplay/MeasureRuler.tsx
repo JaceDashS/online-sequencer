@@ -13,6 +13,8 @@ interface MeasureRulerProps {
   startTime?: number; // 시작 시간 (초)
   isRecording?: boolean; // 녹음 중 여부
   disableInteraction?: boolean; // 로케이터 조작 비활성화 (에디터에서 사용)
+  extendPlayhead?: boolean;
+  playheadExtendPx?: number;
 }
 
 const MeasureRuler: React.FC<MeasureRulerProps> = ({
@@ -22,6 +24,8 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
   startTime = 0,
   isRecording = false,
   disableInteraction = false,
+  extendPlayhead = false,
+  playheadExtendPx = 1200,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rulerContentRef = useRef<HTMLDivElement>(null);
@@ -756,8 +760,15 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
     e.stopPropagation();
   }, [pixelsPerSecond, startTime, ui, saveExportRangeToMeasure, disableInteraction]);
 
+  const playheadStyle = extendPlayhead
+    ? ({ ['--playhead-extend' as string]: `${playheadExtendPx}px` } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className={styles.measureRuler} ref={containerRef}>
+    <div
+      className={`${styles.measureRuler} ${extendPlayhead ? styles.measureRulerExtended : ''}`}
+      ref={containerRef}
+    >
       <div 
         ref={rulerContentRef} 
         className={styles.rulerContent} 
@@ -971,11 +982,12 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
         {/* 플레이 헤드 */}
         <div
           ref={playheadRef}
-          className={`${styles.playhead} ${isRecording ? styles.playheadRecording : ''}`}
+          className={`${styles.playhead} ${isRecording ? styles.playheadRecording : ''} ${extendPlayhead ? styles.playheadExtended : ''}`}
           style={{ 
             transform: 'translateX(0px)',
             cursor: disableInteraction || ui.editingPartId !== null ? 'default' : 'ew-resize', 
-            pointerEvents: disableInteraction || ui.editingPartId !== null ? 'none' : 'auto' 
+            pointerEvents: disableInteraction || ui.editingPartId !== null ? 'none' : 'auto',
+            ...playheadStyle
           }}
           onMouseDown={(e) => {
             if (disableInteraction || ui.editingPartId !== null) {
@@ -994,3 +1006,6 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
 };
 
 export default MeasureRuler;
+
+
+

@@ -12,6 +12,10 @@
   flex-direction: column;
 }
 
+.measureRulerExtended {
+  overflow: visible;
+}
+
 .rulerContent {
   position: relative;
   height: 100%;
@@ -132,6 +136,17 @@
   transition: background-color 0.2s ease;
   cursor: ew-resize;
   will-change: transform;
+}
+
+.playheadExtended::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: var(--playhead-extend, 0px);
+  background-color: inherit;
+  pointer-events: none;
 }
 
 .playheadRecording {

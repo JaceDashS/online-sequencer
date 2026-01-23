@@ -1,4 +1,5 @@
 import { getPlaybackRunning, subscribePlaybackRunning } from './playbackTimeStore';
+import { getLongTaskLogEnabled } from './debugLogToggles';
 
 let isInitialized = false;
 let lastLogAt = 0;
@@ -20,7 +21,7 @@ export function initLongTaskLogger(): void {
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries();
       const now = performance.now();
-      if (!playbackRunning || now - lastLogAt < LOG_THROTTLE_MS) {
+      if (!playbackRunning || !getLongTaskLogEnabled() || now - lastLogAt < LOG_THROTTLE_MS) {
         return;
       }
       lastLogAt = now;

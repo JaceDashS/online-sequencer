@@ -9,10 +9,13 @@ let hasSource = false;
 let isRunning = false;
 const runningListeners = new Set<(running: boolean) => void>();
 let driftThresholdMs = 20;
+let driftLoggingEnabled = false;
 let rafId: number | null = null;
 let isSubscribed = false;
 const listeners = new Set<PlaybackListener>();
 let lastSourceUpdatePerf = 0;
+let lastDriftLogAt = 0;
+const DRIFT_LOG_THROTTLE_MS = 1000;
 
 const MIN_SOURCE_UPDATE_INTERVAL_MS = 1;
 
@@ -33,7 +36,7 @@ function getPerfNow(): number {
  * 
  * @param params - 드리프트 보정 파라미터
  */
-function maybeLogDrift(_params: {
+function maybeLogDrift(params: {
   nowPerf: number;
   predicted: number;
   prevDisplayTime: number;
@@ -42,7 +45,45 @@ function maybeLogDrift(_params: {
   hardResetMs: number;
   correctionType: string;
 }): void {
-  // Debug logging removed for production
+  if (!driftLoggingEnabled) {
+    return;
+  }
+  if (params.correctionType === 'none') {
+    return;
+  }
+  if (params.nowPerf - lastDriftLogAt < DRIFT_LOG_THROTTLE_MS) {
+    return;
+  }
+  lastDriftLogAt = params.nowPerf;
+  console.log('[playback] drift', {
+    driftMs: Math.round(params.driftMs),
+    absDriftMs: Math.round(params.absDrift),
+    correctionType: params.correctionType,
+    thresholdMs: driftThresholdMs,
+    hardResetMs: Math.round(params.hardResetMs),
+  });
+}
+
+function maybeLogSourceDrift(nowPerf: number, sourceTimeSeconds: number): void {
+  if (!driftLoggingEnabled) {
+    return;
+  }
+  const driftMs = (sourceTimeSeconds - displayTime) * 1000;
+  const absDrift = Math.abs(driftMs);
+  if (absDrift < driftThresholdMs) {
+    return;
+  }
+  if (nowPerf - lastDriftLogAt < DRIFT_LOG_THROTTLE_MS) {
+    return;
+  }
+  lastDriftLogAt = nowPerf;
+  console.log('[playback] drift', {
+    driftMs: Math.round(driftMs),
+    absDriftMs: Math.round(absDrift),
+    correctionType: 'source_update',
+    thresholdMs: driftThresholdMs,
+    hardResetMs: Math.round(Math.max(200, driftThresholdMs * 8)),
+  });
 }
 
 /**
@@ -152,6 +193,10 @@ function updateSource(time: number): void {
       displayTime = sourceTime;
     }
     return;
+  }
+
+  if (hasSource) {
+    maybeLogSourceDrift(nowPerf, time);
   }
 
   sourceTime = time;
@@ -291,4 +336,12 @@ export function setPlaybackDriftThresholdMs(value: number): void {
  */
 export function getPlaybackDriftThresholdMs(): number {
   return driftThresholdMs;
+}
+
+export function setPlaybackDriftLoggingEnabled(enabled: boolean): void {
+  driftLoggingEnabled = Boolean(enabled);
+}
+
+export function getPlaybackDriftLoggingEnabled(): boolean {
+  return driftLoggingEnabled;
 }

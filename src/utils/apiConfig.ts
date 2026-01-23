@@ -13,16 +13,23 @@
  */
 export function getApiBaseUrl(): string {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  
-  if (!apiBaseUrl) {
+  const baseUrl = import.meta.env.VITE_BASE_URL;
+  const apiPath = import.meta.env.VITE_API_PATH;
+
+  if (apiBaseUrl) {
+    return apiBaseUrl.replace(/\/$/, '');
+  }
+
+  if (!baseUrl || !apiPath) {
     throw new Error(
-      'VITE_API_BASE_URL environment variable is not set. ' +
-      'Please set it in your .env file.'
+      'API base URL is not configured. ' +
+      'Set VITE_API_BASE_URL or set both VITE_BASE_URL and VITE_API_PATH.'
     );
   }
-  
-  // 마지막 슬래시 제거
-  return apiBaseUrl.replace(/\/$/, '');
+
+  const normalizedBase = baseUrl.replace(/\/$/, '');
+  const normalizedPath = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
+  return `${normalizedBase}${normalizedPath}`.replace(/\/$/, '');
 }
 
 /**
@@ -61,7 +68,6 @@ export function buildWebSocketUrl(path: string, queryParams?: Record<string, str
   
   // HTTP/HTTPS를 WS/WSS로 변환
   const wsBaseUrl = apiBaseUrl
-    .replace(/^https?:\/\//, '')
     .replace(/^http:\/\//, 'ws://')
     .replace(/^https:\/\//, 'wss://');
   

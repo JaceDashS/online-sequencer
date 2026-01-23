@@ -23,8 +23,6 @@ export interface EventDisplayProps {
   selectedTrackId?: string | null;
   /** 트랙 선택 콜백 함수 (선택) */
   onTrackSelect?: (trackId: string | null) => void;
-  /** 녹음 중 여부 (선택) */
-  isRecording?: boolean;
   /** 현재 재생 시간 (초, 선택) */
 }
 

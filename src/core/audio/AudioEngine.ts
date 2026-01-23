@@ -83,9 +83,10 @@ const DRUM_KEY_MAX = 81;
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
 
-import type { Effect } from '../../types/project';
+import type { Effect, Project } from '../../types/project';
 import { EffectChain } from '../effects/EffectChain';
 import { beginAudioLoading, endAudioLoading } from '../../utils/audioLoadingStore';
+import { buildPlaybackEvents, type NoteEvent } from './buildPlaybackEvents';
 
 type TrackAudioNodes = {
   gain: GainNode;
@@ -105,6 +106,7 @@ export class AudioEngine {
   private masterSplitter: ChannelSplitterNode | null = null;
   private trackNodes = new Map<string, TrackAudioNodes>();
   private sampleBuffers = new Map<string, AudioBuffer>();
+  private pendingSampleBuffers = new Map<string, Promise<AudioBuffer | null>>();
   private pianoKeyMap: Map<number, PianoKeySample> | null = null;
   private drumSampleMap: Map<number, DrumSample> | null = null;
   private readyPromise: Promise<void> | null = null;
@@ -158,7 +160,7 @@ export class AudioEngine {
   }
 
   isReady(): boolean {
-    return Boolean(this.context && this.masterGain && this.pianoKeyMap && this.drumSampleMap && this.sampleBuffers.size > 0);
+    return Boolean(this.context && this.masterGain && this.pianoKeyMap && this.drumSampleMap);
   }
 
   stopAll(): void {
@@ -336,14 +338,7 @@ export class AudioEngine {
           this.drumSampleMap = await this.loadDrumSampleMap();
         }
 
-        if (this.sampleBuffers.size === 0) {
-          if (this.pianoKeyMap) {
-          await this.loadSampleBuffers(this.pianoKeyMap);
-          }
-          if (this.drumSampleMap) {
-            await this.loadDrumSampleBuffers(this.drumSampleMap);
-          }
-        }
+        // Samples are loaded lazily per pitch.
       } finally {
         endAudioLoading();
       }
@@ -550,6 +545,7 @@ export class AudioEngine {
 
     const buffer = this.sampleBuffers.get(keySample.sampleUrl);
     if (!buffer) {
+      void this.ensureSampleLoaded(keySample.sampleUrl);
       return;
     }
 
@@ -685,7 +681,7 @@ export class AudioEngine {
       return;
     }
 
-    const buffer = this.sampleBuffers.get(keySample.sampleUrl);
+    const buffer = await this.ensureSampleLoaded(keySample.sampleUrl);
     if (!buffer) {
       return;
     }
@@ -798,6 +794,78 @@ export class AudioEngine {
     }
     return this.pianoKeyMap.get(midi) || null;
     }
+  }
+
+  private async ensureSampleLoaded(sampleUrl: string): Promise<AudioBuffer | null> {
+    if (this.sampleBuffers.has(sampleUrl)) {
+      return this.sampleBuffers.get(sampleUrl) ?? null;
+    }
+    const existing = this.pendingSampleBuffers.get(sampleUrl);
+    if (existing) {
+      return existing;
+    }
+    if (!this.context) {
+      return null;
+    }
+
+    const loadPromise = (async () => {
+      beginAudioLoading();
+      try {
+        const response = await fetch(sampleUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch sample: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.arrayBuffer();
+        const buffer = await this.context?.decodeAudioData(data);
+        if (!buffer) {
+          throw new Error('Failed to decode audio data');
+        }
+        this.sampleBuffers.set(sampleUrl, buffer);
+        return buffer;
+      } catch (error) {
+        console.error('[AudioEngine] Failed to load sample', sampleUrl, error);
+        return null;
+      } finally {
+        endAudioLoading();
+        this.pendingSampleBuffers.delete(sampleUrl);
+      }
+    })();
+
+    this.pendingSampleBuffers.set(sampleUrl, loadPromise);
+    return loadPromise;
+  }
+
+  private async prefetchSampleUrls(sampleUrls: string[], batchSize: number = 6): Promise<void> {
+    if (!this.context) {
+      return;
+    }
+    for (let i = 0; i < sampleUrls.length; i += batchSize) {
+      const batch = sampleUrls.slice(i, i + batchSize);
+      await Promise.allSettled(batch.map((url) => this.ensureSampleLoaded(url)));
+      if (i + batchSize < sampleUrls.length) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    }
+  }
+
+  async prefetchSamplesForEvents(events: NoteEvent[]): Promise<void> {
+    await this.ensureReady();
+    if (!this.context) {
+      return;
+    }
+    const uniqueSamples = new Set<string>();
+    for (const event of events) {
+      const keySample = this.getSampleForNote(event.note.note, event.track.instrument);
+      if (keySample) {
+        uniqueSamples.add(keySample.sampleUrl);
+      }
+    }
+    await this.prefetchSampleUrls(Array.from(uniqueSamples));
+  }
+
+  async prefetchSamplesForProject(project: Project): Promise<void> {
+    const events = buildPlaybackEvents(project);
+    await this.prefetchSamplesForEvents(events);
   }
 
   private async loadDrumSampleMap(): Promise<Map<number, DrumSample>> {
@@ -950,128 +1018,6 @@ export class AudioEngine {
     }
 
     return regions;
-  }
-
-  private async loadDrumSampleBuffers(drumMap: Map<number, DrumSample>): Promise<void> {
-    if (!this.context) {
-      console.error('[AudioEngine] Cannot load samples: context not available');
-      return;
-    }
-
-    const uniqueSamples = new Set<string>();
-    for (const sample of drumMap.values()) {
-      uniqueSamples.add(sample.sampleUrl);
-    }
-
-    const sampleUrls = Array.from(uniqueSamples);
-    const failedErrors: unknown[] = [];
-    const batchSize = 6;
-
-    const loadSample = async (sampleUrl: string): Promise<void> => {
-      if (this.sampleBuffers.has(sampleUrl)) {
-        return;
-      }
-
-      try {
-        const response = await fetch(sampleUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch sample: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.arrayBuffer();
-        const buffer = await this.context?.decodeAudioData(data);
-        if (buffer) {
-          this.sampleBuffers.set(sampleUrl, buffer);
-        } else {
-          throw new Error('Failed to decode audio data');
-        }
-      } catch (error) {
-        console.error('[AudioEngine] Failed to load drum sample', sampleUrl, error);
-        throw error;
-      }
-    };
-
-    for (let i = 0; i < sampleUrls.length; i += batchSize) {
-      const batch = sampleUrls.slice(i, i + batchSize);
-      const results = await Promise.allSettled(batch.map(loadSample));
-      for (const result of results) {
-        if (result.status === 'rejected') {
-          failedErrors.push(result.reason);
-        }
-      }
-
-      if (i + batchSize < sampleUrls.length) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
-    }
-
-    if (failedErrors.length > 0) {
-      console.error('[AudioEngine] Some drum samples failed to load', {
-        failedCount: failedErrors.length,
-        totalCount: sampleUrls.length,
-        errors: failedErrors,
-      });
-    }
-  }
-
-  private async loadSampleBuffers(keyMap: Map<number, PianoKeySample>): Promise<void> {
-    if (!this.context) {
-      console.error('[AudioEngine] Cannot load samples: context not available');
-      return;
-    }
-
-    const uniqueSamples = new Set<string>();
-    for (const sample of keyMap.values()) {
-      uniqueSamples.add(sample.sampleUrl);
-    }
-
-    const sampleUrls = Array.from(uniqueSamples);
-    const failedErrors: unknown[] = [];
-    const batchSize = 6;
-
-    const loadSample = async (sampleUrl: string): Promise<void> => {
-      if (this.sampleBuffers.has(sampleUrl)) {
-        return;
-      }
-
-      try {
-        const response = await fetch(sampleUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch sample: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.arrayBuffer();
-        const buffer = await this.context?.decodeAudioData(data);
-        if (buffer) {
-          this.sampleBuffers.set(sampleUrl, buffer);
-        } else {
-          throw new Error('Failed to decode audio data');
-        }
-      } catch (error) {
-        console.error('[AudioEngine] Failed to load sample', sampleUrl, error);
-        throw error;
-      }
-    };
-
-    for (let i = 0; i < sampleUrls.length; i += batchSize) {
-      const batch = sampleUrls.slice(i, i + batchSize);
-      const results = await Promise.allSettled(batch.map(loadSample));
-      for (const result of results) {
-        if (result.status === 'rejected') {
-          failedErrors.push(result.reason);
-        }
-      }
-
-      if (i + batchSize < sampleUrls.length) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
-    }
-
-    if (failedErrors.length > 0) {
-      console.error('[AudioEngine] Some samples failed to load', {
-        failedCount: failedErrors.length,
-        totalCount: sampleUrls.length,
-        errors: failedErrors,
-      });
-    }
   }
 
   /**

@@ -18,7 +18,7 @@ import type { EventDisplayProps, MeasureMarker } from './EventDisplayTypes';
 import { RESIZE_HANDLE_WIDTH_PX } from './EventDisplayTypes';
 import { usePlaybackTimeControlled } from '../../hooks/usePlaybackTime';
 import {
-  calculateMeasureMarkers,
+  calculateMeasureMarkersInRange,
   calculateTotalWidth,
   calculateSplitPreviewX,
   calculateSplitMeasure
@@ -44,7 +44,6 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   onScrollSync,
   selectedTrackId,
   onTrackSelect,
-  isRecording = false,
 }) => {
   // Step 10: EventDisplay? ??? ???(useEventDisplayData)? ? ???(TimelineView)? ???? ??? ?????
   const ui = useUIState();
@@ -52,7 +51,8 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   
   // Step 10: ??? ??? - useEventDisplayData ??? ??? ????
-  const { tracks } = useEventDisplayData({ freeze: ui.freezeTimelineRender });
+  const projectSubscriptionEnabled = ui.devModeEnabled ? ui.timelineProjectSubscriptionEnabled : true;
+  const { tracks } = useEventDisplayData({ freeze: ui.freezeTimelineRender, subscribeProjectChanges: projectSubscriptionEnabled });
   
   // PPQN ????
   const project = selectProject();
@@ -404,54 +404,6 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     return value;
   }, [bpm, pixelsPerSecond]);
 
-  // ?? ??? ??? (MeasureRuler? ??? ??)
-  // container? bottomScrollbar? ????? ???
-  useEffect(() => {
-    if (!contentRef.current || !containerRef.current) return;
-
-    const content = contentRef.current;
-    const container = containerRef.current;
-    const bottomScrollbar = document.getElementById('timeline-scrollbar');
-    
-    if (!content || !bottomScrollbar) return;
-
-    let isUpdating = false;
-
-    // ?? ????? ???? ???? container? ???
-    const handleBottomScrollbarScroll = (e: Event) => {
-      if (isUpdating) return;
-      const target = e.target;
-      if (target && target instanceof HTMLElement && target === bottomScrollbar) {
-        isUpdating = true;
-        const scrollLeft = target.scrollLeft;
-        content.style.transform = `translateX(-${scrollLeft}px)`;
-        container.scrollLeft = scrollLeft;
-        requestAnimationFrame(() => {
-          isUpdating = false;
-        });
-      }
-    };
-
-    // container? ???? ?? ????? ???
-    const handleContainerScroll = () => {
-      if (isUpdating) return;
-      isUpdating = true;
-      const scrollLeft = container.scrollLeft;
-      bottomScrollbar.scrollLeft = scrollLeft;
-      requestAnimationFrame(() => {
-        isUpdating = false;
-      });
-    };
-
-    bottomScrollbar.addEventListener('scroll', handleBottomScrollbarScroll);
-    container.addEventListener('scroll', handleContainerScroll, { passive: true });
-
-    return () => {
-      bottomScrollbar.removeEventListener('scroll', handleBottomScrollbarScroll);
-      container.removeEventListener('scroll', handleContainerScroll);
-    };
-  }, [totalWidth]);
-
   // EventDisplay ??? ??? ?? ? TrackList? ???
   useEffect(() => {
     const container = containerRef.current;
@@ -479,14 +431,93 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
 
   // ?????: ?????? ??? ??
   const playbackTime = usePlaybackTimeControlled(ui.freezeTimelineRender);
-  const autoScrollTargetRef = useRef(playbackTime);
   const autoScrollPixelsPerSecondRef = useRef(pixelsPerSecond);
   const autoScrollViewportWidthRef = useRef<number>(0);
-  const autoScrollLastCheckRef = useRef<number>(0);
+  const virtualScrollLeftRef = useRef(0);
+  const [visibleWindow, setVisibleWindow] = useState({
+    startPx: 0,
+    endPx: 0,
+    startTime: startTime,
+    endTime: startTime,
+  });
+  const pendingVisibleUpdateRef = useRef<number | null>(null);
+  const lastVisibleWindowRef = useRef(visibleWindow);
+  const overscanMultiplier = Math.max(0, ui.timelineOverscanMultiplier || 0);
+
+  const updateVisibleWindow = useCallback((scrollLeftPx: number) => {
+    const viewportWidth = autoScrollViewportWidthRef.current || containerRef.current?.clientWidth || 0;
+    if (viewportWidth <= 0) return;
+    const overscan = viewportWidth * overscanMultiplier;
+    const startPx = Math.max(0, scrollLeftPx - overscan);
+    const endPx = scrollLeftPx + viewportWidth + overscan;
+    const startTimeSec = startTime + startPx / pixelsPerSecond;
+    const endTimeSec = startTime + endPx / pixelsPerSecond;
+    const nextWindow = { startPx, endPx, startTime: startTimeSec, endTime: endTimeSec };
+    const prev = lastVisibleWindowRef.current;
+    if (prev.startPx === nextWindow.startPx && prev.endPx === nextWindow.endPx) return;
+    lastVisibleWindowRef.current = nextWindow;
+    setVisibleWindow(nextWindow);
+  }, [overscanMultiplier, pixelsPerSecond, startTime]);
+
+  useEffect(() => {
+    lastVisibleWindowRef.current = visibleWindow;
+  }, [visibleWindow]);
+
+  const scheduleVisibleWindowUpdate = useCallback((scrollLeftPx: number) => {
+    if (pendingVisibleUpdateRef.current !== null) {
+      return;
+    }
+    pendingVisibleUpdateRef.current = requestAnimationFrame(() => {
+      pendingVisibleUpdateRef.current = null;
+      updateVisibleWindow(scrollLeftPx);
+    });
+  }, [updateVisibleWindow]);
+
+  // ?? ??? ??? (MeasureRuler? ??? ??)
+  // container? bottomScrollbar? ????? ???
+  useEffect(() => {
+    if (!contentRef.current || !containerRef.current) return;
+
+    const content = contentRef.current;
+    const bottomScrollbar = document.getElementById('timeline-scrollbar');
+    
+    if (!content || !bottomScrollbar) return;
+
+    let isUpdating = false;
+
+    // ?? ????? ???? ???? container? ???
+    const handleBottomScrollbarScroll = (e: Event) => {
+      if (isUpdating) return;
+      const target = e.target;
+      if (target && target instanceof HTMLElement && target === bottomScrollbar) {
+        isUpdating = true;
+        const scrollLeft = target.scrollLeft;
+        virtualScrollLeftRef.current = scrollLeft;
+        content.style.transform = `translateX(-${scrollLeft}px)`;
+        scheduleVisibleWindowUpdate(scrollLeft);
+        requestAnimationFrame(() => {
+          isUpdating = false;
+        });
+      }
+    };
+    bottomScrollbar.addEventListener('scroll', handleBottomScrollbarScroll);
+
+    return () => {
+      bottomScrollbar.removeEventListener('scroll', handleBottomScrollbarScroll);
+    };
+  }, [scheduleVisibleWindowUpdate, totalWidth]);
 
   useEffect(() => {
     autoScrollPixelsPerSecondRef.current = pixelsPerSecond;
   }, [pixelsPerSecond]);
+
+  useEffect(() => {
+    scheduleVisibleWindowUpdate(virtualScrollLeftRef.current);
+  }, [pixelsPerSecond, scheduleVisibleWindowUpdate, startTime]);
+
+  useEffect(() => {
+    scheduleVisibleWindowUpdate(virtualScrollLeftRef.current);
+  }, [overscanMultiplier, scheduleVisibleWindowUpdate]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -500,10 +531,12 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     };
 
     updateViewportWidth();
+    scheduleVisibleWindowUpdate(virtualScrollLeftRef.current);
 
     if (typeof ResizeObserver !== 'undefined') {
       const resizeObserver = new ResizeObserver(() => {
         updateViewportWidth();
+        scheduleVisibleWindowUpdate(virtualScrollLeftRef.current);
       });
       resizeObserver.observe(container);
       return () => {
@@ -512,28 +545,22 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     }
 
     const handleResize = () => updateViewportWidth();
+    scheduleVisibleWindowUpdate(virtualScrollLeftRef.current);
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [scheduleVisibleWindowUpdate]);
 
   useEffect(() => {
-    autoScrollTargetRef.current = playbackTime;
     if (!ui.isAutoScrollEnabled) {
       return;
     }
 
-    const now = performance.now();
-    const lastCheck = autoScrollLastCheckRef.current;
-    if (now - lastCheck < 100) {
-      return;
-    }
-    autoScrollLastCheckRef.current = now;
-
     const container = containerRef.current;
+    const content = contentRef.current;
     const bottomScrollbar = document.getElementById('timeline-scrollbar');
-    if (!container || !bottomScrollbar) {
+    if (!container || !content || !bottomScrollbar) {
       return;
     }
 
@@ -545,38 +572,43 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       autoScrollViewportWidthRef.current = viewportWidth;
     }
 
-    const currentScrollLeft = container.scrollLeft;
+    const currentScrollLeft = virtualScrollLeftRef.current;
     const playheadPixelX = (playbackTime - startTime) * autoScrollPixelsPerSecondRef.current;
-    const start = currentScrollLeft * 2;
-    const trigger = start + viewportWidth;
-    const viewportEnd = start + viewportWidth;
-    const isPlayheadInViewport = playheadPixelX >= start && playheadPixelX <= viewportEnd;
+    const viewStart = currentScrollLeft;
+    const viewEnd = currentScrollLeft + viewportWidth;
 
-    if (
-      (!isPlayheadInViewport && playheadPixelX >= 0) ||
-      (isPlayheadInViewport && playheadPixelX >= trigger)
-    ) {
+    if (playheadPixelX < viewStart || playheadPixelX > viewEnd) {
       const maxScrollLeft = Math.max(0, container.scrollWidth - viewportWidth);
       const targetScrollLeft = Math.min(
         maxScrollLeft,
-        Math.max(0, playheadPixelX / 2)
+        Math.max(0, playheadPixelX)
       );
-
+      virtualScrollLeftRef.current = targetScrollLeft;
+      content.style.transform = `translateX(-${targetScrollLeft}px)`;
       bottomScrollbar.scrollLeft = targetScrollLeft;
+      scheduleVisibleWindowUpdate(targetScrollLeft);
     }
-  }, [playbackTime, startTime, ui.isAutoScrollEnabled]);
+  }, [playbackTime, scheduleVisibleWindowUpdate, startTime, ui.isAutoScrollEnabled]);
 
   // ?? ??? ?? (??????)
   // ?? ????? ??? ?? ?? ?? ??
   // props? ?? timeSignature? ???? ?? ???? ?? ? ?? ??
   const measureMarkers = useMemo<MeasureMarker[]>(() => {
     const startPerf = getPerfNow();
-    const markers = calculateMeasureMarkers(bpm, timeSignature, pixelsPerSecond, startTime, 150);
+    const markers = calculateMeasureMarkersInRange(
+      bpm,
+      timeSignature,
+      pixelsPerSecond,
+      startTime,
+      visibleWindow.startTime,
+      visibleWindow.endTime,
+      150
+    );
     const elapsedMs = getPerfNow() - startPerf;
     const now = getPerfNow();
     if (elapsedMs > PERF_LOG_THRESHOLD_MS && now - lastEventDisplayPerfLogAt > PERF_LOG_THROTTLE_MS) {
       lastEventDisplayPerfLogAt = now;
-      console.log('[perf] EventDisplay.calculateMeasureMarkers', {
+      console.log('[perf] EventDisplay.calculateMeasureMarkersInRange', {
         elapsedMs: Math.round(elapsedMs),
         bpm,
         pixelsPerSecond,
@@ -584,7 +616,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       });
     }
     return markers;
-  }, [bpm, pixelsPerSecond, startTime, timeSignature]);
+  }, [bpm, pixelsPerSecond, startTime, timeSignature, visibleWindow.endTime, visibleWindow.startTime]);
 
   // Step 9.2: ????? ?? ????? TimelineView ??? ???
 
@@ -603,8 +635,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   const justFinishedMarqueeSelectionRef = useRef(false); // ????? ?? ?????? ??
   
   // ??? ?? ??? ??
-  const [isDraggingPlayhead, setIsDraggingPlayhead] = useState(false);
-  
+    
   // ?? ???? ??
   const [isResizingPart, setIsResizingPart] = useState(false);
   const [resizePartId, setResizePartId] = useState<string | null>(null);
@@ -1171,13 +1202,6 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
       // ??? ?? ??? ?
-      if (isDraggingPlayhead && contentRef.current) {
-        const rect = contentRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const newTime = Math.max(0, (x / pixelsPerSecond) + startTime);
-        ui.setCurrentPlaybackTime(newTime);
-        return;
-      }
       
       if (isDragging && dragStart && dragCurrent) {
         const rect = contentRef.current?.getBoundingClientRect();
@@ -1404,9 +1428,6 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     };
 
     const handleGlobalMouseUp = () => {
-      if (isDraggingPlayhead) {
-        setIsDraggingPlayhead(false);
-      }
       if (isDragging) {
         handleMouseUp();
       }
@@ -1511,7 +1532,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       }
     };
 
-    if (isDragging || isDraggingPart || isSelectingClips || isDraggingPlayhead || isResizingPart) {
+    if (isDragging || isDraggingPart || isSelectingClips || isResizingPart) {
       document.addEventListener('mousemove', handleGlobalMouseMove);
       document.addEventListener('mouseup', handleGlobalMouseUp);
     }
@@ -1520,7 +1541,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, isDraggingPart, partDragStart, draggedPartId, isTrackMovingMode, handlePartMouseUp, ui.isQuantizeEnabled, bpm, timeSignature, isSelectingClips, selectionStart, trackHeights, ui, isDraggingPlayhead, startTime, isResizingPart, resizePartId, resizeStart, resizeSide, resizePreview, editingPartId]);
+  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, isDraggingPart, partDragStart, draggedPartId, isTrackMovingMode, handlePartMouseUp, ui.isQuantizeEnabled, bpm, timeSignature, isSelectingClips, selectionStart, trackHeights, ui, startTime, isResizingPart, resizePartId, resizeStart, resizeSide, resizePreview, editingPartId]);
 
   // ???? ??? ?? ???
   const handlePartMouseDown = useCallback((partId: string, e: React.MouseEvent) => {
@@ -1868,14 +1889,10 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
           exportRangeStart={ui.exportRangeStart}
           exportRangeEnd={ui.exportRangeEnd}
           startTime={startTime}
+          visibleStartTime={visibleWindow.startTime}
+          visibleEndTime={visibleWindow.endTime}
           pixelsPerSecond={pixelsPerSecond}
           totalWidth={totalWidth}
-          isRecording={isRecording}
-          onPlayheadMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsDraggingPlayhead(true);
-          }}
           tracks={tracks}
           trackHeights={trackHeights}
           selectedTrackId={selectedTrackId}
@@ -1944,7 +1961,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
               }
             }
           }}
-          onPartMouseLeave={(_partId) => {
+          onPartMouseLeave={() => {
             ui.setHoveredPartId(null);
             setSplitPreviewX(null);
             setSplitPreviewPartId(null);
@@ -2026,3 +2043,14 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
 };
 
 export default EventDisplay;
+
+
+
+
+
+
+
+
+
+
+

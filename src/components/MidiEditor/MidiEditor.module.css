@@ -181,6 +181,8 @@
   background-color: #888888;
   z-index: 10;
   pointer-events: none;
+  will-change: transform;
+  transform: translateX(0px);
 }
 
 .playheadRecording {

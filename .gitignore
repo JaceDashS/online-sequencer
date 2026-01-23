@@ -47,3 +47,5 @@ docs/plans
 .tmp/
 
 release/
+
+docs/manual/devPannel.md

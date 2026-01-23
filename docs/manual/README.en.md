@@ -413,6 +413,27 @@ flowchart LR
 
 ---
 
+## Performance Optimizations
+
+### Timeline Rendering Optimization
+
+- **Visible Range Rendering**: Only renders visible areas and overscan regions to improve performance
+- **Virtual Scroll**: Uses virtual scrolling for smooth scrolling even with large projects
+- **Playhead Optimization**: Playback head is separated into a dedicated component that updates without React re-renders
+
+### Audio Sample Loading Optimization
+
+- **Lazy Loading**: Only loads necessary samples to reduce initial loading time
+- **Duplicate Loading Prevention**: Prevents duplicate loading of the same samples
+- **Prefetch**: Preloads necessary samples before playback starts
+
+### MIDI Editor Performance Improvements
+
+- **Playhead Separation**: Playback head is separated into a dedicated component to improve performance
+- **Memoization**: Frequently calculated values are memoized to prevent unnecessary recalculations
+
+---
+
 ## Additional Resources
 
 - [Project Specification](../specs/project-save-load-specification.ko.md)

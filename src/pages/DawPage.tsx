@@ -297,7 +297,8 @@ const DawPage: React.FC = () => {
               bpm={bpm} 
               timeSignature={timeSignature}
               pixelsPerSecond={ui.pixelsPerSecond}
-              isRecording={ui.isRecording}
+              extendPlayhead
+              playheadExtendPx={2000}
             />
           </div>
           <div className={styles.eventDisplay}>
@@ -309,7 +310,6 @@ const DawPage: React.FC = () => {
               onScrollSync={ui.setTimelineScrollTop}
               selectedTrackId={ui.selectedTrackId}
               onTrackSelect={ui.setSelectedTrackId}
-              isRecording={ui.isRecording}
             />
           </div>
           <div className={styles.timelineScrollbar} id="timeline-scrollbar">
@@ -363,3 +363,4 @@ const DawPage: React.FC = () => {
 };
 
 export default DawPage;
+

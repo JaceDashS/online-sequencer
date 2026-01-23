@@ -12,7 +12,7 @@ import { buildApiUrl, buildWebSocketUrl } from '../../utils/apiConfig';
  * 상세 로그 출력 여부 확인
  */
 const isVerboseLogging = (): boolean => {
-  return import.meta.env.VITE_LOG_VERBOSE === 'true' || import.meta.env.LOG_VERBOSE === 'true';
+  return import.meta.env.LOG_VERBOSE === 'true';
 };
 
 /**
@@ -695,5 +695,4 @@ export class SignalingClient {
     return this.clientId;
   }
 }
-
 

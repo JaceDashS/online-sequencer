@@ -134,3 +134,26 @@
   accent-color: #7aaa7a;
   cursor: pointer;
 }
+
+.toggleButton {
+  min-width: 52px;
+  padding: 3px 10px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggleButtonOn {
+  border-color: #7aaa7a;
+  color: #7aaa7a;
+}
+
+.toggleButtonOff {
+  border-color: #666666;
+  color: #888888;
+}

@@ -13,6 +13,27 @@ const DeveloperPanel: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showRoomsModal, setShowRoomsModal] = useState(false);
   const [isPartyTimeActive, setIsPartyTimeActive] = useState(() => isPartyTimeEnabled());
+  const [driftInput, setDriftInput] = useState(String(ui.playbackDriftMs));
+  const [pitchOffsetInput, setPitchOffsetInput] = useState(String(ui.pitchOffsetMaxMs));
+  const [lookaheadInput, setLookaheadInput] = useState(String(ui.scheduleLookaheadSeconds));
+  const [isDriftLogEnabled, setIsDriftLogEnabled] = useState(ui.playbackDriftLoggingEnabled);
+  const [isScheduleLogEnabled, setIsScheduleLogEnabled] = useState(ui.scheduleLogEnabled);
+  const [isLongTaskLogEnabled, setIsLongTaskLogEnabled] = useState(ui.longTaskLogEnabled);
+
+  useEffect(() => {
+    setIsDriftLogEnabled(ui.playbackDriftLoggingEnabled);
+  }, [ui.playbackDriftLoggingEnabled]);
+  useEffect(() => {
+    setIsScheduleLogEnabled(ui.scheduleLogEnabled);
+  }, [ui.scheduleLogEnabled]);
+  useEffect(() => {
+    setIsLongTaskLogEnabled(ui.longTaskLogEnabled);
+  }, [ui.longTaskLogEnabled]);
+  const [overscanInput, setOverscanInput] = useState(String(ui.timelineOverscanMultiplier));
+  const isEditingDriftRef = useRef(false);
+  const isEditingPitchOffsetRef = useRef(false);
+  const isEditingLookaheadRef = useRef(false);
+  const isEditingOverscanRef = useRef(false);
   const devClickCountRef = useRef(0);
   const lastClickTimeRef = useRef(0);
   
@@ -37,38 +58,96 @@ const DeveloperPanel: React.FC = () => {
 
   if (!ui.devModeEnabled) return null;
 
-  const handleDriftChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextValue = Number.parseInt(event.target.value, 10);
-    if (Number.isFinite(nextValue)) {
-      ui.setPlaybackDriftMs(nextValue);
+  const commitNumberInput = (
+    rawValue: string,
+    fallbackValue: number,
+    onCommit: (value: number) => void,
+    clamp?: (value: number) => number
+  ) => {
+    if (rawValue.trim() === '') {
+      return;
     }
-  };
-
-  const handlePitchOffsetChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextValue = Number.parseInt(event.target.value, 10);
-    if (Number.isFinite(nextValue)) {
-      ui.setPitchOffsetMaxMs(nextValue);
-      // AudioEngine에 즉시 반영
-      playbackController.getEngine().setPitchOffsetMaxMs(nextValue);
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) {
+      onCommit(fallbackValue);
+      return;
     }
+    const nextValue = clamp ? clamp(parsed) : parsed;
+    onCommit(nextValue);
   };
 
-  const handleLookaheadChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextValue = Number.parseFloat(event.target.value);
-    if (Number.isFinite(nextValue)) {
-      ui.setScheduleLookaheadSeconds(nextValue);
-      playbackController.setScheduleLookaheadSeconds(nextValue);
-    }
+  const handleDriftCommit = () => {
+    commitNumberInput(
+      driftInput,
+      ui.playbackDriftMs,
+      (value) => ui.setPlaybackDriftMs(Math.round(value)),
+      (value) => Math.max(0, Math.min(500, value))
+    );
   };
 
-  const handleLevelMeterToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    ui.setLevelMeterEnabled(event.target.checked);
+  const handlePitchOffsetCommit = () => {
+    commitNumberInput(
+      pitchOffsetInput,
+      ui.pitchOffsetMaxMs,
+      (value) => {
+        const nextValue = Math.round(value);
+        ui.setPitchOffsetMaxMs(nextValue);
+        playbackController.getEngine().setPitchOffsetMaxMs(nextValue);
+      },
+      (value) => Math.max(0, Math.min(20, value))
+    );
   };
 
-  const handleFreezeTimelineToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    ui.setFreezeTimelineRender(event.target.checked);
+  const handleLookaheadCommit = () => {
+    commitNumberInput(
+      lookaheadInput,
+      ui.scheduleLookaheadSeconds,
+      (value) => {
+        const nextValue = Math.round(value * 100) / 100;
+        ui.setScheduleLookaheadSeconds(nextValue);
+        playbackController.setScheduleLookaheadSeconds(nextValue);
+      },
+      (value) => Math.max(0, Math.min(5, value))
+    );
   };
 
+  const handleDriftLogToggle = () => {
+    const nextValue = !isDriftLogEnabled;
+    setIsDriftLogEnabled(nextValue);
+    ui.setPlaybackDriftLoggingEnabled(nextValue);
+  };
+
+  const handleScheduleLogToggle = () => {
+    const nextValue = !isScheduleLogEnabled;
+    setIsScheduleLogEnabled(nextValue);
+    ui.setScheduleLogEnabled(nextValue);
+  };
+
+  const handleLongTaskLogToggle = () => {
+    const nextValue = !isLongTaskLogEnabled;
+    setIsLongTaskLogEnabled(nextValue);
+    ui.setLongTaskLogEnabled(nextValue);
+  };
+
+  const handleOverscanCommit = () => {
+    commitNumberInput(
+      overscanInput,
+      ui.timelineOverscanMultiplier,
+      (value) => {
+        const nextValue = Math.round(value * 100) / 100;
+        ui.setTimelineOverscanMultiplier(nextValue);
+      },
+      (value) => Math.max(0, Math.min(2, value))
+    );
+  };
+
+  const handleLevelMeterToggle = () => {
+    ui.setLevelMeterEnabled(!ui.levelMeterEnabled);
+  };
+
+  const handleProjectSubscriptionToggle = () => {
+    ui.setTimelineProjectSubscriptionEnabled(!ui.timelineProjectSubscriptionEnabled);
+  };
 
   const handleBufferChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextValue = Number.parseInt(event.target.value, 10);
@@ -165,10 +244,49 @@ const DeveloperPanel: React.FC = () => {
               min={0}
               max={500}
               step={1}
-              value={ui.playbackDriftMs}
-              onChange={handleDriftChange}
+              value={driftInput}
+              onChange={(event) => setDriftInput(event.target.value)}
+              onFocus={() => { isEditingDriftRef.current = true; }}
+              onBlur={() => { isEditingDriftRef.current = false; handleDriftCommit(); }}
+              onKeyDown={(event) => { if (event.key === 'Enter') { (event.target as HTMLInputElement).blur(); } }}
             />
             <span className={styles.unit}>ms</span>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>DRIFT LOG</span>
+          <div className={styles.field}>
+            <button
+              type="button"
+              className={`${styles.toggleButton} ${isDriftLogEnabled ? styles.toggleButtonOn : styles.toggleButtonOff}`}
+              onClick={handleDriftLogToggle}
+            >
+              [{isDriftLogEnabled ? 'ON' : 'OFF'}]
+            </button>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>SCHEDULE LOG</span>
+          <div className={styles.field}>
+            <button
+              type="button"
+              className={`${styles.toggleButton} ${isScheduleLogEnabled ? styles.toggleButtonOn : styles.toggleButtonOff}`}
+              onClick={handleScheduleLogToggle}
+            >
+              [{isScheduleLogEnabled ? 'ON' : 'OFF'}]
+            </button>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>LONGTASK LOG</span>
+          <div className={styles.field}>
+            <button
+              type="button"
+              className={`${styles.toggleButton} ${isLongTaskLogEnabled ? styles.toggleButtonOn : styles.toggleButtonOff}`}
+              onClick={handleLongTaskLogToggle}
+            >
+              [{isLongTaskLogEnabled ? 'ON' : 'OFF'}]
+            </button>
           </div>
         </div>
         <div className={styles.row}>
@@ -212,8 +330,11 @@ const DeveloperPanel: React.FC = () => {
               min={0}
               max={20}
               step={1}
-              value={ui.pitchOffsetMaxMs}
-              onChange={handlePitchOffsetChange}
+              value={pitchOffsetInput}
+              onChange={(event) => setPitchOffsetInput(event.target.value)}
+              onFocus={() => { isEditingPitchOffsetRef.current = true; }}
+              onBlur={() => { isEditingPitchOffsetRef.current = false; handlePitchOffsetCommit(); }}
+              onKeyDown={(event) => { if (event.key === 'Enter') { (event.target as HTMLInputElement).blur(); } }}
             />
             <span className={styles.unit}>ms</span>
           </div>
@@ -227,8 +348,11 @@ const DeveloperPanel: React.FC = () => {
               min={0}
               max={5}
               step={0.05}
-              value={ui.scheduleLookaheadSeconds}
-              onChange={handleLookaheadChange}
+              value={lookaheadInput}
+              onChange={(event) => setLookaheadInput(event.target.value)}
+              onFocus={() => { isEditingLookaheadRef.current = true; }}
+              onBlur={() => { isEditingLookaheadRef.current = false; handleLookaheadCommit(); }}
+              onKeyDown={(event) => { if (event.key === 'Enter') { (event.target as HTMLInputElement).blur(); } }}
             />
             <span className={styles.unit}>s</span>
           </div>
@@ -236,29 +360,43 @@ const DeveloperPanel: React.FC = () => {
         <div className={styles.row}>
           <span className={styles.label}>METER</span>
           <div className={styles.field}>
-            <label className={styles.checkboxLabel}>
-              <input
-                className={styles.checkbox}
-                type="checkbox"
-                checked={ui.levelMeterEnabled}
-                onChange={handleLevelMeterToggle}
-              />
-              <span>{ui.levelMeterEnabled ? 'ON' : 'OFF'}</span>
-            </label>
+            <button
+              type="button"
+              className={`${styles.toggleButton} ${ui.levelMeterEnabled ? styles.toggleButtonOn : styles.toggleButtonOff}`}
+              onClick={handleLevelMeterToggle}
+            >
+              [{ui.levelMeterEnabled ? 'ON' : 'OFF'}]
+            </button>
           </div>
         </div>
         <div className={styles.row}>
-          <span className={styles.label}>FREEZE TL</span>
+          <span className={styles.label}>SUB PROJ</span>
           <div className={styles.field}>
-            <label className={styles.checkboxLabel}>
-              <input
-                className={styles.checkbox}
-                type="checkbox"
-                checked={ui.freezeTimelineRender}
-                onChange={handleFreezeTimelineToggle}
-              />
-              <span>{ui.freezeTimelineRender ? 'ON' : 'OFF'}</span>
-            </label>
+            <button
+              type="button"
+              className={`${styles.toggleButton} ${ui.timelineProjectSubscriptionEnabled ? styles.toggleButtonOn : styles.toggleButtonOff}`}
+              onClick={handleProjectSubscriptionToggle}
+            >
+              [{ui.timelineProjectSubscriptionEnabled ? 'ON' : 'OFF'}]
+            </button>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>OVERSCAN</span>
+          <div className={styles.field}>
+            <input
+              className={styles.input}
+              type="number"
+              min={0}
+              max={2}
+              step={0.05}
+              value={overscanInput}
+              onChange={(event) => setOverscanInput(event.target.value)}
+              onFocus={() => { isEditingOverscanRef.current = true; }}
+              onBlur={() => { isEditingOverscanRef.current = false; handleOverscanCommit(); }}
+              onKeyDown={(event) => { if (event.key === 'Enter') { (event.target as HTMLInputElement).blur(); } }}
+            />
+            <span className={styles.unit}>x</span>
           </div>
         </div>
       </div>
@@ -267,3 +405,23 @@ const DeveloperPanel: React.FC = () => {
 };
 
 export default DeveloperPanel;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -19,7 +19,6 @@ import { useMidiEditorDoubleClick } from '../../hooks/useMidiEditorDoubleClick';
 import { useSustainPedal } from '../../hooks/useSustainPedal';
 import { useNoteResize } from '../../hooks/useNoteResize';
 import { useMidiEditorScrollSync } from '../../hooks/useMidiEditorScrollSync';
-import { usePlaybackTime } from '../../hooks/usePlaybackTime';
 import { MIDI_EDITOR_CONSTANTS } from '../../constants/ui';
 import type { MidiNote } from '../../types/project';
 import PianoOctave from './PianoOctave';
@@ -27,6 +26,7 @@ import MeasureRuler from '../EventDisplay/MeasureRuler';
 import { EditorHeader } from './EditorHeader';
 import { PianoRoll } from './PianoRoll';
 import { EditorFooter } from './EditorFooter';
+import { PlaybackPlayhead } from './PlaybackPlayhead';
 import { ticksToSecondsPure, getPpqn, getTimeSignature } from '../../utils/midiTickUtils';
 import { AudioEngine } from '../../core/audio/AudioEngine';
 import type { MidiEditorProps } from './MidiEditorTypes';
@@ -91,7 +91,6 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
   const [pianoKeyHeightScale, setPianoKeyHeightScale] = useState<number>(MIDI_EDITOR_CONSTANTS.PIANO_KEY_HEIGHT_SCALE_DEFAULT);
   
   // 재생 위치 (현재는 0, 나중에 실제 재생 위치로 업데이트)
-  const currentPlaybackTime = usePlaybackTime();
   
   const pianoRollRef = useRef<HTMLDivElement>(null);
   const measureRulerRef = useRef<HTMLDivElement>(null);
@@ -398,6 +397,11 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
     initialPixelsPerSecond,
     pianoRollContainerRef,
   });
+
+  const handlePianoRollZoomChange = useCallback((value: number) => {
+    setPixelsPerSecond(value);
+    setHasUserAdjustedZoom(true);
+  }, [setPixelsPerSecond, setHasUserAdjustedZoom]);
 
   
   // Step 7.9.5: 노트 리사이즈 로직을 훅으로 추출
@@ -1052,19 +1056,8 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
     const scrollLeft = measureRulerRef.current.scrollLeft;
     const x = clientX - rect.left + scrollLeft;
     const currentPixelsPerSecond = pixelsPerSecond ?? initialPixelsPerSecond;
-    const project = getProject();
-    const projectTimeSignature = getTimeSignature(project);
-    const ppqn = getPpqn(project);
-    const tempoMap = project.timing?.tempoMap ?? [];
-    const { startTime: partStartTime } = ticksToSecondsPure(
-      part.startTick,
-      part.durationTicks,
-      tempoMap,
-      projectTimeSignature,
-      ppqn
-    );
     return Math.max(0, (x / currentPixelsPerSecond) + partStartTime);
-  }, [part, pixelsPerSecond, initialPixelsPerSecond]);
+  }, [part, pixelsPerSecond, initialPixelsPerSecond, partStartTime]);
 
   useEffect(() => {
     if (!isDraggingRulerPlayhead) return;
@@ -1359,11 +1352,10 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
                       disableInteraction={true}
                     />
                     {/* 재생 위치 표시 (playhead) */}
-                    <div
+                    <PlaybackPlayhead
                       className={`${styles.playhead} ${ui.isRecording ? styles.playheadRecording : ''}`}
-                      style={{
-                        left: `${(currentPlaybackTime - partStartTime) * (pixelsPerSecond ?? initialPixelsPerSecond)}px`,
-                      }}
+                      partStartTime={partStartTime}
+                      pixelsPerSecond={pixelsPerSecond ?? initialPixelsPerSecond}
                     />
                   </div>
                 </div>
@@ -1397,14 +1389,10 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
               timeSignature={timeSignature}
               pixelsPerSecond={pixelsPerSecond}
               initialPixelsPerSecond={initialPixelsPerSecond}
-              currentPlaybackTime={currentPlaybackTime}
               isSelecting={isSelecting}
               selectionRect={selectionRect}
               marqueeSelectionSourceRef={marqueeSelectionSourceRef}
-              onPixelsPerSecondChange={(value) => {
-                setPixelsPerSecond(value);
-                setHasUserAdjustedZoom(true);
-              }}
+              onPixelsPerSecondChange={handlePianoRollZoomChange}
               minZoom={minZoom ?? MIDI_EDITOR_CONSTANTS.MIN_ZOOM}
               maxZoom={MAX_ZOOM}
             />

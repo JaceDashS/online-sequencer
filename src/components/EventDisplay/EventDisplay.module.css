@@ -42,25 +42,6 @@
   z-index: 1;
 }
 
-.playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: #888888;
-  pointer-events: auto;
-  z-index: 10;
-  transition: background-color 0.2s ease;
-  cursor: ew-resize;
-  will-change: transform;
-}
-
-.playheadRecording {
-  background-color: #ff4444;
-  width: 2px;
-  box-shadow: 0 0 4px rgba(255, 68, 68, 0.6);
-}
-
 .clip {
   position: absolute;
   background-color: #4a7a4a;

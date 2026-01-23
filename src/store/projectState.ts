@@ -132,7 +132,7 @@ export const setProject = (project: Project, skipMigration = false): void => {
   currentProject.tracks.forEach(track => {
     notifyTrackChange(track.id, {}, 'update');
   });
-  void preloadPlaybackSamples();
+  void preloadPlaybackSamples(projectToLoad);
   
   // 파티타임 확인 (프로젝트 로드 시)
   import('../utils/partyTime').then(({ checkAndUpdatePartyTime }) => {

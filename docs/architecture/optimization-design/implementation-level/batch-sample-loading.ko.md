@@ -10,7 +10,7 @@
 
 ## 개요
 
-오디오 샘플 로딩 시 메인 스레드 블로킹을 방지하기 위해 배치 단위로 로딩하는 최적화 기법입니다.
+오디오 샘플 로딩 시 메인 스레드 블로킹을 방지하기 위해 배치 단위로 로딩하고, 지연 로딩과 중복 로딩 방지를 통해 성능을 최적화하는 기법입니다.
 
 ---
 
@@ -19,12 +19,19 @@
 - 오디오 샘플 로딩 시 메인 스레드 블로킹 방지
 - 초기 로딩 시간 단축
 - 일부 샘플 실패 시에도 계속 진행
+- 필요한 샘플만 지연 로딩 (Lazy Loading)
+- 중복 로딩 방지 (pending map 사용)
+- 프로젝트 기반 프리페치 (Prefetch)
 
 ---
 
 ## 구현 위치
 
-- `src/core/audio/AudioEngine.ts`
+- `src/core/audio/AudioEngine.ts`: 샘플 로딩 및 프리페치 로직
+- `src/core/audio/PlaybackController.ts`: 재생 시작 전 프리페치
+- `src/utils/audioPreload.ts`: 프로젝트 기반 프리페치 유틸리티
+- `src/store/actions/trackActions.ts`: 트랙 추가/악기 변경 시 프리페치
+- `src/store/projectState.ts`: 프로젝트 로드 시 프리페치
 
 ---
 
@@ -124,19 +131,67 @@ sequenceDiagram
 
 ---
 
+## 지연 로딩 (Lazy Loading)
+
+### 개요
+필요한 샘플만 재생 시점에 로딩하여 초기 로딩 시간을 단축합니다.
+
+### 동작 방식
+- `scheduleNote()` 호출 시 샘플 버퍼 확인
+- 버퍼가 없으면 `ensureSampleLoaded()` 호출하여 로딩
+- 로딩 완료 후 재생
+
+### 중복 로딩 방지
+- `pendingSamples` Map을 사용하여 로딩 중인 샘플 추적
+- 동일한 샘플이 여러 번 요청되어도 한 번만 로딩
+- 로딩 완료 후 `sampleBuffers`에 저장
+
+## 프리페치 (Prefetch)
+
+### 프로젝트 기반 프리페치
+- `prefetchSamplesForProject()`: 프로젝트의 모든 트랙에서 사용되는 샘플을 미리 로딩
+- 프로젝트 로드 시 자동으로 프리페치 실행
+- 트랙 추가/악기 변경 시에도 프리페치 실행
+
+### 재생 시작 전 프리페치
+- `PlaybackController`에서 재생 시작 전 `prefetchSamplesForProject()` 호출
+- 재생 중단을 방지하기 위해 필요한 샘플을 미리 준비
+
+### 프리페치 흐름
+```mermaid
+sequenceDiagram
+    participant Project as 프로젝트 로드
+    participant Preload as audioPreload
+    participant Engine as AudioEngine
+    participant Playback as PlaybackController
+    
+    Project->>Preload: preloadPlaybackSamples(project)
+    Preload->>Engine: prefetchSamplesForProject(project)
+    Engine->>Engine: 프로젝트의 모든 샘플 URL 수집
+    Engine->>Engine: 배치 단위로 로딩
+    
+    Note over Playback: 재생 시작 전
+    Playback->>Preload: preloadPlaybackSamples(project)
+    Preload->>Engine: prefetchSamplesForProject(project)
+```
+
 ## 효과
 
 ### 성능 개선
 - 초기 로딩 시간 단축 (병렬 로딩)
 - 메인 스레드 응답성 유지
+- 필요한 샘플만 로딩하여 네트워크 사용량 감소
+- 중복 로딩 방지로 불필요한 네트워크 요청 제거
 
 ### 안정성
 - 일부 샘플 실패 시에도 계속 진행
 - 전체 로딩 실패 방지
+- 재생 시작 전 프리페치로 재생 중단 방지
 
 ### 사용자 경험
 - 로딩 중에도 UI가 반응함
 - 진행 상황 표시 가능
+- 재생 시작 시 즉시 재생 가능 (프리페치 덕분)
 
 ---
 

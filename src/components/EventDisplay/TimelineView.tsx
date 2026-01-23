@@ -1,6 +1,5 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import styles from './EventDisplay.module.css';
-import { subscribePlaybackTime } from '../../utils/playbackTimeStore';
 import { EVENT_DISPLAY_CONSTANTS } from '../../constants/ui';
 import { ticksToSecondsPure, getTimeSignature, getPpqn } from '../../utils/midiTickUtils';
 import { getProject } from '../../store/projectStore';
@@ -25,14 +24,16 @@ export interface TimelineViewProps {
   exportRangeEnd: number | null;
   /** 시작 시간 (초) */
   startTime: number;
+  /** visible window start time (seconds) */
+  visibleStartTime: number;
+  /** visible window end time (seconds) */
+  visibleEndTime: number;
   /** 초당 픽셀 수 (줌 레벨) */
   pixelsPerSecond: number;
   /** 전체 너비 (픽셀) */
   totalWidth: number;
   /** 녹음 중 여부 */
-  isRecording: boolean;
   /** 플레이헤드 드래그 시작 핸들러 */
-  onPlayheadMouseDown: (e: React.MouseEvent) => void;
   /** 트랙 배열 */
   tracks: Track[];
   /** 트랙별 높이 맵 */
@@ -114,10 +115,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   exportRangeStart,
   exportRangeEnd,
   startTime,
+  visibleStartTime,
+  visibleEndTime,
   pixelsPerSecond,
   totalWidth,
-  isRecording,
-  onPlayheadMouseDown,
   tracks,
   trackHeights,
   selectedTrackId,
@@ -163,69 +164,6 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   dragStart,
   dragCurrent,
 }) => {
-  // Step 9.2: 플레이헤드 ref 및 위치 업데이트
-  const playheadRef = useRef<HTMLDivElement>(null);
-  const playheadTargetRef = useRef(0);
-  const playheadRenderRef = useRef<number | null>(null);
-  const playheadRafRef = useRef<number | null>(null);
-  const playheadPerfRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const updatePlayhead = (renderTime: number) => {
-      if (!playheadRef.current) return;
-      const x = (renderTime - startTime) * pixelsPerSecond;
-      const isVisible = x >= 0 && x <= totalWidth;
-      playheadRef.current.style.transform = `translateX(${x}px)`;
-      playheadRef.current.style.opacity = isVisible ? '1' : '0';
-      playheadRef.current.style.pointerEvents = isVisible ? 'auto' : 'none';
-    };
-
-    const tick = (now: number) => {
-      playheadRafRef.current = null;
-      const targetTime = playheadTargetRef.current;
-      let renderTime = playheadRenderRef.current ?? targetTime;
-      const lastPerf = playheadPerfRef.current;
-      const elapsed = lastPerf ? Math.max(0, (now - lastPerf) / 1000) : 0;
-      playheadPerfRef.current = now;
-
-      const delta = targetTime - renderTime;
-      const absDelta = Math.abs(delta);
-      const maxStep = Math.max(0.01, elapsed * 2);
-
-      if (absDelta > 1.5) {
-        renderTime = targetTime;
-      } else if (absDelta > maxStep) {
-        renderTime += Math.sign(delta) * maxStep;
-      } else {
-        renderTime = targetTime;
-      }
-
-      playheadRenderRef.current = renderTime;
-      updatePlayhead(renderTime);
-
-      if (Math.abs(playheadTargetRef.current - renderTime) > 0.001) {
-        playheadRafRef.current = requestAnimationFrame(tick);
-      }
-    };
-
-    const unsubscribe = subscribePlaybackTime((time) => {
-      playheadTargetRef.current = time;
-      if (playheadRafRef.current === null) {
-        playheadRafRef.current = requestAnimationFrame(tick);
-      }
-    });
-
-    return () => {
-      unsubscribe();
-      if (playheadRafRef.current !== null) {
-        cancelAnimationFrame(playheadRafRef.current);
-        playheadRafRef.current = null;
-      }
-      playheadPerfRef.current = null;
-      playheadRenderRef.current = null;
-    };
-  }, [pixelsPerSecond, startTime, totalWidth]);
-
   return (
     <>
       {/* Export 범위 오버레이 */}
@@ -290,13 +228,6 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       })()}
       
       {/* Step 9.2: 플레이헤드 렌더링 */}
-      <div
-        ref={playheadRef}
-        className={`${styles.playhead} ${isRecording ? styles.playheadRecording : ''}`}
-        style={{ transform: 'translateX(0px)' }}
-        onMouseDown={onPlayheadMouseDown}
-      />
-      
       {/* Step 9.3: 트랙 및 마디 구분선 렌더링 */}
       {/* Step 9.4.1: 기본 미디파트 클립 렌더링 */}
       {tracks.map((track) => {
@@ -359,6 +290,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                   projectTimeSignature,
                   projectPpqn
                 );
+
+                if (visibleEndTime > visibleStartTime) {
+                  const partEndTime = partStartTime + partDuration;
+                  if (partEndTime < visibleStartTime || partStartTime > visibleEndTime) {
+                    return null;
+                  }
+                }
                 
                 const isDragged = isDraggingPart && draggedPartsInfo.some(info => info.partId === part.id);
                 const shouldHideOriginal = isDragged && !isCtrlPressedDuringDrag;
@@ -600,6 +538,14 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             const clippedDurationTicks = clippedEndTick - clippedStartTick;
                             if (clippedDurationTicks <= 0) return null;
 
+                            if (visibleEndTime > visibleStartTime && displayDuration > 0) {
+                              const noteStartTime = displayStartTime + (clippedStartTick / displayPartDurationTicks) * displayDuration;
+                              const noteEndTime = noteStartTime + (clippedDurationTicks / displayPartDurationTicks) * displayDuration;
+                              if (noteEndTime < visibleStartTime || noteStartTime > visibleEndTime) {
+                                return null;
+                              }
+                            }
+
                             const noteX = (clippedStartTick / displayPartDurationTicks) * 100;
                             const noteWidth = Math.max(1, (clippedDurationTicks / displayPartDurationTicks) * 100);
                             const noteY = getNoteY(note.note);
@@ -800,4 +746,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     </>
   );
 };
+
+
+
 

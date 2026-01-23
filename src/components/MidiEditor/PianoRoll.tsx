@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { NoteLayer, type NoteLayerProps, type LanePosition } from './NoteLayer';
 import styles from './MidiEditor.module.css';
 import { MIDI_EDITOR_CONSTANTS } from '../../constants/ui';
@@ -6,6 +6,7 @@ import { ticksToSecondsPure, getTimeSignature, getPpqn } from '../../utils/midiT
 import { getProject } from '../../store/projectStore';
 import { useUIState } from '../../store/uiStore';
 import type { MidiPart } from '../../types/project';
+import { PlaybackPlayhead } from './PlaybackPlayhead';
 
 /**
  * PianoRoll 컴포넌트 Props
@@ -62,7 +63,6 @@ export interface PianoRollProps {
   /** 초기 픽셀/초 */
   initialPixelsPerSecond: number;
   /** 현재 재생 시간 */
-  currentPlaybackTime: number;
   /** Marquee 선택 중인지 여부 */
   isSelecting: boolean;
   /** Marquee 선택 영역 */
@@ -83,7 +83,7 @@ export interface PianoRollProps {
  * 
  * 피아노 키 영역과 노트 레인 영역을 포함합니다.
  */
-export const PianoRoll: React.FC<PianoRollProps> = ({
+export const PianoRoll: React.FC<PianoRollProps> = React.memo(({
   pianoKeyHeightScale,
   contentWidth,
   calculateLanePositions,
@@ -110,7 +110,6 @@ export const PianoRoll: React.FC<PianoRollProps> = ({
   timeSignature,
   pixelsPerSecond,
   initialPixelsPerSecond,
-  currentPlaybackTime,
   isSelecting,
   selectionRect,
   marqueeSelectionSourceRef,
@@ -126,7 +125,23 @@ export const PianoRoll: React.FC<PianoRollProps> = ({
   const pianoRollRef = externalPianoRollRef || internalPianoRollRef;
 
   // 레인 위치 계산
-  const lanes = calculateLanePositions();
+  const lanes = useMemo(() => calculateLanePositions(), [calculateLanePositions]);
+
+  const partStartTime = useMemo(() => {
+    if (!part) return 0;
+    const project = getProject();
+    const projectTimeSignature = getTimeSignature(project);
+    const ppqn = getPpqn(project);
+    const tempoMap = project.timing?.tempoMap ?? [];
+    const { startTime } = ticksToSecondsPure(
+      part.startTick,
+      part.durationTicks,
+      tempoMap,
+      projectTimeSignature,
+      ppqn
+    );
+    return startTime;
+  }, [part]);
 
   // Step 7.4: 피아노 롤 컨테이너를 PianoRoll 컴포넌트로 교체
   // pianoRollContainerRef div와 그 내부를 모두 반환
@@ -137,19 +152,18 @@ export const PianoRoll: React.FC<PianoRollProps> = ({
     const scrollLeft = pianoRollContainerRef.current?.scrollLeft ?? 0;
     const x = clientX - rect.left + scrollLeft;
     const currentPixelsPerSecond = pixelsPerSecond ?? initialPixelsPerSecond;
-    const project = getProject();
-    const projectTimeSignature = getTimeSignature(project);
-    const ppqn = getPpqn(project);
-    const tempoMap = project.timing?.tempoMap ?? [];
-    const { startTime: partStartTime } = ticksToSecondsPure(
-      part.startTick,
-      part.durationTicks,
-      tempoMap,
-      projectTimeSignature,
-      ppqn
-    );
     return Math.max(0, (x / currentPixelsPerSecond) + partStartTime);
-  }, [pianoRollRef, pianoRollContainerRef, part, pixelsPerSecond, initialPixelsPerSecond]);
+  }, [pianoRollRef, pianoRollContainerRef, part, pixelsPerSecond, initialPixelsPerSecond, partStartTime]);
+
+  const handlePlayheadMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const time = getPlaybackTimeFromRoll(e.clientX);
+    if (time === null) return;
+    ui.setCurrentPlaybackTime(time);
+    setIsDraggingPlayhead(true);
+    e.preventDefault();
+    e.stopPropagation();
+  }, [getPlaybackTimeFromRoll, ui]);
 
   useEffect(() => {
     if (!isDraggingPlayhead) return;
@@ -297,17 +311,6 @@ export const PianoRoll: React.FC<PianoRollProps> = ({
     >
       {/* 로케이터 범위 표시 (Export Range) - 전체 레인 높이에 표시 */}
       {part && (() => {
-        const project = getProject();
-        const projectTimeSignature = getTimeSignature(project);
-        const ppqn = getPpqn(project);
-        const tempoMap = project.timing?.tempoMap ?? [];
-        const { startTime: partStartTime } = ticksToSecondsPure(
-          part.startTick,
-          part.durationTicks,
-          tempoMap,
-          projectTimeSignature,
-          ppqn
-        );
         const currentPixelsPerSecond = pixelsPerSecond ?? initialPixelsPerSecond;
         
         // 컨테이너의 높이를 기준으로 전체 레인 높이 계산
@@ -466,43 +469,20 @@ export const PianoRoll: React.FC<PianoRollProps> = ({
           {...noteLayerProps}
           lanes={lanes}
         />
-
         {/* Playhead overlay (full lane height) */}
-        {part && (() => {
-          const project = getProject();
-          const projectTimeSignature = getTimeSignature(project);
-          const ppqn = getPpqn(project);
-          const tempoMap = project.timing?.tempoMap ?? [];
-          const { startTime: partStartTime } = ticksToSecondsPure(
-            part.startTick,
-            part.durationTicks,
-            tempoMap,
-            projectTimeSignature,
-            ppqn
-          );
-          const currentPixelsPerSecond = pixelsPerSecond ?? initialPixelsPerSecond;
-          
-          return (
-            <div
-              className={`${styles.playhead} ${ui.isRecording ? styles.playheadRecording : ''}`}
-              style={{
-                left: `${(currentPlaybackTime - partStartTime) * currentPixelsPerSecond}px`,
-                top: '0px',
-                pointerEvents: 'auto',
-                cursor: 'ew-resize',
-              }}
-              onMouseDown={(e) => {
-                if (e.button !== 0) return;
-                const time = getPlaybackTimeFromRoll(e.clientX);
-                if (time === null) return;
-                ui.setCurrentPlaybackTime(time);
-                setIsDraggingPlayhead(true);
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            />
-          );
-        })()}
+        {part && (
+          <PlaybackPlayhead
+            className={`${styles.playhead} ${ui.isRecording ? styles.playheadRecording : ''}`}
+            partStartTime={partStartTime}
+            pixelsPerSecond={pixelsPerSecond ?? initialPixelsPerSecond}
+            style={{
+              top: '0px',
+              pointerEvents: 'auto',
+              cursor: 'ew-resize',
+            }}
+            onMouseDown={handlePlayheadMouseDown}
+          />
+        )}
       </div>
 
       {/* 그리드 표시 (글로벌 BPM과 timeSignature 기준) */}
@@ -518,18 +498,7 @@ export const PianoRoll: React.FC<PianoRollProps> = ({
         const secondsPerMeasure = beatsPerMeasure * secondsPerBeat;
         
         // 파트의 startTime 계산 (tick 기반, SMF 표준 정합)
-        const project = getProject();
-        const projectTimeSignature = getTimeSignature(project);
-        const ppqn = getPpqn(project);
-        const tempoMap = project.timing?.tempoMap ?? [];
         const gridLines = [];
-        const { startTime: partStartTime } = ticksToSecondsPure(
-          part.startTick,
-          part.durationTicks,
-          tempoMap,
-          projectTimeSignature,
-          ppqn
-        );
         
         // 클립의 시작 시간을 고려하여 그리드 생성
         const startGridIndex = Math.floor(partStartTime / gridSize);
@@ -578,4 +547,6 @@ export const PianoRoll: React.FC<PianoRollProps> = ({
       )}
     </div>
   );
-};
+});
+
+PianoRoll.displayName = 'PianoRoll';

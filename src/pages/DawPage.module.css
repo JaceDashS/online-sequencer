@@ -55,7 +55,9 @@
 .ruler {
   flex-shrink: 0;
   height: 30px;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 5;
 }
 
 .eventDisplay {
@@ -64,6 +66,8 @@
   min-height: 0;
   border-bottom: 1px solid var(--border-color);
   transition: border-color 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .mixerResizeHandle {
@@ -87,6 +91,8 @@
   flex-shrink: 0;
   overflow: hidden;
   transition: height 0.1s ease;
+  position: relative;
+  z-index: 10;
 }
 
 .timelineScrollbar {

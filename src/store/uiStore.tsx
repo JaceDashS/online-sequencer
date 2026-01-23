@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { setDebugLogBufferSize as setDebugLogBufferSizeInLogger } from '../utils/debugLogger';
 import { audioLevelStore } from '../utils/audioLevelStore';
 import { AUDIO_BUFFER_CONSTANTS } from '../constants/ui';
-import { setPlaybackDriftThresholdMs, setPlaybackTime } from '../utils/playbackTimeStore';
+import { setPlaybackDriftLoggingEnabled, setPlaybackDriftThresholdMs, setPlaybackTime } from '../utils/playbackTimeStore';
+import { setLongTaskLogEnabled, setScheduleLogEnabled } from '../utils/debugLogToggles';
 
 /**
  * UI 상태 타입 정의
@@ -42,11 +43,16 @@ export interface UIState {
 
   // 오토스크롤 상태
   isAutoScrollEnabled: boolean;
+  timelineProjectSubscriptionEnabled: boolean;
+  timelineOverscanMultiplier: number;
 
   // 디버그 로그 버퍼 사이즈
   debugLogBufferSize: number;
   audioBufferSize: number;
   playbackDriftMs: number;
+  playbackDriftLoggingEnabled: boolean;
+  scheduleLogEnabled: boolean;
+  longTaskLogEnabled: boolean;
   pitchOffsetMaxMs: number; // 같은 음계 간섭 방지를 위한 최대 시간 오프셋 (밀리초)
   scheduleLookaheadSeconds: number;
   levelMeterEnabled: boolean;
@@ -117,10 +123,15 @@ export interface UIActions {
 
   setIsAutoScrollEnabled: (enabled: boolean) => void;
   toggleAutoScroll: () => void;
+  setTimelineProjectSubscriptionEnabled: (enabled: boolean) => void;
+  setTimelineOverscanMultiplier: (value: number) => void;
 
   setDebugLogBufferSize: (size: number) => void;
   setAudioBufferSize: (size: number) => void;
   setPlaybackDriftMs: (value: number) => void;
+  setPlaybackDriftLoggingEnabled: (enabled: boolean) => void;
+  setScheduleLogEnabled: (enabled: boolean) => void;
+  setLongTaskLogEnabled: (enabled: boolean) => void;
   setPitchOffsetMaxMs: (value: number) => void;
   setScheduleLookaheadSeconds: (value: number) => void;
   setLevelMeterEnabled: (enabled: boolean) => void;
@@ -190,11 +201,16 @@ export type UIAction =
   | { type: 'TOGGLE_METRONOME' }
   | { type: 'SET_IS_AUTO_SCROLL_ENABLED'; payload: boolean }
   | { type: 'TOGGLE_AUTO_SCROLL' }
+  | { type: 'SET_TIMELINE_PROJECT_SUBSCRIPTION_ENABLED'; payload: boolean }
+  | { type: 'SET_TIMELINE_OVERSCAN_MULTIPLIER'; payload: number }
   
   // 디버그 및 설정
   | { type: 'SET_DEBUG_LOG_BUFFER_SIZE'; payload: number }
   | { type: 'SET_AUDIO_BUFFER_SIZE'; payload: number }
   | { type: 'SET_PLAYBACK_DRIFT_MS'; payload: number }
+  | { type: 'SET_PLAYBACK_DRIFT_LOGGING_ENABLED'; payload: boolean }
+  | { type: 'SET_SCHEDULE_LOG_ENABLED'; payload: boolean }
+  | { type: 'SET_LONGTASK_LOG_ENABLED'; payload: boolean }
   | { type: 'SET_PITCH_OFFSET_MAX_MS'; payload: number }
   | { type: 'SET_SCHEDULE_LOOKAHEAD_SECONDS'; payload: number }
   | { type: 'SET_LEVEL_METER_ENABLED'; payload: boolean }
@@ -313,9 +329,14 @@ const initialState: UIState = {
   isQuantizeEnabled: false,
   isMetronomeOn: false,
   isAutoScrollEnabled: false,
+  timelineProjectSubscriptionEnabled: false,
+  timelineOverscanMultiplier: 0.5,
   debugLogBufferSize: 0,
   audioBufferSize: AUDIO_BUFFER_CONSTANTS.DEFAULT_BUFFER_SIZE,
-  playbackDriftMs: 20,
+  playbackDriftMs: 10,
+  playbackDriftLoggingEnabled: false,
+  scheduleLogEnabled: false,
+  longTaskLogEnabled: false,
   pitchOffsetMaxMs: 3, // 기본값: 3ms
   scheduleLookaheadSeconds: 0.5,
   levelMeterEnabled: true,
@@ -334,6 +355,9 @@ const initialState: UIState = {
 
 setDebugLogBufferSizeInLogger(initialState.debugLogBufferSize);
 setPlaybackDriftThresholdMs(initialState.playbackDriftMs);
+setPlaybackDriftLoggingEnabled(initialState.playbackDriftLoggingEnabled);
+setScheduleLogEnabled(initialState.scheduleLogEnabled);
+setLongTaskLogEnabled(initialState.longTaskLogEnabled);
 
 /**
  * UI 상태 리듀서
@@ -419,6 +443,15 @@ const uiReducer = (state: UIState, action: UIAction): UIState => {
       return { ...state, isAutoScrollEnabled: action.payload };
     case 'TOGGLE_AUTO_SCROLL':
       return { ...state, isAutoScrollEnabled: !state.isAutoScrollEnabled };
+    case 'SET_TIMELINE_PROJECT_SUBSCRIPTION_ENABLED':
+      return { ...state, timelineProjectSubscriptionEnabled: Boolean(action.payload) };
+    case 'SET_TIMELINE_OVERSCAN_MULTIPLIER': {
+      const nextValue = Number(action.payload);
+      if (!Number.isFinite(nextValue)) {
+        return state;
+      }
+      return { ...state, timelineOverscanMultiplier: Math.max(0, nextValue) };
+    }
     
     // 디버그 및 설정
     case 'SET_DEBUG_LOG_BUFFER_SIZE': {
@@ -440,6 +473,21 @@ const uiReducer = (state: UIState, action: UIAction): UIState => {
         : initialState.playbackDriftMs;
       setPlaybackDriftThresholdMs(nextValue); // 부작용: playbackTimeStore 업데이트
       return { ...state, playbackDriftMs: nextValue };
+    }
+    case 'SET_PLAYBACK_DRIFT_LOGGING_ENABLED': {
+      const nextValue = Boolean(action.payload);
+      setPlaybackDriftLoggingEnabled(nextValue);
+      return { ...state, playbackDriftLoggingEnabled: nextValue };
+    }
+    case 'SET_SCHEDULE_LOG_ENABLED': {
+      const nextValue = Boolean(action.payload);
+      setScheduleLogEnabled(nextValue);
+      return { ...state, scheduleLogEnabled: nextValue };
+    }
+    case 'SET_LONGTASK_LOG_ENABLED': {
+      const nextValue = Boolean(action.payload);
+      setLongTaskLogEnabled(nextValue);
+      return { ...state, longTaskLogEnabled: nextValue };
     }
     case 'SET_PITCH_OFFSET_MAX_MS': {
       const nextValue = Number.isFinite(action.payload) 
@@ -649,6 +697,12 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
     toggleAutoScroll: useCallback(() => {
       dispatch({ type: 'TOGGLE_AUTO_SCROLL' });
     }, []),
+    setTimelineProjectSubscriptionEnabled: useCallback((enabled: boolean) => {
+      dispatch({ type: 'SET_TIMELINE_PROJECT_SUBSCRIPTION_ENABLED', payload: enabled });
+    }, []),
+    setTimelineOverscanMultiplier: useCallback((value: number) => {
+      dispatch({ type: 'SET_TIMELINE_OVERSCAN_MULTIPLIER', payload: value });
+    }, []),
     
     // 디버그 및 설정
     setDebugLogBufferSize: useCallback((size: number) => {
@@ -659,6 +713,15 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
     }, []),
     setPlaybackDriftMs: useCallback((value: number) => {
       dispatch({ type: 'SET_PLAYBACK_DRIFT_MS', payload: value });
+    }, []),
+    setPlaybackDriftLoggingEnabled: useCallback((enabled: boolean) => {
+      dispatch({ type: 'SET_PLAYBACK_DRIFT_LOGGING_ENABLED', payload: enabled });
+    }, []),
+    setScheduleLogEnabled: useCallback((enabled: boolean) => {
+      dispatch({ type: 'SET_SCHEDULE_LOG_ENABLED', payload: enabled });
+    }, []),
+    setLongTaskLogEnabled: useCallback((enabled: boolean) => {
+      dispatch({ type: 'SET_LONGTASK_LOG_ENABLED', payload: enabled });
     }, []),
     setPitchOffsetMaxMs: useCallback((value: number) => {
       dispatch({ type: 'SET_PITCH_OFFSET_MAX_MS', payload: value });
@@ -829,4 +892,36 @@ export const useUIStateAndActions = (): UIContextType => {
 export const useUIState = (): UIContextType => {
   return useUIStateAndActions();
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
