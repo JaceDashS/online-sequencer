@@ -4,6 +4,8 @@ import { getProject, setProject } from '../../store/projectStore';
 import type { Project } from '../../types/project';
 import { exportProjectToMidiFile } from '../../core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../core/midi/MidiParser';
+import { useWindowWidth } from '../../hooks/useWindowWidth';
+import { BREAKPOINTS } from '../../constants/ui';
 import { useUIState } from '../../store/uiStore';
 import { secondsToTicksPure, getTimeSignature, getPpqn } from '../../utils/midiTickUtils';
 import { addMidiPart } from '../../store/midiPartActions';
@@ -71,8 +73,11 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
   const [startAsNewProject, setStartAsNewProject] = useState(true);
   const [importToSingleTrack, setImportToSingleTrack] = useState(false);
   const [startFromTrack, setStartFromTrack] = useState(1);
+  const windowWidth = useWindowWidth();
   const fileButtonRef = useRef<HTMLDivElement>(null);
   const projectNameInputRef = useRef<HTMLInputElement>(null);
+  
+  const isNarrowScreen = windowWidth <= BREAKPOINTS.ICON_ONLY;
 
   const handleSaveProject = () => {
     if (isWeb) {
@@ -929,17 +934,19 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
             <path d="M17 21V13H7V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
             <path d="M7 3V8H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
           </svg>
-          <span>File</span>
-          <svg 
-            width="12" 
-            height="12" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
-            className={styles.dropdownArrow}
-          >
-            <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-          </svg>
+          {!isNarrowScreen && <span>File</span>}
+          {!isNarrowScreen && (
+            <svg 
+              width="12" 
+              height="12" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              className={styles.dropdownArrow}
+            >
+              <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            </svg>
+          )}
         </button>
         {showFileDropdown && (
           <div 

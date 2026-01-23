@@ -457,109 +457,91 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   // ?????: ?????? ??? ??
   const playbackTime = usePlaybackTime();
   const autoScrollTargetRef = useRef(playbackTime);
-  const autoScrollRenderRef = useRef<number | null>(null);
-  const autoScrollPerfRef = useRef<number | null>(null);
-  const autoScrollRafRef = useRef<number | null>(null);
   const autoScrollPixelsPerSecondRef = useRef(pixelsPerSecond);
-  const autoScrollEnabledRef = useRef(ui.isAutoScrollEnabled);
+  const autoScrollViewportWidthRef = useRef<number>(0);
+  const autoScrollLastCheckRef = useRef<number>(0);
 
   useEffect(() => {
     autoScrollPixelsPerSecondRef.current = pixelsPerSecond;
   }, [pixelsPerSecond]);
 
   useEffect(() => {
-    autoScrollEnabledRef.current = ui.isAutoScrollEnabled;
-    if (!ui.isAutoScrollEnabled) {
-      autoScrollRenderRef.current = null;
-      autoScrollPerfRef.current = null;
-      if (autoScrollRafRef.current !== null) {
-        cancelAnimationFrame(autoScrollRafRef.current);
-        autoScrollRafRef.current = null;
-      }
-    }
-  }, [ui.isAutoScrollEnabled]);
+    const container = containerRef.current;
+    if (!container) return;
 
-  useEffect(() => {
-    autoScrollTargetRef.current = playbackTime;
-    if (!ui.isAutoScrollEnabled || autoScrollRafRef.current !== null) {
-      return;
-    }
-
-    const tick = (now: number) => {
-      autoScrollRafRef.current = null;
-      if (!autoScrollEnabledRef.current) {
-        return;
-      }
-
-      const container = containerRef.current;
-      const bottomScrollbar = document.getElementById('timeline-scrollbar');
-      if (!container || !bottomScrollbar) {
-        return;
-      }
-
-      const targetTime = autoScrollTargetRef.current;
-      let renderTime = autoScrollRenderRef.current ?? targetTime;
-      const lastPerf = autoScrollPerfRef.current;
-      const elapsed = lastPerf ? Math.max(0, (now - lastPerf) / 1000) : 0;
-      autoScrollPerfRef.current = now;
-
-      const delta = targetTime - renderTime;
-      const absDelta = Math.abs(delta);
-      const maxStep = Math.max(0.01, elapsed * 2);
-
-      if (absDelta > 1.5) {
-        renderTime = targetTime;
-      } else if (absDelta > maxStep) {
-        renderTime += Math.sign(delta) * maxStep;
-      } else {
-        renderTime = targetTime;
-      }
-
-      autoScrollRenderRef.current = renderTime;
-
-      const viewportWidth = container.clientWidth;
-      const currentScrollLeft = container.scrollLeft;
-      const playheadPixelX = (renderTime - startTime) * autoScrollPixelsPerSecondRef.current;
-      const rightEdge = currentScrollLeft + viewportWidth;
-
-      if (playheadPixelX >= rightEdge) {
-        const maxScrollLeft = Math.max(0, container.scrollWidth - viewportWidth);
-        const targetPage = Math.floor(playheadPixelX / viewportWidth);
-        const targetScrollLeft = Math.min(
-          maxScrollLeft,
-          Math.max(0, targetPage * viewportWidth)
-        );
-        console.log('[EventDisplay][AutoScroll] Right edge reached', {
-          playbackTime,
-          renderTime,
-          targetTime: autoScrollTargetRef.current,
-          pixelsPerSecond: autoScrollPixelsPerSecondRef.current,
-          startTime,
-          playheadPixelX,
-          currentScrollLeft,
-          rightEdge,
-          viewportWidth,
-          targetPage,
-          containerScrollWidth: container.scrollWidth,
-          maxScrollLeft,
-          targetScrollLeft,
-          isAutoScrollEnabled: autoScrollEnabledRef.current
-        });
-        bottomScrollbar.scrollLeft = targetScrollLeft;
-        console.log('[EventDisplay][AutoScroll] Horizontal scroll applied', {
-          prevScrollLeft: currentScrollLeft,
-          newScrollLeft: bottomScrollbar.scrollLeft,
-          delta: bottomScrollbar.scrollLeft - currentScrollLeft
-        });
-      }
-
-      if (Math.abs(autoScrollTargetRef.current - renderTime) > 0.001) {
-        autoScrollRafRef.current = requestAnimationFrame(tick);
+    const updateViewportWidth = () => {
+      const nextWidth = container.clientWidth;
+      if (nextWidth > 0 && nextWidth !== autoScrollViewportWidthRef.current) {
+        autoScrollViewportWidthRef.current = nextWidth;
       }
     };
 
-    autoScrollRafRef.current = requestAnimationFrame(tick);
-  }, [playbackTime, ui.isAutoScrollEnabled]);
+    updateViewportWidth();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(() => {
+        updateViewportWidth();
+      });
+      resizeObserver.observe(container);
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+
+    const handleResize = () => updateViewportWidth();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    autoScrollTargetRef.current = playbackTime;
+    if (!ui.isAutoScrollEnabled) {
+      return;
+    }
+
+    const now = performance.now();
+    const lastCheck = autoScrollLastCheckRef.current;
+    if (now - lastCheck < 100) {
+      return;
+    }
+    autoScrollLastCheckRef.current = now;
+
+    const container = containerRef.current;
+    const bottomScrollbar = document.getElementById('timeline-scrollbar');
+    if (!container || !bottomScrollbar) {
+      return;
+    }
+
+    const viewportWidth = autoScrollViewportWidthRef.current || container.clientWidth;
+    if (viewportWidth <= 0) {
+      return;
+    }
+    if (autoScrollViewportWidthRef.current !== viewportWidth) {
+      autoScrollViewportWidthRef.current = viewportWidth;
+    }
+
+    const currentScrollLeft = container.scrollLeft;
+    const playheadPixelX = (playbackTime - startTime) * autoScrollPixelsPerSecondRef.current;
+    const start = currentScrollLeft * 2;
+    const trigger = start + viewportWidth;
+    const viewportEnd = start + viewportWidth;
+    const isPlayheadInViewport = playheadPixelX >= start && playheadPixelX <= viewportEnd;
+
+    if (
+      (!isPlayheadInViewport && playheadPixelX >= 0) ||
+      (isPlayheadInViewport && playheadPixelX >= trigger)
+    ) {
+      const maxScrollLeft = Math.max(0, container.scrollWidth - viewportWidth);
+      const targetScrollLeft = Math.min(
+        maxScrollLeft,
+        Math.max(0, playheadPixelX / 2)
+      );
+
+      bottomScrollbar.scrollLeft = targetScrollLeft;
+    }
+  }, [playbackTime, startTime, ui.isAutoScrollEnabled]);
 
   // ?? ??? ?? (??????)
   // ?? ????? ??? ?? ?? ?? ??
@@ -666,6 +648,12 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     
     const clipClosest = target.closest(`.${styles.clip}`);
     const trackClosest = target.closest(`.${styles.eventTrack}`);
+
+    const rect = contentRef.current?.getBoundingClientRect();
+    if (rect) {
+      const x = e.clientX - rect.left;
+      void x;
+    }
     
     // ??? ??? ??? ?? (?? ????? ??)
     if (clipClosest) {

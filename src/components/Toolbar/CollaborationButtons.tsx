@@ -5,6 +5,8 @@ import { getCollaborationManager, setCollaborationManager } from '../../core/syn
 import { getOrCreateClientId } from '../../core/sync/utils/uuid';
 import type { ConnectionState } from '../../core/sync/types/p2p';
 import { showError } from '../../utils/toastStore';
+import { useWindowWidth } from '../../hooks/useWindowWidth';
+import { BREAKPOINTS } from '../../constants/ui';
 
 interface Participant {
   id: string;
@@ -31,10 +33,13 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
   const [isHost, setIsHost] = useState(false);
   const [allowCountdown, setAllowCountdown] = useState<number | null>(null);
   const [hostCooldown, setHostCooldown] = useState<number | null>(null);
+  const windowWidth = useWindowWidth();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const joinInputRef = useRef<HTMLInputElement>(null);
   const collaborationManagerRef = useRef<CollaborationManager | null>(null);
   const clientId = getOrCreateClientId();
+  
+  const isNarrowScreen = windowWidth <= BREAKPOINTS.ICON_ONLY;
 
   // CollaborationManager 초기화
   useEffect(() => {
@@ -454,17 +459,19 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
               <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
             </svg>
-            <span>Collaboration</span>
-            <svg 
-              width="12" 
-              height="12" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg"
-              className={styles.dropdownArrow}
-            >
-              <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            </svg>
+            {!isNarrowScreen && <span>{windowWidth <= BREAKPOINTS.TEXT_SHORT ? 'Collab' : 'Collaboration'}</span>}
+            {!isNarrowScreen && (
+              <svg 
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                className={styles.dropdownArrow}
+              >
+                <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </svg>
+            )}
           </button>
           {showCollaborationDropdown && (
             <div 
@@ -506,6 +513,18 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
       {/* Joining 상태: 방번호 입력 필드와 버튼들 */}
       {mode === 'joining' && (
         <div className={styles.joinInputContainer}>
+          {isNarrowScreen && (
+            <button
+              className={styles.collaborationButton}
+              title="Collaboration"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </svg>
+            </button>
+          )}
           <input
             ref={joinInputRef}
             type="text"
@@ -518,28 +537,34 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
             placeholder="0000"
             maxLength={4}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && joinRoomCode.trim().length === 4) {
+              if (e.key === 'Enter') {
+                e.preventDefault();
                 handleJoinConfirm();
               } else if (e.key === 'Escape') {
+                e.preventDefault();
                 handleCancel();
               }
             }}
           />
-          <button
-            className={styles.joinConfirmButton}
-            onClick={handleJoinConfirm}
-            disabled={joinRoomCode.trim().length !== 4}
-            title="Join"
-          >
-            Join
-          </button>
-          <button
-            className={styles.cancelButton}
-            onClick={handleCancel}
-            title="Cancel"
-          >
-            Cancel
-          </button>
+          {!isNarrowScreen && (
+            <>
+              <button
+                className={styles.joinConfirmButton}
+                onClick={handleJoinConfirm}
+                disabled={joinRoomCode.trim().length !== 4}
+                title="Join"
+              >
+                Join
+              </button>
+              <button
+                className={styles.cancelButton}
+                onClick={handleCancel}
+                title="Cancel"
+              >
+                Cancel
+              </button>
+            </>
+          )}
         </div>
       )}
 

@@ -1,5 +1,7 @@
 import React from 'react';
 import styles from './PanelToggleButtons.module.css';
+import { useWindowWidth } from '../../hooks/useWindowWidth';
+import { BREAKPOINTS } from '../../constants/ui';
 
 interface PanelToggleButtonsProps {
   showTrackList: boolean;
@@ -18,6 +20,14 @@ const PanelToggleButtons: React.FC<PanelToggleButtonsProps> = ({
   onInspectorToggle,
   onMixerToggle,
 }) => {
+  const windowWidth = useWindowWidth();
+  const isVeryNarrowScreen = windowWidth <= BREAKPOINTS.HIDE_PANEL_TOGGLES;
+  
+  // 화면이 매우 좁을 때는 버튼들을 숨김
+  if (isVeryNarrowScreen) {
+    return null;
+  }
+  
   return (
     <div className={styles.panelToggleButtons}>
       <button

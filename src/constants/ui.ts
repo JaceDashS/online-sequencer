@@ -175,3 +175,18 @@ export const EVENT_DISPLAY_CONSTANTS = {
   PART_Z_INDEX_DRAGGING: 10, // 드래그 중 파트 z-index
   PART_Z_INDEX_NORMAL: 5, // 일반 파트 z-index
 } as const;
+
+// 화면 폭 브레이크포인트 (반응형 디자인)
+export const BREAKPOINTS = {
+  // 모바일 미지원: 이 값 이하일 때 모바일 미지원 메시지 표시
+  MOBILE_NOT_SUPPORTED: 1120, // px
+  
+  // 패널 토글 버튼 숨김: 이 값 이하일 때 Track List, Inspector, Mixer 토글 버튼 숨김
+  HIDE_PANEL_TOGGLES: 1250, // px
+  
+  // 아이콘만 표시: 이 값 이하일 때 File과 Collab 버튼의 텍스트와 드롭다운 화살표 숨김
+  ICON_ONLY: 1400, // px
+  
+  // 텍스트 단축: 이 값 이하일 때 Collab 버튼 텍스트를 "Collab"으로 표시
+  TEXT_SHORT: 1500, // px
+} as const;
