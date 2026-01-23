@@ -53,9 +53,9 @@ function createWindow() {
   const enableDevTools = parseBooleanEnv(process.env.ENABLE_DEVTOOLS);
 
   mainWindow = new BrowserWindow({
-    width: 1400,
+    width: 1200,
     height: 800,
-    minWidth: 1400, // 최소 창 너비
+    minWidth: 1200, // 최소 창 너비
     minHeight: 800, // 최소 창 높이
     autoHideMenuBar: true, // 메뉴 바 자동 숨김
     webPreferences: {
