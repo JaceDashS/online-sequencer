@@ -62,7 +62,12 @@
       ".env.production"
     ],
     "win": {
-      "target": "nsis"
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "Online-Sequencer-${version}-Windows-Portable.${ext}"
     },
     "mac": {
       "target": "dmg"
@@ -72,7 +77,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName} Setup ${version}.${ext}"
     }
   }
 }
