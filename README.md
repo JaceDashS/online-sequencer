@@ -11,19 +11,55 @@ A web-based Digital Audio Workstation (DAW) built with React, TypeScript, and Vi
 
 - **MIDI Editing**: Create and edit MIDI notes with a visual piano roll interface
 - **Standard MIDI File (SMF) Support**: Import and export MIDI files compliant with MIDI 1.0 specification
-- **Real-time Collaboration**: Collaborate with others using WebRTC P2P communication
+- **Real-time Collaboration**: Collaborate with others using WebRTC P2P communication (Star Topology)
 - **Multi-track Support**: Work with multiple tracks, each with independent volume, panning, and effects
-- **Audio Effects**: Apply effects such as EQ, Delay, and Reverb to tracks and master channel
+- **Audio Engine**: Sample-based playback (SFZ support for Piano, GM Drums), custom effect chain architecture
+- **Audio Effects**: Apply effects such as EQ, Delay, Compressor, and Reverb to tracks and master channel
 - **Project Management**: Save and load projects in JSON and MIDI formats
+- **History System**: Undo/Redo support for project changes (Note level & Part level)
+- **Responsive UI**: Zoomable timeline, resizable tracks, and mobile support check
 
 ## Tech Stack
 
-- **Frontend**: React 19, TypeScript, Vite
-- **Desktop**: Electron (optional)
-- **Audio**: Web Audio API
-- **Collaboration**: WebRTC, WebSocket
+### Frontend
+- **Framework**: React 19, TypeScript, Vite
+- **State Management**: React Context + Custom Store Pattern
+- **Audio**: Web Audio API (Schedule Lookahead), SFZ Parser
+- **Styling**: CSS Modules
 
-## Getting Started
+### Desktop (Electron)
+- **Engine**: Electron 39+ (Chromium + Node.js)
+- **IPC**: Context Isolation, Preload Scripts
+- **Build**: electron-builder (Windows NSIS/Portable, macOS DMG, Linux AppImage)
+
+### Backend (Signaling Server)
+- **Runtime**: Node.js, Express
+- **Real-time**: WebSocket (ws), WebRTC Signaling
+- **Topology**: Star Topology for scalable collaboration
+
+## Project Structure
+
+```
+online-daw/
+├── src/
+│   ├── components/   # React UI components (EventDisplay, MidiEditor, Mixer, etc.)
+│   ├── constants/    # App constants (MIDI, UI settings)
+│   ├── core/         # Core business logic
+│   │   ├── audio/    # Audio engine, Playback controller
+│   │   ├── effects/  # Audio effects implementation (EQ, Reverb, etc.)
+│   │   ├── midi/     # MIDI parser/exporter, SMF types
+│   │   └── sync/     # Collaboration logic (WebRTC, Conflict resolution)
+│   ├── domain/       # Domain models (Project, Timing)
+│   ├── hooks/        # Custom React hooks for UI logic
+│   ├── pages/        # Route pages
+│   ├── store/        # State management (Actions, History, Stores)
+│   ├── transport/    # Platform abstraction layer (Web/Electron I/O adapter)
+│   ├── utils/        # Utilities (Logger, Math, Time calculation)
+│   └── workers/      # Web Workers (Playback Clock, Debug Logger)
+├── docs/             # Documentation (Architecture, Specs, Manuals)
+├── server/           # Signaling server for collaboration
+└── public/           # Static assets (Samples, Icons)
+```
 
 ### Prerequisites
 
@@ -73,22 +109,25 @@ npm run test
 
 ```
 online-daw/
-├── src/              # Source code
-│   ├── components/   # React components
-│   ├── core/         # Core logic (MIDI, audio, sync)
-│   ├── store/        # State management
+├── src/
+│   ├── components/   # React UI components
+│   ├── constants/    # App constants (MIDI, UI)
+│   ├── core/         # Core logic (Audio engine, MIDI parser, Sync)
+│   ├── domain/       # Domain models (Project, Timing)
 │   ├── hooks/        # Custom React hooks
-│   └── utils/        # Utility functions
-├── docs/             # Documentation
-│   ├── specs/        # Technical specifications
-│   └── architecture/ # Architecture documentation
+│   ├── pages/        # Route pages
+│   ├── store/        # State management & Actions
+│   ├── transport/    # Transport layer (Web/Electron abstraction)
+│   ├── utils/        # Utilities (Logger, Math, Time)
+│   └── workers/      # Web Workers (Clock, Logger)
+├── docs/             # Documentation (Architecture, Specs, Manuals)
 ├── server/           # Signaling server for collaboration
-└── public/           # Static assets
+└── public/           # Static assets (Samples, Icons)
 ```
 
 ## Documentation
 
-See [docs/README.md](docs/README.md) for detailed documentation including:
+See [docs/README.en.md](docs/README.en.md) for detailed documentation including:
 - MIDI standard compliance specifications
 - Collaboration feature specifications
 - Architecture documentation
