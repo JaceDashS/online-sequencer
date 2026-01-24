@@ -1,5 +1,10 @@
 # Online DAW
 
+[English](README.md)
+
+[![Download Installer](https://img.shields.io/badge/Windows-Download%20Installer-blue?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online.Sequencer.Setup.0.1.0.exe)
+[![Download Portable](https://img.shields.io/badge/Windows-Download%20Portable-green?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online-Sequencer-0.1.0-Windows-Portable.zip)
+
 React, TypeScript, Vite로 구축된 웹 기반 디지털 오디오 워크스테이션(DAW)입니다. Online DAW는 실시간 협업 기능을 갖춘 MIDI 편집 기능을 제공합니다.
 
 ## 주요 기능

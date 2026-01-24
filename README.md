@@ -1,5 +1,10 @@
 # Online DAW
 
+[한국어](README.ko.md)
+
+[![Download Installer](https://img.shields.io/badge/Windows-Download%20Installer-blue?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online.Sequencer.Setup.0.1.0.exe)
+[![Download Portable](https://img.shields.io/badge/Windows-Download%20Portable-green?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online-Sequencer-0.1.0-Windows-Portable.zip)
+
 A web-based Digital Audio Workstation (DAW) built with React, TypeScript, and Vite. Online DAW provides MIDI editing capabilities with real-time collaboration support.
 
 ## Features
