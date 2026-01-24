@@ -101,6 +101,7 @@ export class AudioEngine {
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private masterEffectChain: EffectChain | null = null;
+  private pendingMasterEffects: Effect[] | null = null;
   private masterLeftAnalyser: AnalyserNode | null = null;
   private masterRightAnalyser: AnalyserNode | null = null;
   private masterSplitter: ChannelSplitterNode | null = null;
@@ -309,7 +310,13 @@ export class AudioEngine {
           // Create master effect chain (마스터 이펙트 체인)
           this.masterEffectChain = new EffectChain(this.context);
           this.masterEffectChain.setTiming(this.bpm, this.timeSignature);
-          this.masterEffectChain.updateEffects([]); // 초기에는 빈 배열
+          
+          if (this.pendingMasterEffects) {
+            this.masterEffectChain.updateEffects(this.pendingMasterEffects);
+            this.pendingMasterEffects = null;
+          } else {
+            this.masterEffectChain.updateEffects([]); // 초기에는 빈 배열
+          }
           
           // Create master analysers for left and right channels
           this.masterLeftAnalyser = this.context.createAnalyser();
@@ -537,9 +544,8 @@ export class AudioEngine {
    */
   updateMasterEffects(effects: Effect[]): void {
     if (!this.masterEffectChain) {
-      // masterEffectChain이 아직 생성되지 않았으면 ensureReady가 필요함
-      // 하지만 updateMasterEffects는 보통 ensureReady 이후에 호출되므로 경고만 출력
-      console.warn('[AudioEngine] Master effect chain not initialized. Call ensureReady() first.');
+      // masterEffectChain이 아직 생성되지 않았으면 pending 상태로 저장
+      this.pendingMasterEffects = effects;
       return;
     }
 
@@ -1121,6 +1127,7 @@ export class AudioEngine {
     this.context = null;
     this.masterGain = null;
     this.masterEffectChain = null;
+    this.pendingMasterEffects = null;
     this.masterLeftAnalyser = null;
     this.masterRightAnalyser = null;
     this.masterSplitter = null;

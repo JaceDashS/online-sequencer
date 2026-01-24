@@ -6,7 +6,7 @@ import {
 } from '../domain/timing/timingUtils';
 import { migrateProjectAtLoad } from './projectMigration';
 import { notifyProjectChange, notifyTrackChange } from './projectEvents';
-import { preloadPlaybackSamples } from '../utils/audioPreload';
+// import { preloadPlaybackSamples } from '../utils/audioPreload';
 
 /**
  * 초기 프로젝트 상태
@@ -132,7 +132,8 @@ export const setProject = (project: Project, skipMigration = false): void => {
   currentProject.tracks.forEach(track => {
     notifyTrackChange(track.id, {}, 'update');
   });
-  void preloadPlaybackSamples(projectToLoad);
+  // AudioContext 자동 재생 정책 위반 방지를 위해 자동 프리로드 제거
+  // void preloadPlaybackSamples(projectToLoad);
   
   // 파티타임 확인 (프로젝트 로드 시)
   import('../utils/partyTime').then(({ checkAndUpdatePartyTime }) => {
