@@ -10,6 +10,7 @@ import type { CollaborationManager } from '../../core/sync/CollaborationManager'
 import type { P2PMessage, TransportMessage } from '../../core/sync/types/p2p';
 import { subscribeCollaborationManager } from '../../core/sync/collaborationSession';
 import { isPartyTimeEnabled, subscribePartyTime } from '../../utils/partyTime';
+import { generateUUID } from '../../core/sync/utils/uuid';
 
 /**
  * TransportControls가 받는 props입니다.
@@ -174,6 +175,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     }
     lastSentRef.current = { action, time, at: now };
     const message: TransportMessage = {
+      id: generateUUID(),
       type: 'transport',
       from: manager.getClientId(),
       timestamp: Date.now(),

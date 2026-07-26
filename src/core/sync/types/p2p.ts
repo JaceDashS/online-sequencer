@@ -7,6 +7,7 @@
  * P2P 메시지 기본 타입
  */
 export interface P2PMessage {
+  id: string; // 메시지 고유 ID
   type: 'change' | 'initial-state' | 'state-request' | 'transport' | 'ping' | 'pong' | 'error';
   from: string; // 발신자 ID
   to?: string; // 수신자 ID (없으면 브로드캐스트)
@@ -21,7 +22,6 @@ export interface ChangeMessage extends P2PMessage {
   type: 'change';
   data: {
     change: RemoteChange;
-    sequence?: number; // 메시지 순서 번호
   };
 }
 

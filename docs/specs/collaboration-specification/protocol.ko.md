@@ -76,6 +76,7 @@ interface SignalingMessage {
 
 ```typescript
 interface P2PMessage {
+  id: string; // 발신 시 생성되고 중계 과정에서 유지되는 메시지 고유 ID
   type: 'initial-state' | 'state-request' | 'change' | 'transport' | 'ping' | 'pong' | 'error';
   from: string;
   to?: string;
@@ -102,7 +103,6 @@ interface ChangeMessage extends P2PMessage {
   type: 'change';
   data: {
     change: RemoteChange;
-    sequence?: number;
   };
 }
 

@@ -10,7 +10,7 @@
 
 import { CollaborationManager } from '../CollaborationManager';
 import { SyncManager } from '../SyncManager';
-import { getOrCreateClientId } from '../utils/uuid';
+import { generateUUID, getOrCreateClientId } from '../utils/uuid';
 
 /**
  * 테스트 헬퍼 함수들
@@ -97,6 +97,7 @@ export const testCollaboration = {
     console.log('[TEST] Message:', message);
     
     const testMessage = {
+      id: generateUUID(),
       type: 'change' as const,
       from: window.testCollaboration.host.getClientId(),
       to: guestId,
@@ -123,6 +124,7 @@ export const testCollaboration = {
     console.log('[TEST] Message:', message);
     
     const testMessage = {
+      id: generateUUID(),
       type: 'change' as const,
       from: window.testCollaboration.guest.getClientId(),
       timestamp: Date.now(),

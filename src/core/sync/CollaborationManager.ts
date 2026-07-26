@@ -10,6 +10,7 @@ import {
 } from './SignalingClient';
 import { WebRTCManager } from './WebRTCManager';
 import { SyncManager } from './SyncManager';
+import { getP2PMessageIdentity } from './messageIdentity';
 import { getOrCreateClientId } from './utils/uuid';
 import type { P2PMessage, ConnectionState } from './types/p2p';
 
@@ -46,7 +47,7 @@ export class CollaborationManager {
   private p2pReconnectTimers: Map<string, number> = new Map();
 
   private dispatchP2PMessage(message: P2PMessage): void {
-    const messageId = `${message.from}-${message.timestamp}-${message.type}`;
+    const messageId = getP2PMessageIdentity(message);
     if (this.seenP2PMessageIds.has(messageId)) {
       return;
     }

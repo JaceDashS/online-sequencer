@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 
 import { SyncManager } from '../../src/core/sync/SyncManager';
 import { CollaborationManager } from '../../src/core/sync/CollaborationManager';
-import type { P2PMessage } from '../../src/core/sync/types/p2p';
+import type { ChangeMessage, P2PMessage, RemoteChange } from '../../src/core/sync/types/p2p';
 import { getProject, setProject } from '../../src/store/projectState';
 import {
   notifyMidiNoteChange,
@@ -181,12 +181,48 @@ test('SyncManager: onGuestConnected sends JSON-safe initial project state', () =
   const projectState = message.data?.projectState as Record<string, unknown>;
 
   assert.equal(message.type, 'initial-state');
+  assert.ok(message.id.length > 0);
   assert.equal('self' in projectState, false);
   assert.equal('transient' in projectState, false);
   assert.deepEqual(projectState.nested, { value: 'kept' });
   assert.doesNotThrow(() => JSON.stringify(projectState));
   assert.notEqual(projectState, project);
   assert.deepEqual(projectState.tracks, project.tracks);
+
+  manager.disconnect();
+});
+
+test('SyncManager: distinct message IDs survive timestamp collisions', () => {
+  setProject(createTestProject(), true);
+
+  const mock = createMockCollaborationManager({ clientId: 'host-1', isHost: true });
+  const manager = new SyncManager(mock.manager);
+  const receivedChanges: RemoteChange[] = [];
+  const timestamp = 1000;
+
+  manager.onGuestChange('guest-1', (change) => receivedChanges.push(change));
+
+  const createBpmMessage = (id: string, bpm: number): ChangeMessage => ({
+    id,
+    type: 'change',
+    from: 'guest-1',
+    timestamp,
+    data: {
+      change: {
+        type: 'bpm',
+        value: bpm,
+        timestamp,
+        clientId: 'guest-1',
+      },
+    },
+  });
+
+  mock.p2pCallbacks[0](createBpmMessage('message-1', 121));
+  mock.p2pCallbacks[0](createBpmMessage('message-2', 122));
+  mock.p2pCallbacks[0](createBpmMessage('message-1', 123));
+
+  assert.deepEqual(receivedChanges.map((change) => change.value), [121, 122]);
+  assert.deepEqual(mock.broadcasts.map((message) => message.id), ['message-1', 'message-2']);
 
   manager.disconnect();
 });
@@ -262,6 +298,31 @@ test('CollaborationManager: disconnect disposes the active SyncManager', () => {
   assert.equal(webRTCDisconnectCount, 1);
   assert.equal(signalingDisconnectCount, 1);
   assert.equal(managerState.syncManager, null);
+});
+
+test('CollaborationManager: distinct message IDs survive timestamp collisions', () => {
+  const receivedMessages: P2PMessage[] = [];
+  const manager = Object.create(CollaborationManager.prototype) as CollaborationManager;
+  const managerState = manager as unknown as Record<string, unknown>;
+  Object.assign(managerState, {
+    seenP2PMessageIds: new Set<string>(),
+    p2pMessageCallbacks: [(message: P2PMessage) => receivedMessages.push(message)],
+  });
+
+  const dispatchP2PMessage = (
+    manager as unknown as { dispatchP2PMessage: (message: P2PMessage) => void }
+  ).dispatchP2PMessage.bind(manager);
+  const baseMessage = {
+    type: 'change' as const,
+    from: 'guest-1',
+    timestamp: 1000,
+  };
+
+  dispatchP2PMessage({ ...baseMessage, id: 'message-1' });
+  dispatchP2PMessage({ ...baseMessage, id: 'message-2' });
+  dispatchP2PMessage({ ...baseMessage, id: 'message-1' });
+
+  assert.deepEqual(receivedMessages.map((message) => message.id), ['message-1', 'message-2']);
 });
 
 console.log('\n' + '='.repeat(60));

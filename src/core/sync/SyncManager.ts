@@ -13,6 +13,8 @@ import type { ProjectChangeEvent, TrackChangeEvent, MidiPartChangeEvent, MidiNot
 import { createSimpleTiming, getBpm, getTimeSignature } from '../../utils/midiTickUtils';
 import { clearTimingCache } from '../../domain/timing/timingCache';
 import type { P2PMessage, RemoteChange, InitialStateMessage, ChangeMessage } from './types/p2p';
+import { getP2PMessageIdentity } from './messageIdentity';
+import { generateUUID } from './utils/uuid';
 import type { MidiNote, MidiPart, Project } from '../../types/project';
 import { addMidiPart, removeMidiPart, updateMidiPart, findMidiPart } from '../../store/midiPartActions';
 import { addNoteToMidiPart, updateNoteInMidiPart, removeNoteFromMidiPart, addMultipleNotesToMidiPart, removeMultipleNotesFromMidiPart } from '../../store/actions/noteActions';
@@ -96,6 +98,7 @@ export class SyncManager {
 
     const project = getProject();
     const initialStateMessage: InitialStateMessage = {
+      id: generateUUID(),
       type: 'initial-state',
       from: this.clientId,
       timestamp: Date.now(),
@@ -150,12 +153,12 @@ export class SyncManager {
    */
   private sendBroadcastChange(change: RemoteChange): void {
     const changeMessage: ChangeMessage = {
+      id: generateUUID(),
       type: 'change',
       from: this.clientId,
       timestamp: Date.now(),
       data: {
-        change,
-        sequence: Date.now()
+        change
       }
     };
 
@@ -300,12 +303,12 @@ export class SyncManager {
    */
   private sendChangeToHostMessage(change: RemoteChange): void {
     const changeMessage: ChangeMessage = {
+      id: generateUUID(),
       type: 'change',
       from: this.clientId,
       timestamp: Date.now(),
       data: {
-        change,
-        sequence: Date.now()
+        change
       }
     };
 
@@ -341,6 +344,7 @@ export class SyncManager {
     }
 
     const requestMessage: P2PMessage = {
+      id: generateUUID(),
       type: 'state-request',
       from: this.clientId,
       timestamp: Date.now()
@@ -354,7 +358,7 @@ export class SyncManager {
    */
   private handleP2PMessage(message: P2PMessage): void {
     // 중복 메시지 방지
-    const messageId = `${message.from}-${message.timestamp}-${message.type}`;
+    const messageId = getP2PMessageIdentity(message);
     if (this.messageHistory.has(messageId)) {
       return;
     }
@@ -1072,7 +1076,6 @@ export class SyncManager {
     this.debounceTimers.clear();
   }
 }
-
 
 
 

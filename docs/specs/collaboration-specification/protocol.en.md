@@ -76,6 +76,7 @@ interface SignalingMessage {
 
 ```typescript
 interface P2PMessage {
+  id: string; // Unique message ID created by the sender and preserved during relay
   type: 'initial-state' | 'state-request' | 'change' | 'transport' | 'ping' | 'pong' | 'error';
   from: string;
   to?: string;
@@ -102,7 +103,6 @@ interface ChangeMessage extends P2PMessage {
   type: 'change';
   data: {
     change: RemoteChange;
-    sequence?: number;
   };
 }
 
@@ -142,4 +142,3 @@ interface TransportMessage extends P2PMessage {
 - Master sync currently includes pan/effects; master volume is defined but not emitted.
 
 ---
-
