@@ -9,9 +9,15 @@
 import assert from 'node:assert/strict';
 
 import { SyncManager } from '../../src/core/sync/SyncManager';
-import type { CollaborationManager } from '../../src/core/sync/CollaborationManager';
+import { CollaborationManager } from '../../src/core/sync/CollaborationManager';
 import type { P2PMessage } from '../../src/core/sync/types/p2p';
 import { getProject, setProject } from '../../src/store/projectState';
+import {
+  notifyMidiNoteChange,
+  notifyMidiPartChange,
+  notifyProjectChange,
+  notifyTrackChange,
+} from '../../src/store/projectEvents';
 import type { Project, Track } from '../../src/types/project';
 
 type TestFn = () => void;
@@ -70,6 +76,12 @@ function createMockCollaborationManager(opts: { clientId: string; isHost: boolea
     getIsHost: () => opts.isHost,
     onP2PMessage: (callback: P2PCallback) => {
       p2pCallbacks.push(callback);
+      return () => {
+        const index = p2pCallbacks.indexOf(callback);
+        if (index !== -1) {
+          p2pCallbacks.splice(index, 1);
+        }
+      };
     },
     sendToGuest: (guestId: string, message: P2PMessage) => {
       sentToGuest.push({ guestId, message });
@@ -137,6 +149,8 @@ test('SyncManager: applyProjectState migrates legacy timing without echoing chan
   assert.deepEqual(project.timing?.timeSigMap[0], { tick: 0, num: 3, den: 4 });
   assert.equal(project.timing?.tempoMap[0].mpqn, Math.round(60000000 / 90));
   assert.equal(mock.sentToHost.length, 0);
+
+  manager.disconnect();
 });
 
 test('SyncManager: onGuestConnected sends JSON-safe initial project state', () => {
@@ -173,6 +187,81 @@ test('SyncManager: onGuestConnected sends JSON-safe initial project state', () =
   assert.doesNotThrow(() => JSON.stringify(projectState));
   assert.notEqual(projectState, project);
   assert.deepEqual(projectState.tracks, project.tracks);
+
+  manager.disconnect();
+});
+
+test('SyncManager: disconnect releases P2P and store subscriptions', () => {
+  const mock = createMockCollaborationManager({ clientId: 'guest-1', isHost: false });
+  const manager = new SyncManager(mock.manager);
+  const lifecycleState = manager as unknown as {
+    pendingLocalChangeTimers: Map<string, ReturnType<typeof setTimeout>>;
+  };
+
+  assert.equal(mock.p2pCallbacks.length, 1);
+
+  notifyProjectChange({ type: 'bpm', bpm: 121 });
+  assert.equal(mock.sentToHost.length, 1);
+  assert.equal(lifecycleState.pendingLocalChangeTimers.size, 1);
+
+  manager.disconnect();
+
+  assert.equal(mock.p2pCallbacks.length, 0);
+  assert.equal(lifecycleState.pendingLocalChangeTimers.size, 0);
+
+  const sentCountAfterDisconnect = mock.sentToHost.length;
+  notifyProjectChange({ type: 'bpm', bpm: 122 });
+  notifyTrackChange('track-1', { volume: 0.5 }, 'update');
+  notifyMidiPartChange({ type: 'move', partId: 'part-1', newStartTick: 240 });
+  notifyMidiNoteChange({
+    type: 'update',
+    partId: 'part-1',
+    noteIndex: 0,
+    changes: { velocity: 90 },
+  });
+
+  assert.equal(mock.sentToHost.length, sentCountAfterDisconnect);
+  assert.doesNotThrow(() => manager.disconnect());
+});
+
+test('CollaborationManager: disconnect disposes the active SyncManager', () => {
+  let syncDisconnectCount = 0;
+  let webRTCDisconnectCount = 0;
+  let signalingDisconnectCount = 0;
+
+  const manager = Object.create(CollaborationManager.prototype) as CollaborationManager;
+  const managerState = manager as unknown as Record<string, unknown>;
+  Object.assign(managerState, {
+    isHost: false,
+    roomCode: null,
+    syncManager: {
+      disconnect: () => {
+        syncDisconnectCount += 1;
+      },
+    },
+    webRTCManager: {
+      disconnect: () => {
+        webRTCDisconnectCount += 1;
+      },
+    },
+    signalingClient: {
+      disconnect: () => {
+        signalingDisconnectCount += 1;
+      },
+    },
+    p2pMessageCallbacks: [],
+    connectionStateCallbacks: [],
+    seenP2PMessageIds: new Set<string>(),
+    p2pReconnectTimers: new Map<string, number>(),
+    p2pReconnectAttempts: new Map<string, number>(),
+  });
+
+  manager.disconnect();
+
+  assert.equal(syncDisconnectCount, 1);
+  assert.equal(webRTCDisconnectCount, 1);
+  assert.equal(signalingDisconnectCount, 1);
+  assert.equal(managerState.syncManager, null);
 });
 
 console.log('\n' + '='.repeat(60));

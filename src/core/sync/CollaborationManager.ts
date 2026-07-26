@@ -406,8 +406,9 @@ export class CollaborationManager {
   /**
    * P2P 메시지 수신 콜백 등록
    */
-  onP2PMessage(callback: (message: P2PMessage) => void): void {
+  onP2PMessage(callback: (message: P2PMessage) => void): () => void {
     this.p2pMessageCallbacks.push(callback);
+    return () => this.offP2PMessage(callback);
   }
 
   /**
@@ -480,14 +481,15 @@ export class CollaborationManager {
     }
     // 게스트는 SignalingClient.disconnect()가 자동으로 leave 메시지를 전송
 
+    // SyncManager가 등록한 구독과 타이머를 먼저 정리합니다.
+    this.syncManager?.disconnect();
+    this.syncManager = null;
+
     // WebRTC 연결 종료
     this.webRTCManager.disconnect();
 
     // SignalingClient 연결 종료 (게스트는 자동으로 leave 메시지 전송)
     this.signalingClient.disconnect();
-
-    // SyncManager 정리
-    this.syncManager = null;
 
     // 상태 초기화
     this.isHost = false;

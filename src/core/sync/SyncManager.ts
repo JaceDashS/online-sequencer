@@ -38,6 +38,7 @@ export class SyncManager {
   
   // 충돌 대기 중인 변경사항 (로컬 변경사항)
   private pendingLocalChanges: Map<string, RemoteChange> = new Map();
+  private pendingLocalChangeTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   
   // 스로틀링 관련
   private throttleTimers: Map<string, number> = new Map();
@@ -45,21 +46,27 @@ export class SyncManager {
   // 디바운싱 관련
   private debounceTimers: Map<string, number> = new Map();
 
+  private unsubscribeCallbacks: Array<() => void> = [];
+
   constructor(collaborationManager: CollaborationManager) {
     this.collaborationManager = collaborationManager;
     this.clientId = collaborationManager.getClientId();
     this.isHost = collaborationManager.getIsHost();
 
     // P2P 메시지 수신 콜백 등록
-    this.collaborationManager.onP2PMessage((message) => {
-      this.handleP2PMessage(message);
-    });
+    this.unsubscribeCallbacks.push(
+      this.collaborationManager.onP2PMessage((message) => {
+        this.handleP2PMessage(message);
+      })
+    );
 
     // 프로젝트 변경 이벤트 구독 (호스트/게스트 모두)
-    this.subscribeToProjectChanges();
-    this.subscribeToTrackChanges();
-    this.subscribeToMidiPartChanges();
-    this.subscribeToMidiNoteChanges();
+    this.unsubscribeCallbacks.push(
+      this.subscribeToProjectChanges(),
+      this.subscribeToTrackChanges(),
+      this.subscribeToMidiPartChanges(),
+      this.subscribeToMidiNoteChanges()
+    );
 
   }
 
@@ -110,11 +117,7 @@ export class SyncManager {
     // 충돌 감지를 위해 로컬 변경사항 저장
     const conflictKey = this.getConflictKey(change);
     this.pendingLocalChanges.set(conflictKey, change);
-    
-    // 일정 시간 후 pending에서 제거 (충돌이 없으면)
-    setTimeout(() => {
-      this.pendingLocalChanges.delete(conflictKey);
-    }, 5000); // 5초 후 제거
+    this.schedulePendingLocalChangeCleanup(conflictKey);
     
     // 성능 최적화: 스로틀링/디바운싱 적용
     if (this.shouldThrottle(change)) {
@@ -142,6 +145,20 @@ export class SyncManager {
     };
 
     this.collaborationManager.broadcastToAll(changeMessage);
+  }
+
+  private schedulePendingLocalChangeCleanup(conflictKey: string): void {
+    const existingTimer = this.pendingLocalChangeTimers.get(conflictKey);
+    if (existingTimer !== undefined) {
+      clearTimeout(existingTimer);
+    }
+
+    const timer = setTimeout(() => {
+      this.pendingLocalChanges.delete(conflictKey);
+      this.pendingLocalChangeTimers.delete(conflictKey);
+    }, 5000);
+
+    this.pendingLocalChangeTimers.set(conflictKey, timer);
   }
 
   /**
@@ -246,11 +263,7 @@ export class SyncManager {
     // 충돌 감지를 위해 로컬 변경사항 저장
     const conflictKey = this.getConflictKey(change);
     this.pendingLocalChanges.set(conflictKey, change);
-    
-    // 일정 시간 후 pending에서 제거
-    setTimeout(() => {
-      this.pendingLocalChanges.delete(conflictKey);
-    }, 5000); // 5초 후 제거
+    this.schedulePendingLocalChangeCleanup(conflictKey);
     
     // 성능 최적화: 스로틀링/디바운싱 적용
     if (this.shouldThrottle(change)) {
@@ -623,8 +636,8 @@ export class SyncManager {
   /**
    * 호스트: 프로젝트 변경 이벤트 구독
    */
-  private subscribeToProjectChanges(): void {
-    subscribeToProjectChanges((event) => {
+  private subscribeToProjectChanges(): () => void {
+    return subscribeToProjectChanges((event) => {
       if (this.suppressOutgoing) {
         return;
       }
@@ -643,8 +656,8 @@ export class SyncManager {
   /**
    * 호스트: 트랙 변경 이벤트 구독
    */
-  private subscribeToTrackChanges(): void {
-    subscribeToTrackChanges((event) => {
+  private subscribeToTrackChanges(): () => void {
+    return subscribeToTrackChanges((event) => {
       if (this.suppressOutgoing) {
         return;
       }
@@ -663,8 +676,8 @@ export class SyncManager {
   /**
    * 호스트: 미디파트 변경 이벤트 구독
    */
-  private subscribeToMidiPartChanges(): void {
-    subscribeToMidiPartChanges((event) => {
+  private subscribeToMidiPartChanges(): () => void {
+    return subscribeToMidiPartChanges((event) => {
       if (this.suppressOutgoing) {
         return;
       }
@@ -683,8 +696,8 @@ export class SyncManager {
   /**
    * 호스트: 미디 노트 변경 이벤트 구독
    */
-  private subscribeToMidiNoteChanges(): void {
-    subscribeToMidiNoteChanges((event) => {
+  private subscribeToMidiNoteChanges(): () => void {
+    return subscribeToMidiNoteChanges((event) => {
       if (this.suppressOutgoing) {
         return;
       }
@@ -1020,9 +1033,15 @@ export class SyncManager {
    * 연결 종료
    */
   disconnect(): void {
+    this.unsubscribeCallbacks.forEach(unsubscribe => unsubscribe());
+    this.unsubscribeCallbacks = [];
+
     this.messageHistory.clear();
     this.changeCallbacks = [];
     this.pendingLocalChanges.clear();
+
+    this.pendingLocalChangeTimers.forEach(timer => clearTimeout(timer));
+    this.pendingLocalChangeTimers.clear();
     
     // 타이머 정리
     this.throttleTimers.forEach(timer => clearTimeout(timer));
@@ -1032,7 +1051,6 @@ export class SyncManager {
     this.debounceTimers.clear();
   }
 }
-
 
 
 
