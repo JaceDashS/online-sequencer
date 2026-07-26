@@ -352,7 +352,6 @@ case 'SET_PITCH_OFFSET_MAX_MS': {
 
 ## 관련 문서
 
-- [`REFACTORING_EVALUATION.md`](../../../../REFACTORING_EVALUATION.md) - 같은 음계 간섭 방지 섹션
 - [`docs/architecture/optimization-design/implementation-level/audio-buffer-size.ko.md`](./audio-buffer-size.ko.md) - 오디오 버퍼 사이즈 최적화
 - [`docs/architecture/optimization-design/implementation-level/lookahead-scheduling.ko.md`](./lookahead-scheduling.ko.md) - Lookahead 스케줄링
 
@@ -368,4 +367,3 @@ case 'SET_PITCH_OFFSET_MAX_MS': {
 ---
 
 **Last Updated**: 2026-01-14
-

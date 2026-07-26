@@ -205,9 +205,7 @@ sequenceDiagram
 ## 관련 문서
 
 - [`데이터 인덱싱`](./indexing.ko.md)
-- [`docs/refactoring/p2-implementation-plan.md`](../../../refactoring/p2-implementation-plan.md)
 
 ---
 
 **Last Updated**: 2026-01-14
-

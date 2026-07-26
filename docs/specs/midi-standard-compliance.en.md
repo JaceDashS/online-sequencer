@@ -706,11 +706,9 @@ interface MidiProjectTiming {
 
 - [Standard MIDI File Format Specification](https://www.midi.org/specifications-old/item/standard-midi-files-smf)
 - [MIDI 1.0 Specification](https://www.midi.org/specifications-old/item/the-midi-1.0-specification)
-- [MIDI_REFACTORING_PLAN.md](../../MIDI_REFACTORING_PLAN.md) - Project refactoring plan
 
 ---
 
 **Written**: 2024  
 **Version**: 1.0  
 **Status**: Final Specification
-

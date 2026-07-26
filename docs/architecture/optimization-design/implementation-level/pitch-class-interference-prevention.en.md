@@ -352,7 +352,6 @@ Since the number of active notes of the same pitch class is generally small (usu
 
 ## Related Documents
 
-- [`REFACTORING_EVALUATION.md`](../../../../REFACTORING_EVALUATION.md) - Pitch class interference prevention section
 - [`docs/architecture/optimization-design/implementation-level/audio-buffer-size.en.md`](./audio-buffer-size.en.md) - Audio buffer size optimization
 - [`docs/architecture/optimization-design/implementation-level/lookahead-scheduling.en.md`](./lookahead-scheduling.en.md) - Lookahead scheduling
 
@@ -368,4 +367,3 @@ Since the number of active notes of the same pitch class is generally small (usu
 ---
 
 **Last Updated**: 2026-01-14
-

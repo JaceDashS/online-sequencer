@@ -250,9 +250,7 @@ React 컴포넌트에서도 인덱스 함수를 사용하여 렌더링 성능을
 ## 관련 문서
 
 - [`시간 변환 캐싱`](./timing-cache.ko.md)
-- [`docs/refactoring/p2-implementation-plan.md`](../../../refactoring/p2-implementation-plan.md)
 
 ---
 
 **Last Updated**: 2026-01-14
-

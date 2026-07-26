@@ -699,7 +699,6 @@ interface MidiProjectTiming {
 
 - [Standard MIDI File Format Specification](https://www.midi.org/specifications-old/item/standard-midi-files-smf)
 - [MIDI 1.0 Specification](https://www.midi.org/specifications-old/item/the-midi-1.0-specification)
-- [MIDI_REFACTORING_PLAN.md](../../MIDI_REFACTORING_PLAN.md) - 프로젝트 리팩토링 계획
 
 ---
 
@@ -713,4 +712,3 @@ interface MidiProjectTiming {
 **작성일**: 2024  
 **버전**: 1.0  
 **상태**: 최종 스펙
-

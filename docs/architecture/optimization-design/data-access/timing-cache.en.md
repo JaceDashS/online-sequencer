@@ -205,9 +205,7 @@ Repeated calls to `ticksToSecondsPure` with same parameters when rendering parts
 ## Related Documents
 
 - [`Data Indexing`](./indexing.en.md)
-- [`docs/refactoring/p2-implementation-plan.md`](../../../refactoring/p2-implementation-plan.md)
 
 ---
 
 **Last Updated**: 2026-01-14
-

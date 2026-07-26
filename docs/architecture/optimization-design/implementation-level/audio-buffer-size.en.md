@@ -151,10 +151,8 @@ latencyHintSeconds = (bufferSize / SAMPLE_RATE) * PERIODS
 
 ## Related Documents
 
-- [`docs/reference/audio-buffer-size-specification.en.md`](../../../reference/audio-buffer-size-specification.en.md)
 - [`Worker-based Playback Clock`](../architecture-level/worker-playback-clock.en.md)
 
 ---
 
 **Last Updated**: 2026-01-23
-

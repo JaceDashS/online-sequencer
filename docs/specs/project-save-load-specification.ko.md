@@ -385,7 +385,6 @@ function isValidProject(obj: unknown): obj is Project {
 
 ## 참고 자료
 
-- [MIDI 1.0 Specification](../reference/midi-1.0-specification.ko.md)
-- [Standard MIDI File Format](../reference/standard-midi-file-format.ko.md)
+- [MIDI 1.0 Specification](https://www.midi.org/specifications-old/item/the-midi-1.0-specification)
+- [Standard MIDI File Format](https://www.midi.org/specifications-old/item/standard-midi-files-smf)
 - [Project Type Definition](../../src/types/project.ts)
-

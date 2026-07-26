@@ -250,9 +250,7 @@ With 1000 parts, 50 in one track:
 ## Related Documents
 
 - [`Timing Conversion Caching`](./timing-cache.en.md)
-- [`docs/refactoring/p2-implementation-plan.md`](../../../refactoring/p2-implementation-plan.md)
 
 ---
 
 **Last Updated**: 2026-01-14
-
