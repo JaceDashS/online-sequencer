@@ -14,17 +14,9 @@ interface Participant {
   connectionState?: ConnectionState;
 }
 
-interface CollaborationButtonsProps {
-  onStartHost?: () => void;
-  onJoinSession?: () => void;
-}
-
 type CollaborationMode = 'idle' | 'hosting' | 'joining' | 'loading';
 
-const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({ 
-  onStartHost, 
-  onJoinSession 
-}) => {
+const CollaborationButtons: React.FC = () => {
   const [mode, setMode] = useState<CollaborationMode>('idle');
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -185,9 +177,6 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
         connectionState: 'connected'
       }]);
 
-      if (onStartHost) {
-        onStartHost();
-      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start hosting';
       showError(errorMessage);
@@ -251,9 +240,6 @@ const CollaborationButtons: React.FC<CollaborationButtonsProps> = ({
       ]);
       setJoinRoomCode('');
 
-      if (onJoinSession) {
-        onJoinSession();
-      }
     } catch (err) {
       console.error('Failed to join room:', err);
       showError(err instanceof Error ? err.message : 'Failed to join room');

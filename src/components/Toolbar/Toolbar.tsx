@@ -102,14 +102,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
       <div className={styles.toolbarTop}>
         <div className={styles.toolbarLeft}>
           <SaveLoadButtons />
-          <CollaborationButtons 
-            onStartHost={() => {
-              // TODO: 호스트 시작 기능 구현
-            }}
-            onJoinSession={() => {
-              // TODO: 세션 참가 기능 구현
-            }}
-          />
+          <CollaborationButtons />
         </div>
         <div className={styles.toolbarCenter}>
           <TransportControls onRecordingChange={onRecordingChange} />
