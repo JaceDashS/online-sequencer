@@ -929,8 +929,8 @@ class GuestWebRTCManager {
   // 호스트에게 메시지 전송
   sendToHost(message: P2PMessage): void
   
-  // 호스트로부터 메시지 수신 콜백
-  onMessageFromHost(callback: (message: P2PMessage) => void): void
+  // 피어 메시지 수신 콜백
+  onMessage(callback: (message: P2PMessage) => void): void
   
   // 연결 종료
   disconnect(): void
@@ -1015,7 +1015,7 @@ class GuestSyncManager {
   // P2P 연결 수립 후 초기 상태 수신
   onP2PConnected(): void {
     // 호스트로부터 초기 상태를 받을 준비
-    this.webRTCManager.onMessageFromHost((message) => {
+    this.webRTCManager.onMessage((message) => {
       if (message.type === 'project-state' && message.isInitial) {
         // 호스트의 프로젝트 상태로 완전히 대체
         this.applyProjectState(message.state);
@@ -1039,7 +1039,7 @@ class GuestSyncManager {
   
   // 호스트로부터 변경사항 수신
   onHostChange(callback: (change: RemoteChange) => void): void {
-    this.webRTCManager.onMessageFromHost((message) => {
+    this.webRTCManager.onMessage((message) => {
       if (message.type !== 'project-state' || !message.isInitial) {
         callback(message);
       }
@@ -2032,7 +2032,7 @@ async function handleGuestLeave() {
 }
 
 // 호스트가 룸 종료 알림 수신 (게스트 측)
-webRTCManager.onMessageFromHost((message) => {
+webRTCManager.onMessage((message) => {
   if (message.type === 'room-closed') {
     showError("Host has closed the room.");
     // 프로젝트 상태를 초기 상태로 복원

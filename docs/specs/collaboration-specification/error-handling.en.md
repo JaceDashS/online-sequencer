@@ -973,7 +973,7 @@ async function handleGuestLeave() {
 }
 
 // Host room closure notification received (Guest side)
-webRTCManager.onMessageFromHost((message) => {
+webRTCManager.onMessage((message) => {
   if (message.type === 'room-closed') {
     showError("Host has closed the room.");
     // Restore project state to initial state
@@ -1594,7 +1594,6 @@ class HostSyncManager {
 7. **Version-based Synchronization**: Maintain state consistency with project version
 
 ---
-
 
 
 

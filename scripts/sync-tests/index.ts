@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 
 import { SyncManager } from '../../src/core/sync/SyncManager';
 import { CollaborationManager } from '../../src/core/sync/CollaborationManager';
+import { WebRTCManager } from '../../src/core/sync/WebRTCManager';
 import type { ChangeMessage, P2PMessage, RemoteChange } from '../../src/core/sync/types/p2p';
 import { getProject, setProject } from '../../src/store/projectState';
 import {
@@ -323,6 +324,40 @@ test('CollaborationManager: distinct message IDs survive timestamp collisions', 
   dispatchP2PMessage({ ...baseMessage, id: 'message-1' });
 
   assert.deepEqual(receivedMessages.map((message) => message.id), ['message-1', 'message-2']);
+});
+
+test('WebRTCManager: dispatches each data-channel message once for both roles', () => {
+  const message: P2PMessage = {
+    id: 'message-1',
+    type: 'change',
+    from: 'peer-1',
+    timestamp: 1000,
+  };
+
+  for (const isHost of [false, true]) {
+    const manager = new WebRTCManager(isHost ? 'host-1' : 'guest-1', isHost, { iceServers: [] });
+    const receivedMessages: P2PMessage[] = [];
+    const dataChannel = {} as RTCDataChannel;
+    const setupDataChannel = (
+      manager as unknown as {
+        setupDataChannel: (channel: RTCDataChannel, peerId: string) => void;
+      }
+    ).setupDataChannel.bind(manager);
+
+    manager.onMessage((receivedMessage) => receivedMessages.push(receivedMessage));
+    setupDataChannel(dataChannel, 'peer-1');
+
+    const handleMessage = (
+      dataChannel as unknown as {
+        onmessage: ((event: { data: string }) => void) | null;
+      }
+    ).onmessage;
+    assert.ok(handleMessage);
+    handleMessage({ data: JSON.stringify(message) });
+
+    assert.deepEqual(receivedMessages, [message]);
+    manager.disconnect();
+  }
 });
 
 console.log('\n' + '='.repeat(60));

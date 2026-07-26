@@ -99,8 +99,8 @@ class GuestWebRTCManager {
   // 호스트에게 메시지 전송
   sendToHost(message: P2PMessage): void
   
-  // 호스트로부터 메시지 수신 콜백
-  onMessageFromHost(callback: (message: P2PMessage) => void): void
+  // 피어 메시지 수신 콜백
+  onMessage(callback: (message: P2PMessage) => void): void
   
   // 연결 종료
   disconnect(): void
@@ -166,7 +166,7 @@ class GuestSyncManager {
   onP2PConnected(): void {
     // DataChannel이 열리면 초기 상태 요청
     this.webRTCManager.sendToHost({ type: 'state-request' });
-    this.webRTCManager.onMessageFromHost((message) => {
+    this.webRTCManager.onMessage((message) => {
       if (message.type === 'initial-state') {
         this.applyProjectState(message.data.projectState);
       } else if (message.type === 'change') {
@@ -177,7 +177,7 @@ class GuestSyncManager {
   
   // 호스트로부터 변경사항 수신
   onHostChange(callback: (change: RemoteChange) => void): void {
-    this.webRTCManager.onMessageFromHost((message) => {
+    this.webRTCManager.onMessage((message) => {
       if (message.type === 'change') {
         callback(message.data.change);
       }

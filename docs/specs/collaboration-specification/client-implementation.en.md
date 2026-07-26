@@ -99,8 +99,8 @@ class GuestWebRTCManager {
   // Send message to host
   sendToHost(message: P2PMessage): void
   
-  // Callback for receiving message from host
-  onMessageFromHost(callback: (message: P2PMessage) => void): void
+  // Callback for receiving peer messages
+  onMessage(callback: (message: P2PMessage) => void): void
   
   // Disconnect
   disconnect(): void
@@ -166,7 +166,7 @@ class GuestSyncManager {
   onP2PConnected(): void {
     // Request state when DataChannel opens
     this.webRTCManager.sendToHost({ type: 'state-request' });
-    this.webRTCManager.onMessageFromHost((message) => {
+    this.webRTCManager.onMessage((message) => {
       if (message.type === 'initial-state') {
         this.applyProjectState(message.data.projectState);
       } else if (message.type === 'change') {
@@ -177,7 +177,7 @@ class GuestSyncManager {
   
   // Receive changes from host
   onHostChange(callback: (change: RemoteChange) => void): void {
-    this.webRTCManager.onMessageFromHost((message) => {
+    this.webRTCManager.onMessage((message) => {
       if (message.type === 'change') {
         callback(message.data.change);
       }
@@ -193,4 +193,3 @@ class GuestSyncManager {
 ```
 
 ---
-

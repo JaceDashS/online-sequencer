@@ -28,7 +28,6 @@ export class WebRTCManager {
   
   // コールバック
   private messageCallbacks: Array<(message: P2PMessage) => void> = [];
-  private guestMessageCallbacks: Map<string, Array<(message: P2PMessage) => void>> = new Map();
   private connectionStateCallbacks: Map<string, Array<(state: ConnectionState) => void>> = new Map();
   private dataChannelOpenCallbacks: Map<string, Array<() => void>> = new Map();
   private pendingIceCandidates: Map<string, RTCIceCandidateInit[]> = new Map();
@@ -279,7 +278,6 @@ export class WebRTCManager {
         peerInfo.connection.close();
       }
       this.guestConnections.delete(guestId);
-      this.guestMessageCallbacks.delete(guestId);
       this.connectionStateCallbacks.delete(guestId);
     }
   }
@@ -362,27 +360,10 @@ export class WebRTCManager {
   }
 
   /**
-   * 게스트가 호스트 메시지 수신 콜백을 등록합니다.
+   * 모든 피어 메시지의 수신 콜백을 등록합니다.
    */
   onMessage(callback: (message: P2PMessage) => void): void {
     this.messageCallbacks.push(callback);
-  }
-
-  onMessageFromHost(callback: (message: P2PMessage) => void): void {
-    this.onMessage(callback);
-  }
-
-  /**
-   * 호스트가 게스트 메시지 수신 콜백을 등록합니다.
-   */
-  onMessageFromGuest(guestId: string, callback: (message: P2PMessage) => void): void {
-    if (!this.isHost) {
-      throw new Error('Only host can register guest message callback');
-    }
-    if (!this.guestMessageCallbacks.has(guestId)) {
-      this.guestMessageCallbacks.set(guestId, []);
-    }
-    this.guestMessageCallbacks.get(guestId)!.push(callback);
   }
 
   /**
@@ -441,7 +422,6 @@ export class WebRTCManager {
 
     // コールバック初期化
     this.messageCallbacks = [];
-    this.guestMessageCallbacks.clear();
     this.connectionStateCallbacks.clear();
     this.dataChannelOpenCallbacks.clear();
   }
@@ -491,14 +471,6 @@ export class WebRTCManager {
       try {
         const message: P2PMessage = JSON.parse(event.data);
 
-        if (this.isHost) {
-          // 호스트는 게스트별 메시지 콜백을 호출합니다.
-          const callbacks = this.guestMessageCallbacks.get(peerId);
-          if (callbacks) {
-            callbacks.forEach(cb => cb(message));
-          }
-        }
-        // Common callbacks fire regardless of role.
         this.messageCallbacks.forEach(cb => cb(message));
       } catch (error) {
         console.error(`[WebRTCManager] Failed to parse message from ${peerId}:`, error, {

@@ -193,11 +193,6 @@ export class CollaborationManager {
       data: { sdp: offer }
     });
 
-    this.webRTCManager.onMessageFromHost((message) => {
-      this.dispatchP2PMessage(message);
-    });
-
-    // 호스트로부터 메시지 수신 콜백 설정
     // Request initial state when DataChannel opens
     this.webRTCManager.onDataChannelOpen(hostId, () => {
       this.syncManager?.requestInitialState();
@@ -244,11 +239,6 @@ export class CollaborationManager {
     // Answer 생성
     const answer = await this.webRTCManager.addGuest(guestId, offer);
 
-    this.webRTCManager.onMessageFromGuest(guestId, (message) => {
-      this.dispatchP2PMessage(message);
-    });
-
-    // Register guest message handler
     // Answer를 시그널링 서버를 통해 전송
     this.sendSignalingMessage({
       type: 'answer',

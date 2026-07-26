@@ -973,7 +973,7 @@ async function handleGuestLeave() {
 }
 
 // 호스트가 룸 종료 알림 수신 (게스트 측)
-webRTCManager.onMessageFromHost((message) => {
+webRTCManager.onMessage((message) => {
   if (message.type === 'room-closed') {
     showError("Host has closed the room.");
     // 프로젝트 상태를 초기 상태로 복원
