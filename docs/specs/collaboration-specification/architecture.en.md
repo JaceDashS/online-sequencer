@@ -10,7 +10,7 @@
 
 ```mermaid
 graph TB
-    Server[Signaling Server<br/>Port 3000]
+    Server[Signaling Server<br/>Configured API base]
     
     Host[Host<br/>Host]
     Guest1[Guest1<br/>Guest1]
@@ -57,4 +57,3 @@ graph TB
 ```
 
 ---
-

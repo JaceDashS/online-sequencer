@@ -28,6 +28,8 @@ Phase 2: Test from different networks
 
 **Configure server to be accessible from all network interfaces:**
 
+The signaling server is an external service. This client repository does not include a `server/` directory.
+
 ```javascript
 // Server code example
 const PORT = process.env.PORT || 3000;
@@ -59,8 +61,6 @@ ip addr show
 
 ```env
 # Use local IP address of server computer
-VITE_COLLABORATION_SERVER_URL=http://192.168.0.100:3000
-VITE_COLLABORATION_WS_URL=ws://192.168.0.100:3000
 VITE_API_BASE_URL=http://192.168.0.100:3000/api/online-sequencer
 NODE_ENV=development
 VITE_APP_ENV=development
@@ -118,8 +118,6 @@ ngrok http 3000
 
 ```env
 # Use ngrok URL
-VITE_COLLABORATION_SERVER_URL=https://abc123.ngrok.io
-VITE_COLLABORATION_WS_URL=wss://abc123.ngrok.io
 VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-sequencer
 ```
 
@@ -137,8 +135,6 @@ VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-sequencer
 
 ```env
 # Use local IP address of server computer
-VITE_COLLABORATION_SERVER_URL=http://192.168.43.100:3000
-VITE_COLLABORATION_WS_URL=ws://192.168.43.100:3000
 VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-sequencer
 ```
 
@@ -156,8 +152,6 @@ VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-sequencer
 
 ```env
 # Use router's public IP address
-VITE_COLLABORATION_SERVER_URL=http://[router public IP]:3000
-VITE_COLLABORATION_WS_URL=ws://[router public IP]:3000
 VITE_API_BASE_URL=http://[router public IP]:3000/api/online-sequencer
 ```
 
@@ -271,5 +265,4 @@ curl http://192.168.0.100:3000/api/online-sequencer/rooms
 **Note:** ngrok is the simplest and safest method. The free version is sufficient for testing.
 
 ---
-
 

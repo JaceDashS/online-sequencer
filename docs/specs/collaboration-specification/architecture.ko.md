@@ -10,7 +10,7 @@
 
 ```mermaid
 graph TB
-    Server[Signaling Server<br/>포트 3000]
+    Server[Signaling Server<br/>설정된 API base]
     
     Host[호스트<br/>Host]
     Guest1[게스트1<br/>Guest1]

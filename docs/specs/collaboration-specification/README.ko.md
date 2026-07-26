@@ -3,7 +3,7 @@
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
 **Last Updated**: 2026-01-14  
-**서버 포트**: 3000
+**시그널링 API Base**: `VITE_API_BASE_URL`로 설정
 
 ---
 
@@ -28,4 +28,3 @@
 ---
 
 **이 문서는 서버 프로젝트 관리 AI 에이전트에게 전달되어 서버 구현에 사용됩니다.**
-

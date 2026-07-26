@@ -8,16 +8,18 @@
 
 ## 기본 정보
 
-- **포트**: 3000
+- **포트**: 클라이언트에서 고정하지 않는다. 필요한 경우 `VITE_API_BASE_URL`에 호스트와 포트를 포함한다.
 - **프로토콜**: WebSocket (시그널링), HTTP REST (룸 관리)
-- **Base URL**: `VITE_COLLABORATION_SERVER_URL` 기준 (기본값: `http://10.0.0.79:3000`)
+- **Base URL**: `VITE_API_BASE_URL` 기준
+- **Fallback Base URL**: `VITE_BASE_URL` + `VITE_API_PATH`
+- **엔드포인트 표기**: 아래 경로는 해석된 API base URL을 기준으로 한 상대 경로다.
 
 ## REST API 엔드포인트
 
 ### 1. 룸 등록 (호스트가 "Host" 클릭 시)
 
 ```
-POST /api/online-sequencer/rooms
+POST /rooms
 Content-Type: application/json
 Headers: { "X-Client-Id": "client-uuid", "X-Host-Id": "host-uuid" }
 
@@ -62,7 +64,7 @@ Response 200: (호스트가 이미 룸이 있는 경우)
 ### 2. 룸 조회 (참가자가 조인 시)
 
 ```
-GET /api/online-sequencer/rooms/:roomCode
+GET /rooms/:roomCode
 Headers: { "X-Client-Id": "client-uuid" }  // 선택사항, 강퇴 확인용
 
 Response 200:
@@ -105,7 +107,7 @@ Response 403:
 - 이미 조인 허용 상태인 경우 타이머가 재시작됨 (60초 연장)
 
 ```
-POST /api/online-sequencer/rooms/:roomCode/allow-join
+POST /rooms/:roomCode/allow-join
 Headers: { "X-Client-Id": "client-uuid" }
 Content-Type: application/json
 
@@ -136,7 +138,7 @@ Response 403:
 ### 3. 룸 삭제 (호스트가 "Stop Hosting" 클릭 시, 또는 6시간 후 자동)
 
 ```
-DELETE /api/online-sequencer/rooms/:roomCode
+DELETE /rooms/:roomCode
 Headers: { "X-Client-Id": "client-uuid" }
 
 Response 200:
@@ -156,7 +158,7 @@ Response 403:
 ### 4. 참가자 강퇴 (호스트가 강퇴 버튼 클릭 시)
 
 ```
-POST /api/online-sequencer/rooms/:roomCode/kick
+POST /rooms/:roomCode/kick
 Headers: { "X-Client-Id": "client-uuid" }
 Content-Type: application/json
 
@@ -215,7 +217,7 @@ WebSocket 메시지 (서버 → 모든 클라이언트)
 ### 연결
 
 ```
-ws://<host>:3000/api/online-sequencer/signaling?clientId=<client-uuid>
+ws(s)://<configured-api-host>/<configured-api-base-path>/signaling?clientId=<client-uuid>
 ```
 
 ### 메시지 형식
@@ -255,17 +257,17 @@ sequenceDiagram
     participant P2P as P2P 연결
 
     Note over Host: "Host" 버튼 클릭
-    Host->>Server: POST /api/online-sequencer/rooms<br/>{ hostId: "uuid" }
+    Host->>Server: POST /rooms<br/>{ hostId: "uuid" }
     Server->>Server: 룸 코드 생성 (예: "1234")
     Server->>Host: { roomCode: "1234", allowJoin: false }
     
     Note over Host: "Allow Join" 버튼 클릭
-    Host->>Server: POST /api/online-sequencer/rooms/:roomCode/allow-join<br/>{ duration: 60 }
+    Host->>Server: POST /rooms/:roomCode/allow-join<br/>{ duration: 60 }
     Server->>Server: allowJoin = true (60초 타이머)
     Server->>Host: { allowJoin: true, allowJoinExpiresAt: ... }
     
     Note over Guest1: "Join" 버튼 클릭<br/>룸 코드 입력
-    Guest1->>Server: GET /api/online-sequencer/rooms/:roomCode
+    Guest1->>Server: GET /rooms/:roomCode
     Server->>Guest1: { hostId, allowJoin: true }
     
     Guest1->>Server: WebSocket: offer 전송
@@ -348,4 +350,3 @@ sequenceDiagram
 ```
 
 ---
-

@@ -43,8 +43,10 @@ class SignalingClient {
 ```
 
 **Notes:**
-- Server URL is resolved from `VITE_COLLABORATION_SERVER_URL` (fallback: `http://10.0.0.79:3000`).
-- WebSocket URL uses `VITE_COLLABORATION_WS_URL` and connects to `/api/online-sequencer/signaling?clientId=...`.
+- API URLs are resolved through `src/utils/apiConfig.ts`.
+- The preferred setting is `VITE_API_BASE_URL`, which should include the full collaboration API base path.
+- If `VITE_API_BASE_URL` is not set, the client falls back to `VITE_BASE_URL` + `VITE_API_PATH`.
+- WebSocket URLs are derived from the same API base by converting `http`/`https` to `ws`/`wss` and appending `/signaling?clientId=...`.
 - REST APIs include `X-Client-Id` (and `X-Host-Id` on room registration).
 
 ## 2. WebRTCManager
@@ -191,5 +193,4 @@ class GuestSyncManager {
 ```
 
 ---
-
 

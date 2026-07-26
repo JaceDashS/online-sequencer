@@ -28,6 +28,8 @@
 
 **서버를 모든 네트워크 인터페이스에서 접근 가능하도록 설정:**
 
+시그널링 서버는 외부 서비스다. 이 클라이언트 저장소에는 `server/` 디렉터리가 포함되어 있지 않다.
+
 ```javascript
 // 서버 코드 예시
 const PORT = process.env.PORT || 3000;
@@ -59,8 +61,6 @@ ip addr show
 
 ```env
 # 서버 컴퓨터의 로컬 IP 주소 사용
-VITE_COLLABORATION_SERVER_URL=http://192.168.0.100:3000
-VITE_COLLABORATION_WS_URL=ws://192.168.0.100:3000
 VITE_API_BASE_URL=http://192.168.0.100:3000/api/online-sequencer
 NODE_ENV=development
 VITE_APP_ENV=development
@@ -118,8 +118,6 @@ ngrok http 3000
 
 ```env
 # ngrok URL 사용
-VITE_COLLABORATION_SERVER_URL=https://abc123.ngrok.io
-VITE_COLLABORATION_WS_URL=wss://abc123.ngrok.io
 VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-sequencer
 ```
 
@@ -137,8 +135,6 @@ VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-sequencer
 
 ```env
 # 서버 컴퓨터의 로컬 IP 주소 사용
-VITE_COLLABORATION_SERVER_URL=http://192.168.43.100:3000
-VITE_COLLABORATION_WS_URL=ws://192.168.43.100:3000
 VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-sequencer
 ```
 
@@ -156,8 +152,6 @@ VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-sequencer
 
 ```env
 # 라우터의 공인 IP 주소 사용
-VITE_COLLABORATION_SERVER_URL=http://[라우터 공인 IP]:3000
-VITE_COLLABORATION_WS_URL=ws://[라우터 공인 IP]:3000
 VITE_API_BASE_URL=http://[라우터 공인 IP]:3000/api/online-sequencer
 ```
 
@@ -271,4 +265,3 @@ curl http://192.168.0.100:3000/api/online-sequencer/rooms
 **참고:** ngrok이 가장 간단하고 안전한 방법입니다. 무료 버전으로도 충분히 테스트 가능합니다.
 
 ---
-

@@ -6,188 +6,129 @@
 
 ---
 
-## 서버 구현 접근 방식
+## 현재 구현 경계
 
-콜라보레이션 기능의 서버 구현은 다음 단계로 진행됩니다:
+이 저장소는 콜라보레이션 클라이언트를 관리한다. 현재 서버 런타임, 라우트 핸들러, 임시 서버 패키지는 포함하지 않는다.
 
-### 1단계: 임시 서버 구현 (현재 프로젝트)
+**클라이언트 구현:**
+- `src/core/sync/SignalingClient.ts`: HTTP 룸 API와 WebSocket 시그널링
+- `src/core/sync/WebRTCManager.ts`: WebRTC PeerConnection과 DataChannel 처리
+- `src/core/sync/SyncManager.ts`: 프로젝트 상태와 트랜스포트 동기화
+- `src/transport/`: Web과 Electron 트랜스포트 추상화
 
-**목적:**
-- 클라이언트 기능 개발 및 테스트를 위한 임시 서버
-- 프로토타입 및 개념 검증
-- 빠른 개발 사이클
+**서버 경계:**
+- 시그널링 서버는 환경 변수로 설정하는 외부 서비스다.
+- 이 저장소는 서버 API 계약을 문서화하지만 백엔드 프레임워크를 지정하지 않는다.
+- 별도 승인된 작업이 아니라면 이 클라이언트 저장소에 `server/` 또는 `temp-server/`를 추가하지 않는다.
 
-**구현 위치:**
-- 현재 프로젝트 (`online-daw`) 내부에 임시 서버 폴더 생성
-- 예: `server/` 또는 `temp-server/` 디렉토리
+## 서버 연동 접근 방식
 
-**구현 범위:**
-- REST API 엔드포인트 (`/api/online-sequencer/rooms`)
-- WebSocket 시그널링 서버 (`/api/online-sequencer/signaling`)
-- 기본 룸 관리 기능
-- 6시간 룸 만료 로직
-- "Allow Join" 60초 타이머
-- 참가자 강퇴 기능
+콜라보레이션 서버는 [server-api.ko.md](server-api.ko.md)에 정의된 API 계약을 구현하는 별도 백엔드 서비스로 개발하거나 유지한다.
 
-**기술 스택:**
-- Node.js + Express (또는 간단한 HTTP 서버)
-- WebSocket 라이브러리 (ws 또는 socket.io)
-- 인메모리 데이터 저장 (개발 단계)
+**서버 필수 책임:**
+- 설정된 API base URL 아래 REST 룸 엔드포인트 제공
+- 같은 API base URL 아래 WebSocket 시그널링 엔드포인트 제공
+- 룸 생성 및 조회
+- 6시간 룸 만료
+- "Allow Join" 60초 조인 허용 창
+- 참가자 강퇴 처리
+- WebRTC offer, answer, ICE candidate 메시지 전달
 
-**장점:**
-- 클라이언트와 서버를 같은 프로젝트에서 개발
-- 빠른 프로토타이핑 및 테스트
-- API 스펙 검증 용이
-
-### 2단계: 실제 서버 프로젝트로 이식
-
-**목적:**
-- 프로덕션 환경에 적합한 서버 구현
-- 확장성 및 안정성 확보
-- 실제 인프라 통합
-
-**이식 과정:**
-
-1. **임시 서버 코드 복사**
-   ```bash
-   # 임시 서버 폴더를 실제 서버 프로젝트로 복사
-   cp -r online-daw/server/ actual-server-project/collaboration/
-   ```
-
-2. **코드 리팩토링**
-   - 실제 서버 프로젝트의 아키텍처에 맞게 구조 조정
-   - 데이터베이스 연동 (Redis, PostgreSQL 등)
-   - 인증/인가 시스템 통합
-   - 로깅 및 모니터링 추가
-   - 에러 핸들링 강화
-
-3. **환경 변수 및 설정**
-   - 프로덕션 환경 변수 설정
-   - 서버 설정 파일 통합
-   - 배포 설정 추가
-
-4. **테스트 및 검증**
-   - 기존 테스트 케이스 실행
-   - 통합 테스트 수행
-   - 성능 테스트
-
-**이식 시 고려사항:**
-
-- **데이터 저장소 변경**
-  - 인메모리 → Redis 또는 데이터베이스
-  - 룸 정보 영구 저장 (Spot 인스턴스 대응)
-
-- **인증/인가 통합**
-  - 기존 서버의 인증 시스템과 통합
-  - 호스트/게스트 권한 관리
-
-- **로깅 및 모니터링**
-  - 서버 프로젝트의 로깅 시스템 통합
-  - 메트릭 수집 및 알림 설정
-
-- **보안 강화**
-  - Rate limiting 적용
-- CORS 설정
-- 입력 검증 강화
+**이 저장소 밖에서 결정할 구현 항목:**
+- 백엔드 프레임워크
+- Redis 또는 데이터베이스 같은 저장소
+- 인증/인가 통합
+- 배포, 로깅, 모니터링, rate limiting
 
 ## 개발 워크플로우
 
 ```
-1. 임시 서버 구현 (현재 프로젝트)
-   ├─ 서버 폴더 생성
-   ├─ 기본 API 구현
-   ├─ 클라이언트와 통합 테스트
-   └─ API 스펙 검증
+1. 서버 API 계약
+   ├─ server-api 문서를 SignalingClient와 맞게 유지
+   ├─ REST 엔드포인트 경로 확인
+   ├─ WebSocket 메시지 형식 확인
+   └─ 룸 수명과 조인 허용 동작 확인
 
 2. 클라이언트 기능 개발
-   ├─ SignalingClient 구현
-   ├─ WebRTCManager 구현
-   ├─ SyncManager 구현
-   └─ 임시 서버와 통합 테스트
+   ├─ SignalingClient 유지보수
+   ├─ WebRTCManager 유지보수
+   ├─ SyncManager 유지보수
+   └─ Web과 Electron 트랜스포트 호환성 유지
 
-3. 실제 서버 프로젝트로 이식
-   ├─ 임시 서버 코드 복사
-   ├─ 프로젝트 구조에 맞게 리팩토링
-   ├─ 데이터베이스 연동
-   ├─ 인증/인가 통합
-   └─ 프로덕션 배포
+3. 외부 서버 연동
+   ├─ VITE_API_BASE_URL 설정
+   ├─ HTTP 룸 API 검증
+   ├─ WebSocket 시그널링 검증
+   └─ WebRTC 연결 수립 검증
 
 4. 최종 테스트 및 안정화
-   ├─ 통합 테스트
-   ├─ 성능 테스트
-   ├─ 보안 테스트
-   └─ 버그 수정 및 최적화
+   ├─ 관련 클라이언트 테스트 실행
+   ├─ 설정된 서버와 통합 확인
+   ├─ P2P 동기화 동작 검증
+   └─ API 동작 변경 시 문서 갱신
 ```
 
-### 임시 서버 구조 예시
+## 클라이언트 설정
 
-```
-online-daw/
-├── server/                    # 임시 서버 (나중에 이식)
-│   ├── src/
-│   │   ├── routes/
-│   │   │   ├── rooms.ts       # REST API 엔드포인트
-│   │   │   └── signaling.ts   # WebSocket 시그널링
-│   │   ├── services/
-│   │   │   ├── roomService.ts # 룸 관리 로직
-│   │   │   └── signalingService.ts
-│   │   ├── models/
-│   │   │   └── room.ts        # 룸 데이터 모델
-│   │   └── server.ts          # 서버 진입점
-│   ├── package.json
-│   └── tsconfig.json
-├── src/                       # 클라이언트 코드
-└── ...
+`src/utils/apiConfig.ts`는 콜라보레이션 API URL을 다음 순서로 해석한다.
+
+1. `VITE_API_BASE_URL`
+2. `VITE_BASE_URL` + `VITE_API_PATH`
+
+`VITE_API_BASE_URL`에는 콜라보레이션 서버가 사용하는 전체 API base path를 포함한다.
+
+```env
+VITE_API_BASE_URL=https://example.com/api/online-sequencer
 ```
 
-## 이식 시 체크리스트
+클라이언트는 여기에 `/rooms`, `/rooms/:roomCode`, `/rooms/:roomCode/allow-join`, `/rooms/:roomCode/kick`, `/signaling` 같은 경로를 붙인다.
 
-**코드 이식:**
-- [ ] 임시 서버 폴더를 실제 서버 프로젝트로 복사
-- [ ] 프로젝트 구조에 맞게 디렉토리 재구성
-- [ ] 의존성 패키지 설치 및 버전 확인
-- [ ] 타입스크립트 설정 통합
+## 서버 호환성 체크리스트
 
-**기능 통합:**
-- [ ] 데이터 저장소 변경 (인메모리 → DB/Redis)
-- [ ] 인증/인가 시스템 통합
-- [ ] 로깅 시스템 통합
-- [ ] 에러 핸들링 강화
+**API 계약:**
+- [ ] `POST /rooms`가 호스트용 룸 코드를 반환함
+- [ ] `GET /rooms/:roomCode`가 호스트와 조인 허용 상태를 반환함
+- [ ] `POST /rooms/:roomCode/allow-join`이 조인 허용 창을 활성화함
+- [ ] `POST /rooms/:roomCode/kick`이 현재 룸 인스턴스에서 참가자를 차단함
+- [ ] `DELETE /rooms/:roomCode`가 룸을 종료함
 
-**설정 및 배포:**
-- [ ] 환경 변수 설정
-- [ ] 서버 설정 파일 통합
-- [ ] 배포 스크립트 추가
-- [ ] 헬스 체크 엔드포인트 추가
+**WebSocket 시그널링:**
+- [ ] `/signaling?clientId=...`가 클라이언트 연결을 수락함
+- [ ] `register`, `join` 메시지에 `registered`, `joined`로 응답함
+- [ ] `signaling` 메시지가 WebRTC offer, answer, ICE candidate 데이터를 전달함
+- [ ] 룸 만료, 종료, 참가자 변경 이벤트를 전송함
+
+**클라이언트 연동:**
+- [ ] `VITE_API_BASE_URL`이 콜라보레이션 엔드포인트를 포함한 API base를 가리킴
+- [ ] HTTP와 WebSocket URL이 같은 API base에서 파생됨
+- [ ] Browser와 Electron 트랜스포트가 모두 연결 가능함
 
 **테스트:**
-- [ ] 단위 테스트 실행
-- [ ] 통합 테스트 실행
-- [ ] API 엔드포인트 테스트
-- [ ] 클라이언트와 통합 테스트
+- [ ] 관련 클라이언트 테스트 실행
+- [ ] 룸 생성, 조인 허용, 조인, 강퇴, 룸 삭제 테스트
+- [ ] 시그널링 이후 WebRTC 연결 수립 테스트
+- [ ] DataChannel 기반 프로젝트 상태 동기화 테스트
 
 **문서화:**
-- [ ] API 문서 업데이트
-- [ ] 배포 가이드 작성
-- [ ] 운영 매뉴얼 작성
+- [ ] 서버 계약이 변경되면 [server-api.ko.md](server-api.ko.md) 갱신
+- [ ] `src/core/sync` 동작이 변경되면 클라이언트 구현 문서 갱신
+- [ ] 한국어/영어 문서 쌍의 구조 유지
 
 ## 주의사항
 
-1. **임시 서버는 개발용**
-   - 프로덕션 환경에서 사용하지 않음
-   - 보안 및 성능 최적화는 실제 서버에서 수행
+1. **서버 코드는 이 저장소의 범위가 아님**
+   - 이 프로젝트는 클라이언트 구현과 API 계약 문서를 관리한다.
+   - 서버 구현은 설정된 백엔드 서비스의 책임이다.
 
 2. **API 스펙 일관성 유지**
-   - 임시 서버와 실제 서버의 API 스펙이 동일해야 함
-   - 클라이언트 코드 변경 최소화
+   - 문서화된 엔드포인트를 `SignalingClient`와 맞게 유지한다.
+   - 서버 내부 구현이 바뀌어도 클라이언트 변경은 최소화한다.
 
-3. **데이터 호환성**
-   - 임시 서버의 데이터 구조를 실제 서버로 마이그레이션 가능하도록 설계
-   - 또는 임시 서버는 인메모리만 사용 (데이터 손실 허용)
+3. **설정 호환성**
+   - 전체 콜라보레이션 API base에는 `VITE_API_BASE_URL` 사용을 우선한다.
+   - base URL을 분리해 조합해야 할 때만 `VITE_BASE_URL`과 `VITE_API_PATH`를 사용한다.
 
-4. **버전 관리**
-   - 임시 서버 코드도 Git에 커밋하여 추적
-   - 이식 후 실제 서버 프로젝트에서도 버전 관리
+4. **백엔드 스택을 단정하지 않음**
+   - 해당 계층의 코드가 추가되지 않는 한 Express, `ws`, Redis, 데이터베이스를 현재 저장소 구현처럼 설명하지 않는다.
 
 ---
-

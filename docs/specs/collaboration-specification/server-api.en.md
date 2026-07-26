@@ -8,16 +8,18 @@
 
 ## Basic Information
 
-- **Port**: 3000
+- **Port**: Not fixed by the client. Include the host and port in `VITE_API_BASE_URL` when needed.
 - **Protocol**: WebSocket (signaling), HTTP REST (room management)
-- **Base URL**: resolved via `VITE_COLLABORATION_SERVER_URL` (default: `http://10.0.0.79:3000`)
+- **Base URL**: resolved via `VITE_API_BASE_URL`
+- **Fallback Base URL**: `VITE_BASE_URL` + `VITE_API_PATH`
+- **Endpoint Notation**: endpoint paths below are relative to the resolved API base URL.
 
 ## REST API Endpoints
 
 ### 1. Room Registration (When Host Clicks "Host")
 
 ```
-POST /api/online-sequencer/rooms
+POST /rooms
 Content-Type: application/json
 Headers: { "X-Client-Id": "client-uuid", "X-Host-Id": "host-uuid" }
 
@@ -62,7 +64,7 @@ Response 200: (When host already has a room)
 ### 2. Room Query (When Participant Joins)
 
 ```
-GET /api/online-sequencer/rooms/:roomCode
+GET /rooms/:roomCode
 Headers: { "X-Client-Id": "client-uuid" }  // Optional, for kick verification
 
 Response 200:
@@ -105,7 +107,7 @@ Response 403:
 - If already in join-allowed state, timer restarts (extends by 60 seconds)
 
 ```
-POST /api/online-sequencer/rooms/:roomCode/allow-join
+POST /rooms/:roomCode/allow-join
 Headers: { "X-Client-Id": "client-uuid" }
 Content-Type: application/json
 
@@ -136,7 +138,7 @@ Response 403:
 ### 3. Delete Room (When Host Clicks "Stop Hosting", or Automatically After 6 Hours)
 
 ```
-DELETE /api/online-sequencer/rooms/:roomCode
+DELETE /rooms/:roomCode
 Headers: { "X-Client-Id": "client-uuid" }
 
 Response 200:
@@ -156,7 +158,7 @@ Response 403:
 ### 4. Kick Participant (When Host Clicks Kick Button)
 
 ```
-POST /api/online-sequencer/rooms/:roomCode/kick
+POST /rooms/:roomCode/kick
 Headers: { "X-Client-Id": "client-uuid" }
 Content-Type: application/json
 
@@ -215,7 +217,7 @@ WebSocket Message (Server → All Clients)
 ### Connection
 
 ```
-ws://<host>:3000/api/online-sequencer/signaling?clientId=<client-uuid>
+ws(s)://<configured-api-host>/<configured-api-base-path>/signaling?clientId=<client-uuid>
 ```
 
 ### Message Format
@@ -255,17 +257,17 @@ sequenceDiagram
     participant P2P as P2P Connection
 
     Note over Host: "Host" button click
-    Host->>Server: POST /api/online-sequencer/rooms<br/>{ hostId: "uuid" }
+    Host->>Server: POST /rooms<br/>{ hostId: "uuid" }
     Server->>Server: Generate room code (e.g., "1234")
     Server->>Host: { roomCode: "1234", allowJoin: false }
     
     Note over Host: "Allow Join" button click
-    Host->>Server: POST /api/online-sequencer/rooms/:roomCode/allow-join<br/>{ duration: 60 }
+    Host->>Server: POST /rooms/:roomCode/allow-join<br/>{ duration: 60 }
     Server->>Server: allowJoin = true (60-second timer)
     Server->>Host: { allowJoin: true, allowJoinExpiresAt: ... }
     
     Note over Guest1: "Join" button click<br/>Enter room code
-    Guest1->>Server: GET /api/online-sequencer/rooms/:roomCode
+    Guest1->>Server: GET /rooms/:roomCode
     Server->>Guest1: { hostId, allowJoin: true }
     
     Guest1->>Server: WebSocket: Send offer
@@ -348,5 +350,3 @@ sequenceDiagram
 ```
 
 ---
-
-

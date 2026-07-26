@@ -8,7 +8,7 @@
 
 Online DAW's collaboration feature uses a **hybrid architecture**:
 
-- **Initial Connection Phase**: Obtain host information and WebRTC signaling through a signaling server (port 3000)
+- **Initial Connection Phase**: Obtain host information and WebRTC signaling through the configured signaling API
 - **Subsequent Communication**: Real-time data exchange via WebRTC P2P direct communication
 
 ## Key Features
@@ -71,4 +71,3 @@ The following items are synchronized in real-time during collaboration sessions:
 **Note**: Master volume is not synchronized. Each client keeps it locally.
 
 ---
-

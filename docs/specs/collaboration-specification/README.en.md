@@ -3,7 +3,7 @@
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
 **Last Updated**: 2026-01-14  
-**Server Port**: 3000
+**Signaling API Base**: Configured by `VITE_API_BASE_URL`
 
 ---
 
@@ -28,4 +28,3 @@
 ---
 
 **This document is delivered to the server project management AI agent for server implementation.**
-
