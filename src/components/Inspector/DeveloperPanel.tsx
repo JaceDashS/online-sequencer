@@ -16,19 +16,9 @@ const DeveloperPanel: React.FC = () => {
   const [driftInput, setDriftInput] = useState(String(ui.playbackDriftMs));
   const [pitchOffsetInput, setPitchOffsetInput] = useState(String(ui.pitchOffsetMaxMs));
   const [lookaheadInput, setLookaheadInput] = useState(String(ui.scheduleLookaheadSeconds));
-  const [isDriftLogEnabled, setIsDriftLogEnabled] = useState(ui.playbackDriftLoggingEnabled);
-  const [isScheduleLogEnabled, setIsScheduleLogEnabled] = useState(ui.scheduleLogEnabled);
-  const [isLongTaskLogEnabled, setIsLongTaskLogEnabled] = useState(ui.longTaskLogEnabled);
-
-  useEffect(() => {
-    setIsDriftLogEnabled(ui.playbackDriftLoggingEnabled);
-  }, [ui.playbackDriftLoggingEnabled]);
-  useEffect(() => {
-    setIsScheduleLogEnabled(ui.scheduleLogEnabled);
-  }, [ui.scheduleLogEnabled]);
-  useEffect(() => {
-    setIsLongTaskLogEnabled(ui.longTaskLogEnabled);
-  }, [ui.longTaskLogEnabled]);
+  const isDriftLogEnabled = ui.playbackDriftLoggingEnabled;
+  const isScheduleLogEnabled = ui.scheduleLogEnabled;
+  const isLongTaskLogEnabled = ui.longTaskLogEnabled;
   const [overscanInput, setOverscanInput] = useState(String(ui.timelineOverscanMultiplier));
   const isEditingDriftRef = useRef(false);
   const isEditingPitchOffsetRef = useRef(false);
@@ -113,19 +103,16 @@ const DeveloperPanel: React.FC = () => {
 
   const handleDriftLogToggle = () => {
     const nextValue = !isDriftLogEnabled;
-    setIsDriftLogEnabled(nextValue);
     ui.setPlaybackDriftLoggingEnabled(nextValue);
   };
 
   const handleScheduleLogToggle = () => {
     const nextValue = !isScheduleLogEnabled;
-    setIsScheduleLogEnabled(nextValue);
     ui.setScheduleLogEnabled(nextValue);
   };
 
   const handleLongTaskLogToggle = () => {
     const nextValue = !isLongTaskLogEnabled;
-    setIsLongTaskLogEnabled(nextValue);
     ui.setLongTaskLogEnabled(nextValue);
   };
 
@@ -405,7 +392,6 @@ const DeveloperPanel: React.FC = () => {
 };
 
 export default DeveloperPanel;
-
 
 
 

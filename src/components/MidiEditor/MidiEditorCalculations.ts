@@ -102,10 +102,8 @@ export function calculateLanePositions(): Array<{ index: number; top: number; he
   // black/white "가중치"를 100%로 정규화하여 항상 꽉 차도록 만듭니다.
   const isBlack = (midiNote: number) => [1, 3, 6, 8, 10].includes(midiNote % 12);
   const weights: number[] = [];
-  let blackKeyCount = 0;
   for (let i = 0; i < numLanes; i++) {
     const black = isBlack(i);
-    if (black) blackKeyCount++;
     weights.push(black ? blackKeyHeightRatio : 1);
   }
   const totalWeight = weights.reduce((sum, w) => sum + w, 0);
@@ -218,4 +216,3 @@ export function snapTimeToBeat(time: number, bpm: number, timeSignature: [number
   const secondsPerBeat = (60 / bpm) * noteValueRatio;
   return Math.round(time / secondsPerBeat) * secondsPerBeat;
 }
-

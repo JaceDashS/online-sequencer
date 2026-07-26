@@ -6,7 +6,10 @@
  */
 
 import { getIceServers } from './config/iceServers';
+import type { SignalingMessage } from './SignalingClient';
 import type { P2PMessage, PeerInfo, ConnectionState } from './types/p2p';
+
+type OutboundSignalingMessage = Omit<SignalingMessage, 'roomCode' | 'timestamp'>;
 
 /**
  * WebRTCManager
@@ -32,7 +35,7 @@ export class WebRTCManager {
   private pendingMessages: Map<string, P2PMessage[]> = new Map();
   
   // シグナリング
-  private signalingCallback?: (message: { type: 'offer' | 'answer' | 'ice-candidate'; from: string; to: string; data: any }) => void;
+  private signalingCallback?: (message: OutboundSignalingMessage) => void;
 
   constructor(clientId: string, isHost: boolean = false, iceServers?: RTCConfiguration) {
     this.clientId = clientId;
@@ -46,7 +49,7 @@ export class WebRTCManager {
    *
    * SignalingClient가 offer, answer, ICE candidate를 전송할 수 있게 합니다.
    */
-  setSignalingCallback(callback: (message: { type: 'offer' | 'answer' | 'ice-candidate'; from: string; to: string; data: any }) => void): void {
+  setSignalingCallback(callback: (message: OutboundSignalingMessage) => void): void {
     this.signalingCallback = callback;
   }
 
@@ -86,7 +89,6 @@ export class WebRTCManager {
           to: guestId,
           data: { candidate: event.candidate.toJSON() }
         });
-      } else if (!event.candidate) {
       }
     };
 
@@ -101,8 +103,7 @@ export class WebRTCManager {
         callbacks.forEach(cb => cb(state));
       }
 
-      if (state === 'connected') {
-      } else if (state === 'failed' || state === 'closed') {
+      if (state === 'failed' || state === 'closed') {
         this.removeGuest(guestId);
       }
     };
@@ -161,7 +162,6 @@ export class WebRTCManager {
           to: hostId,
           data: { candidate: event.candidate.toJSON() }
         });
-      } else if (!event.candidate) {
       }
     };
 
@@ -176,8 +176,7 @@ export class WebRTCManager {
         callbacks.forEach(cb => cb(state));
       }
 
-      if (state === 'connected') {
-      } else if (state === 'failed' || state === 'closed') {
+      if (state === 'failed' || state === 'closed') {
         this.disconnect();
       }
     };
@@ -586,7 +585,7 @@ export class WebRTCManager {
       return [];
     }
     return Array.from(this.guestConnections.entries())
-      .filter(([_, peerInfo]) => peerInfo.state === 'connected')
+      .filter(([, peerInfo]) => peerInfo.state === 'connected')
       .map(([guestId]) => guestId);
   }
 

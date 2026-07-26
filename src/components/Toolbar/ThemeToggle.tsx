@@ -4,20 +4,15 @@ import { useUIState } from '../../store/uiStore';
 
 const ThemeToggle: React.FC = () => {
   const ui = useUIState();
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    return typeof localStorage === 'undefined' || localStorage.getItem('theme') !== 'light';
+  });
   const devClickCountRef = useRef(0);
 
   useEffect(() => {
     // 초기 테마 설정 (localStorage에서 불러오거나 기본값 사용)
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      const isDarkMode = savedTheme === 'dark';
-      setIsDark(isDarkMode);
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    } else {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-  }, []);
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   const toggleTheme = () => {
     devClickCountRef.current += 1;

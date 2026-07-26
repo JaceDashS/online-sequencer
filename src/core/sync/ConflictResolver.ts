@@ -92,12 +92,12 @@ export class ConflictResolver {
    */
   private isDependentResource(local: RemoteChange, remote: RemoteChange): boolean {
     // 미디파트 삭제와 해당 파트의 노트 변경
-    if (local.type === 'midi-part' && local.value?.action === 'remove') {
+    if (local.type === 'midi-part' && this.hasAction(local.value, 'remove')) {
       if (remote.type === 'midi-note' && remote.partId === local.partId) {
         return true;
       }
     }
-    if (remote.type === 'midi-part' && remote.value?.action === 'remove') {
+    if (remote.type === 'midi-part' && this.hasAction(remote.value, 'remove')) {
       if (local.type === 'midi-note' && local.partId === remote.partId) {
         return true;
       }
@@ -107,6 +107,10 @@ export class ConflictResolver {
     // 추후 확장 가능
 
     return false;
+  }
+
+  private hasAction(value: unknown, action: string): boolean {
+    return typeof value === 'object' && value !== null && 'action' in value && value.action === action;
   }
 
   /**

@@ -126,7 +126,7 @@ export const useMidiEditorMouseUp = ({
   partNotes,
   setPartNotes,
   bpm,
-  timeSignature,
+  timeSignature: _timeSignature,
   pixelsPerSecond,
   initialPixelsPerSecond,
   calculateLanePositions,
@@ -730,7 +730,7 @@ export const useMidiEditorMouseUp = ({
         }, 100); // 100ms 지연으로 마키 선택 완료 직후 오버레이 클릭 시에도 보호
       }
     }
-  }, [isResizingNote, ui, selectedNotes, isDragging, handleDragMouseUp, dragStartNotes, dragOffset, partId, bpm, timeSignature, isCtrlPressedDuringDrag, clampPianoPitch, setPartNotes, audioEngineRef, lastPreviewedPitchesRef, cancelDrag, setDragOffset, setClickedNoteIndex, dragStartPitchRef, setHoveredNote, isDrawing, drawingNote, setIsDrawing, setDrawingNote, isSelecting, selectionRect, pianoRollRef, velocityGraphAreaRef, velocityTabSelection, sustainRanges, setSelectedSustainRange, calculateLanePositions, partNotes, pixelsPerSecond, initialPixelsPerSecond, setSelectedNotes, setIsSelecting, setSelectionRect, isCtrlPressedDuringMarqueeRef, marqueeSelectionSourceRef, getTimeSignature, getPpqn]);
+  }, [isResizingNote, ui, selectedNotes, isDragging, handleDragMouseUp, dragStartNotes, dragOffset, partId, bpm, isCtrlPressedDuringDrag, clampPianoPitch, setPartNotes, audioEngineRef, lastPreviewedPitchesRef, cancelDrag, setDragOffset, setClickedNoteIndex, dragStartPitchRef, setHoveredNote, isDrawing, drawingNote, setIsDrawing, setDrawingNote, isSelecting, selectionRect, pianoRollRef, velocityGraphAreaRef, velocityTabSelection, sustainRanges, setSelectedSustainRange, calculateLanePositions, partNotes, pixelsPerSecond, initialPixelsPerSecond, setSelectedNotes, setIsSelecting, setSelectionRect, isCtrlPressedDuringMarqueeRef, marqueeSelectionSourceRef, partStartTime, quantizeNote]);
 
   useEffect(() => {
     if (!isSelecting || !selectionRect) return;
@@ -750,4 +750,3 @@ export const useMidiEditorMouseUp = ({
     handlePianoRollMouseUp,
   };
 };
-

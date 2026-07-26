@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getProject, getMidiPartNotes, updateNoteInMidiPart } from '../store/projectStore';
 import { secondsToTicksPure, getPpqn, getTimeSignature } from '../utils/midiTickUtils';
 import { MIDI_CONSTANTS } from '../constants/midi';
+import type { MidiNote } from '../types/project';
 
 /**
  * useNoteResize 훅 Props
@@ -22,7 +23,7 @@ export interface UseNoteResizeProps {
   isQuantizeEnabled: boolean;
   
   // States
-  setPartNotes: (notes: any[] | ((prev: any[]) => any[])) => void;
+  setPartNotes: (notes: MidiNote[] | ((prev: MidiNote[]) => MidiNote[])) => void;
 }
 
 /**
@@ -183,4 +184,3 @@ export const useNoteResize = ({
     finalizeResize,
   };
 };
-

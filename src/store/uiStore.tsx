@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useReducer, useMemo, useEffect } from 'react';
+import { createContext, useContext, useCallback, useReducer, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { setDebugLogBufferSize as setDebugLogBufferSizeInLogger } from '../utils/debugLogger';
 import { audioLevelStore } from '../utils/audioLevelStore';
@@ -790,9 +790,8 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
     }, []),
   };
 
-  // Phase 6.1: actions는 useMemo로 메모이제이션 (거의 변경 안 됨)
-  // dispatch는 안정적이므로 의존성 배열에 포함하지 않아도 됨
-  const memoizedActions = useMemo(() => actions, []);
+  // useReducer의 dispatch와 각 useCallback이 안정적이므로 최초 액션 객체를 유지한다.
+  const [memoizedActions] = useState<UIActions>(() => actions);
 
   // 하위 호환성을 위한 기존 value (deprecated, Step 11에서 제거 예정)
   const value: UIContextType = {
@@ -892,8 +891,6 @@ export const useUIStateAndActions = (): UIContextType => {
 export const useUIState = (): UIContextType => {
   return useUIStateAndActions();
 };
-
-
 
 
 

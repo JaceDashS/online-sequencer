@@ -18,5 +18,31 @@ export default tseslint.config(
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+        varsIgnorePattern: '^_',
+      }],
+    },
+  },
+  {
+    files: ['src/store/uiStore.tsx'],
+    rules: {
+      'react-refresh/only-export-components': ['error', {
+        allowConstantExport: true,
+        allowExportNames: [
+          'isSplitMode',
+          'isSplitByKey3Mode',
+          'isSplitByAltMode',
+          'useUIStateOnly',
+          'useUIActions',
+          'useUIStateAndActions',
+          'useUIState',
+        ],
+      }],
+    },
   },
 )

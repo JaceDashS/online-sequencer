@@ -251,9 +251,11 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
     if (!isDraggingRange || rangeDragStart === null) return;
     // 에디터가 열려있거나 상호작용이 비활성화된 경우 드래그 중단
     if (disableInteraction || ui.editingPartId !== null) {
-      setIsDraggingRange(false);
-      setRangeDragStart(null);
-      return;
+      const timer = window.setTimeout(() => {
+        setIsDraggingRange(false);
+        setRangeDragStart(null);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     // rect를 드래그 시작 시 한 번만 계산하여 캐시
@@ -326,15 +328,15 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [isDraggingRange, rangeDragStart, pixelsPerSecond, startTime, ui, bpm, timeSignature, saveExportRangeToMeasure]);
+  }, [isDraggingRange, rangeDragStart, pixelsPerSecond, startTime, ui, bpm, timeSignature, saveExportRangeToMeasure, disableInteraction]);
 
   // Left Locator 드래그 처리
   useEffect(() => {
     if (!isDraggingLeftLocator) return;
     // 에디터가 열려있거나 상호작용이 비활성화된 경우 드래그 중단
     if (disableInteraction || ui.editingPartId !== null) {
-      setIsDraggingLeftLocator(false);
-      return;
+      const timer = window.setTimeout(() => setIsDraggingLeftLocator(false), 0);
+      return () => window.clearTimeout(timer);
     }
 
     // rect를 드래그 시작 시 한 번만 계산하여 캐시
@@ -406,8 +408,8 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
     if (!isDraggingRightLocator) return;
     // 에디터가 열려있거나 상호작용이 비활성화된 경우 드래그 중단
     if (disableInteraction || ui.editingPartId !== null) {
-      setIsDraggingRightLocator(false);
-      return;
+      const timer = window.setTimeout(() => setIsDraggingRightLocator(false), 0);
+      return () => window.clearTimeout(timer);
     }
 
     // rect를 드래그 시작 시 한 번만 계산하여 캐시
@@ -537,7 +539,7 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
     });
     
     return markers;
-  }, [bpm, timeSignature, pixelsPerSecond, startTime]);
+  }, [beatsPerMeasure, pixelsPerSecond, secondsPerBeat, secondsPerMeasure, startTime]);
 
   // 초 마커 생성 (10초마다, 메모이제이션)
   // totalWidth와 일치하도록 고정된 시간 범위 사용 (4/4 박자 기준)
@@ -558,7 +560,7 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
     }
     
     return markers;
-  }, [baseSecondsPerMeasure, startTime, pixelsPerSecond, totalWidth]);
+  }, [baseTotalSeconds, startTime, pixelsPerSecond, totalWidth]);
 
   const playheadTargetRef = useRef(0);
   const playheadRenderRef = useRef<number | null>(null);
@@ -758,7 +760,7 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
     
     e.preventDefault();
     e.stopPropagation();
-  }, [pixelsPerSecond, startTime, ui, saveExportRangeToMeasure, disableInteraction]);
+  }, [bpm, pixelsPerSecond, startTime, timeSignature, ui, saveExportRangeToMeasure, disableInteraction]);
 
   const playheadStyle = extendPlayhead
     ? ({ ['--playhead-extend' as string]: `${playheadExtendPx}px` } as React.CSSProperties)
@@ -1006,6 +1008,4 @@ const MeasureRuler: React.FC<MeasureRulerProps> = ({
 };
 
 export default MeasureRuler;
-
-
 

@@ -32,6 +32,7 @@ interface TransportControlsProps {
  */
 const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange }) => {
   const ui = useUIState();
+  const setCurrentPlaybackTime = ui.setCurrentPlaybackTime;
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const currentTimeRef = useRef<number>(ui.currentPlaybackTime);
@@ -324,7 +325,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
       pausePlaybackClock();
       playbackController.pause();
       // 최신 재생 시간을 UI 상태에 반영합니다.
-      ui.setCurrentPlaybackTime(currentPlaybackTime);
+      setCurrentPlaybackTime(currentPlaybackTime);
       currentTimeRef.current = currentPlaybackTime;
       lastWorkerTimeRef.current = currentPlaybackTime;
       if (useRemoteTime) {
@@ -339,7 +340,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
         debugTimerRef.current = null;
       }
     };
-  }, [isPlaying, ui.setCurrentPlaybackTime]);
+  }, [isPlaying, clearScheduledPause, setCurrentPlaybackTime]);
 
   const togglePlayPause = useCallback(() => {
     // 파티타임 모드일 때는 재생 불가

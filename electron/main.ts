@@ -154,18 +154,14 @@ ipcMain.handle('save-file', async (event, { fileName, content, isBinary = false 
     return { canceled: true };
   }
 
-  try {
-    if (isBinary) {
-      // ArrayBuffer를 Buffer로 변환
-      const buffer = Buffer.from(content);
-      await writeFile(filePath, buffer);
-    } else {
-      await writeFile(filePath, content, 'utf-8');
-    }
-    return { canceled: false, filePath };
-  } catch (error) {
-    throw error;
+  if (isBinary) {
+    // ArrayBuffer를 Buffer로 변환
+    const buffer = Buffer.from(content);
+    await writeFile(filePath, buffer);
+  } else {
+    await writeFile(filePath, content, 'utf-8');
   }
+  return { canceled: false, filePath };
 });
 
 // 파일 로드 IPC 핸들러
@@ -179,37 +175,29 @@ ipcMain.handle('load-file', async (event, { filters }) => {
     return { canceled: true };
   }
 
-  try {
-    const filePath = filePaths[0];
-    const content = await readFile(filePath);
-    const fileName = filePath.split(/[/\\]/).pop() || '';
-    const isBinary = fileName.endsWith('.mid') || fileName.endsWith('.midi');
-    
-    return {
-      canceled: false,
-      filePath,
-      fileName,
-      content: content.toString('base64'), // 바이너리 파일도 처리 가능하도록
-      isBinary,
-    };
-  } catch (error) {
-    throw error;
-  }
+  const filePath = filePaths[0];
+  const content = await readFile(filePath);
+  const fileName = filePath.split(/[/\\]/).pop() || '';
+  const isBinary = fileName.endsWith('.mid') || fileName.endsWith('.midi');
+
+  return {
+    canceled: false,
+    filePath,
+    fileName,
+    content: content.toString('base64'), // 바이너리 파일도 처리 가능하도록
+    isBinary,
+  };
 });
 
 // 파일 핸들 저장 (덮어쓰기용)
 ipcMain.handle('save-file-handle', async (event, { filePath, content, isBinary = false }) => {
-  try {
-    if (isBinary) {
-      const buffer = Buffer.from(content);
-      await writeFile(filePath, buffer);
-    } else {
-      await writeFile(filePath, content, 'utf-8');
-    }
-    return { success: true };
-  } catch (error) {
-    throw error;
+  if (isBinary) {
+    const buffer = Buffer.from(content);
+    await writeFile(filePath, buffer);
+  } else {
+    await writeFile(filePath, content, 'utf-8');
   }
+  return { success: true };
 });
 
 // HTTP 요청 IPC 핸들러

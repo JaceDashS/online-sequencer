@@ -33,7 +33,7 @@ export interface UseMidiEditorKeyboardShortcutsProps {
   /** 서스테인 컨트롤 변경 업데이트 함수 */
   updateSustainControlChanges: (ranges: Array<{ startTick: number; endTick: number }>, selectedIndices?: Set<number> | null) => void;
   /** 파트 노트 설정 함수 */
-  setPartNotes: (notes: any[] | ((prev: any[]) => any[])) => void;
+  setPartNotes: (notes: MidiNote[] | ((prev: MidiNote[]) => MidiNote[])) => void;
   /** 피치 클램핑 함수 */
   clampPianoPitch: (pitch: number) => number;
   /** AudioEngine ref */
@@ -579,6 +579,5 @@ export const useMidiEditorKeyboardShortcuts = ({
       window.removeEventListener('keydown', handleKeyPress, true);
       window.removeEventListener('keyup', handleKeyUp, true);
     };
-  }, [partId, selectedNotes, timeSignature, velocityTabSelection, selectedSustainRange, sustainRanges, ui, onClose, updateSustainControlChanges, setPartNotes, clampPianoPitch, audioEngineRef, lastPreviewedPitchesRef, setSplitPreviewX, setSplitPreviewNoteIndex, setSelectedNotes, setIsRedThemeActive, isRedThemeActive]);
+  }, [partId, selectedNotes, timeSignature, velocityTabSelection, selectedSustainRange, sustainRanges, ui, onClose, updateSustainControlChanges, setPartNotes, clampPianoPitch, audioEngineRef, lastPreviewedPitchesRef, setSplitPreviewX, setSplitPreviewNoteIndex, setSelectedNotes, setIsRedThemeActive, isRedThemeActive, bpm, partStartTime, setSelectedSustainRange]);
 };
-

@@ -18,6 +18,7 @@ const MixerChannel: React.FC<MixerChannelProps> = ({ track, isSelected, onClick 
   
   // 최신 트랙 데이터 가져오기 (메모이제이션)
   const currentTrack = useMemo(() => {
+    void updateCounter;
     return getProject().tracks.find(t => t.id === track.id) || track;
   }, [track, updateCounter]);
   

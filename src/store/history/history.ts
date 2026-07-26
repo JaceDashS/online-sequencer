@@ -41,8 +41,8 @@ export const getMidiPartHistory = (partId: string): MidiPartHistory => {
 export const addHistoryEntry = (partId: string, action: Omit<MidiPartHistoryAction, 'scope'> | MidiPartHistoryAction): void => {
   const normalized = ('scope' in action ? action : ({ ...action, scope: 'note' } as const)) as MidiPartHistoryAction;
   // strip scope before storing (keeps backward compatibility)
-  const { scope: _scope, ...legacyAction } = normalized as any;
-  noteHistory.addHistoryEntry(partId, legacyAction);
+  const { scope: _scope, ...legacyAction } = normalized;
+  noteHistory.addHistoryEntry(partId, legacyAction as noteHistory.MidiPartHistoryAction);
 };
 
 export const restoreNotesFromHistoryIndex = noteHistory.restoreNotesFromHistoryIndex;
@@ -77,8 +77,8 @@ export const getPartLevelHistory = (): MidiPartLevelHistory => {
 
 export const addPartLevelHistoryEntry = (action: Omit<MidiPartLevelAction, 'scope'> | MidiPartLevelAction): void => {
   const normalized = ('scope' in action ? action : ({ ...action, scope: 'part' } as const)) as MidiPartLevelAction;
-  const { scope: _scope, ...legacyAction } = normalized as any;
-  partHistory.addPartLevelHistoryEntry(legacyAction);
+  const { scope: _scope, ...legacyAction } = normalized;
+  partHistory.addPartLevelHistoryEntry(legacyAction as partHistory.MidiPartLevelAction);
 };
 
 export const setFlushPendingHistoryCallback = partHistory.setFlushPendingHistoryCallback;
@@ -244,12 +244,7 @@ export const redoPartLevel = (
  * (실서비스 코드에서는 사용하지 않는 것을 권장)
  */
 export const resetAllHistoriesForTests = (): void => {
-  if (typeof (noteHistory as any).resetNoteHistoryForTests === 'function') {
-    (noteHistory as any).resetNoteHistoryForTests();
-  }
-  if (typeof (partHistory as any).resetPartHistoryForTests === 'function') {
-    (partHistory as any).resetPartHistoryForTests();
-  }
+  noteHistory.resetNoteHistoryForTests();
+  partHistory.resetPartHistoryForTests();
 };
-
 

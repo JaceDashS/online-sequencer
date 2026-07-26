@@ -8,6 +8,7 @@ interface BpmControlProps {
 
 const BpmControl: React.FC<BpmControlProps> = ({ initialBpm = 120, onBpmChange }) => {
   const [bpm, setBpm] = useState(initialBpm);
+  const [previousInitialBpm, setPreviousInitialBpm] = useState(initialBpm);
   const [inputValue, setInputValue] = useState<string>(initialBpm.toString());
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
@@ -16,13 +17,14 @@ const BpmControl: React.FC<BpmControlProps> = ({ initialBpm = 120, onBpmChange }
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // initialBpm이 변경되면 내부 상태 업데이트 (입력 필드가 포커스되어 있지 않을 때만)
-  useEffect(() => {
+  // Prop 변경은 다음 렌더 전에 내부 표시 상태에 반영합니다.
+  if (initialBpm !== previousInitialBpm) {
+    setPreviousInitialBpm(initialBpm);
     if (!isInputFocused && initialBpm !== bpm) {
       setBpm(initialBpm);
       setInputValue(initialBpm.toString());
     }
-  }, [initialBpm, isInputFocused, bpm]);
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;

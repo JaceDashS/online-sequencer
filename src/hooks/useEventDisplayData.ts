@@ -72,7 +72,10 @@ export const useEventDisplayData = ({ freeze = false, subscribeProjectChanges = 
     };
   }, [freeze]);
   // 항상 최신 tracks와 midiParts를 읽기 위해 getProject()를 사용 (메모이제이션)
-  const project = useMemo(() => getProject(), [updateCounter]);
+  const project = useMemo(() => {
+    void updateCounter;
+    return getProject();
+  }, [updateCounter]);
   const tracks = useMemo(() => project.tracks, [project.tracks]);
   const midiParts = useMemo(() => project.midiParts, [project.midiParts]);
 
@@ -83,5 +86,4 @@ export const useEventDisplayData = ({ freeze = false, subscribeProjectChanges = 
     updateCounter,
   };
 };
-
 

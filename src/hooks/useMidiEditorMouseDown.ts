@@ -132,7 +132,7 @@ export const useMidiEditorMouseDown = ({
   partNotes,
   setPartNotes,
   bpm,
-  timeSignature,
+  timeSignature: _timeSignature,
   pixelsPerSecond,
   initialPixelsPerSecond,
   calculateLanePositions,
@@ -524,10 +524,9 @@ export const useMidiEditorMouseDown = ({
       clearSelection(); // useNoteSelection 훅의 clearSelection 사용
     }
     cancelDrag(); // useNoteDrag 훅의 cancelDrag 사용
-  }, [calculateLanePositions, getTimeAndPitchFromMouse, pixelsPerSecond, initialPixelsPerSecond, clickedNoteIndex, selectedNotes, setSelectedNotes, partNotes, partId, bpm, timeSignature, ui, clearSelection, handleDragMouseDown, cancelDrag, measureRulerRef, pianoRollRef, setIsDrawing, setDrawingNote, setIsResizingNote, setResizingNoteIndex, setResizeSide, setResizeStartPos, setResizePreview, setPartNotes, setSplitPreviewX, setSplitPreviewNoteIndex, setClickedNoteIndex, audioEngineRef, setIsSelecting, setMarqueeSelectionStart, setSelectionRect, isCtrlPressedDuringMarqueeRef, marqueeSelectionSourceRef]);
+  }, [calculateLanePositions, getTimeAndPitchFromMouse, pixelsPerSecond, initialPixelsPerSecond, clickedNoteIndex, selectedNotes, setSelectedNotes, partNotes, partId, bpm, ui, clearSelection, handleDragMouseDown, cancelDrag, measureRulerRef, pianoRollRef, setIsDrawing, setDrawingNote, setIsResizingNote, setResizingNoteIndex, setResizeSide, setResizeStartPos, setResizePreview, setPartNotes, setSplitPreviewX, setSplitPreviewNoteIndex, setClickedNoteIndex, audioEngineRef, setIsSelecting, setMarqueeSelectionStart, setSelectionRect, isCtrlPressedDuringMarqueeRef, marqueeSelectionSourceRef, partStartTime, quantizeNote, setSelectedSustainRange]);
 
   return {
     handlePianoRollMouseDown,
   };
 };
-

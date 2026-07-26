@@ -144,7 +144,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   hoveredPartId,
   cursorMode,
   isQuantizeEnabled: _isQuantizeEnabled,
-  contentRef,
+  contentRef: _contentRef,
   onPartClick,
   onPartDoubleClick,
   onPartMouseDown,
@@ -319,36 +319,34 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 
                 // 트랙 간 이동 모드일 때는 원래 트랙에서 숨김
                 if (shouldHideOriginal && isTrackMovingMode && partDragStart && track.id === partDragStart.partTrackId) {
-                  if (contentRef.current) {
-                    let currentTrackId = partDragStart.partTrackId;
-                    let accumulatedHeightForDrag = 0;
-                    const dragY = partDragStart.y + partDragOffset.y;
+                  let currentTrackId = partDragStart.partTrackId;
+                  let accumulatedHeightForDrag = 0;
+                  const dragY = partDragStart.y + partDragOffset.y;
                     
-                    if (dragY < 0 && tracks.length > 0) {
-                      currentTrackId = tracks[0].id;
-                    } else {
-                      let foundTrack = false;
-                      for (const t of tracks) {
-                        const tHeight = trackHeights.get(t.id) || 70;
-                        const tTop = accumulatedHeightForDrag;
-                        const tBottom = accumulatedHeightForDrag + tHeight;
+                  if (dragY < 0 && tracks.length > 0) {
+                    currentTrackId = tracks[0].id;
+                  } else {
+                    let foundTrack = false;
+                    for (const t of tracks) {
+                      const tHeight = trackHeights.get(t.id) || 70;
+                      const tTop = accumulatedHeightForDrag;
+                      const tBottom = accumulatedHeightForDrag + tHeight;
                         
-                        if (dragY >= tTop && dragY < tBottom) {
-                          currentTrackId = t.id;
-                          foundTrack = true;
-                          break;
-                        }
-                        accumulatedHeightForDrag += tHeight;
+                      if (dragY >= tTop && dragY < tBottom) {
+                        currentTrackId = t.id;
+                        foundTrack = true;
+                        break;
                       }
+                      accumulatedHeightForDrag += tHeight;
+                    }
                       
-                      if (!foundTrack && tracks.length > 0) {
-                        currentTrackId = tracks[tracks.length - 1].id;
-                      }
+                    if (!foundTrack && tracks.length > 0) {
+                      currentTrackId = tracks[tracks.length - 1].id;
                     }
+                  }
                     
-                    if (currentTrackId !== partDragStart.partTrackId) {
-                      return null;
-                    }
+                  if (currentTrackId !== partDragStart.partTrackId) {
+                    return null;
                   }
                 }
                 
@@ -489,7 +487,6 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     {partNotes.length > 0 && displayPartDurationTicks > 0 ? (
                       <div className={styles.clipNotesPreview}>
                         {(() => {
-                          let renderedCount = 0;
                           const nodes = partNotes.map((note, index) => {
                             let noteStartTickRelative = note.startTick;
                             let noteDurationTicks = note.durationTicks ?? 0;
@@ -551,7 +548,6 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             const noteY = getNoteY(note.note);
                             const noteHeight = Math.max(1, partHeight / (noteRange + 1));
 
-                            renderedCount += 1;
                             return (
                               <div
                                 key={index}
@@ -746,7 +742,4 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     </>
   );
 };
-
-
-
 

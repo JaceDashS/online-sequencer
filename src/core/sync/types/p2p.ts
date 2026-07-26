@@ -11,7 +11,7 @@ export interface P2PMessage {
   from: string; // 발신자 ID
   to?: string; // 수신자 ID (없으면 브로드캐스트)
   timestamp: number;
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -31,7 +31,7 @@ export interface ChangeMessage extends P2PMessage {
 export interface InitialStateMessage extends P2PMessage {
   type: 'initial-state';
   data: {
-    projectState: any; // 프로젝트 전체 상태
+    projectState: unknown; // 프로젝트 전체 상태
     isInitial: boolean; // 초기 동기화 플래그
   };
 }
@@ -44,7 +44,7 @@ export interface RemoteChange {
   trackId?: string;
   partId?: string;
   noteId?: string;
-  value: any;
+  value: unknown;
   timestamp: number;
   clientId: string;
 }
@@ -71,4 +71,3 @@ export interface PeerInfo {
   connection?: RTCPeerConnection;
   dataChannel?: RTCDataChannel;
 }
-

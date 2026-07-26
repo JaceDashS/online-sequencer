@@ -70,6 +70,8 @@ export interface EditorFooterProps {
   isCtrlPressedDuringMarqueeRef?: React.MutableRefObject<boolean>;
   partNotes?: Array<{ note: number; startTick: number; durationTicks?: number; velocity?: number }>;
   marqueeSelectionSourceRef?: React.MutableRefObject<'pianoRoll' | 'footer' | null>;
+  marqueeSelectionSource?: 'pianoRoll' | 'footer' | null;
+  setMarqueeSelectionSource?: (source: 'pianoRoll' | 'footer' | null) => void;
 }
 
 /**
@@ -125,11 +127,15 @@ export const EditorFooter: React.FC<EditorFooterProps> = React.memo(({
   setSelectedNotes,
   isCtrlPressedDuringMarqueeRef,
   marqueeSelectionSourceRef,
+  marqueeSelectionSource,
+  setMarqueeSelectionSource,
 }) => {
-  if (!part) return null;
-
   // Tick 기반으로 시간 계산 (SMF 표준 정합)
   const partStartTime = useMemo(() => {
+    if (!part) {
+      return 0;
+    }
+
     const project = getProject();
     const projectTimeSignature = getTimeSignature(project);
     const ppqn = getPpqn(project);
@@ -143,6 +149,8 @@ export const EditorFooter: React.FC<EditorFooterProps> = React.memo(({
     );
     return startTime;
   }, [part]);
+
+  if (!part) return null;
   const pianoKeysWidth = MIDI_EDITOR_CONSTANTS.PIANO_KEYS_WIDTH; // 80px
 
   return (
@@ -386,6 +394,7 @@ export const EditorFooter: React.FC<EditorFooterProps> = React.memo(({
                 if (marqueeSelectionSourceRef) {
                   marqueeSelectionSourceRef.current = 'footer';
                 }
+                setMarqueeSelectionSource?.('footer');
                 
                 setIsSelecting(true);
                 setSelectionRect({ startX: x, startY: y, endX: x, endY: y });
@@ -628,7 +637,7 @@ export const EditorFooter: React.FC<EditorFooterProps> = React.memo(({
               );
             })()}
             {/* 마키 선택 영역 표시 (푸터에서 시작된 경우) */}
-            {isSelecting && selectionRect && marqueeSelectionSourceRef?.current === 'footer' && (
+            {isSelecting && selectionRect && marqueeSelectionSource === 'footer' && (
               <div
                 className={styles.selectionRect}
                 style={{

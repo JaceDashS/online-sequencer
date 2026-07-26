@@ -20,7 +20,7 @@ const isVerboseLogging = (): boolean => {
 /**
  * 상세 로그 출력 헬퍼
  */
-const verboseLog = (message: string, ...args: any[]): void => {
+const verboseLog = (message: string, ...args: unknown[]): void => {
   if (isVerboseLogging()) {
     console.log(`[SignalingClient] ${message}`, ...args);
   }
@@ -44,7 +44,7 @@ export interface SignalingMessage {
 /**
  * 서버 → 클라이언트 메시지
  */
-interface ServerToClientMessage {
+export interface ServerToClientMessage {
   action: 'connected' | 'registered' | 'joined' | 'signaling' | 'error' | 'room-closed' | 'kicked' | 'allow-join-expired' | 'room-expiring' | 'room-session-expired' | 'participant-joined' | 'participant-left';
   roomCode?: string;
   clientId?: string;
@@ -57,9 +57,9 @@ interface ServerToClientMessage {
     roomCreatedAt?: number;
     type?: 'offer' | 'answer' | 'ice-candidate';
     from?: string;
-    sdp?: any;
-    candidate?: any;
-    [key: string]: any;
+    sdp?: RTCSessionDescriptionInit;
+    candidate?: RTCIceCandidateInit;
+    [key: string]: unknown;
   };
   error?: string;
   timestamp?: number;
@@ -636,7 +636,7 @@ export class SignalingClient {
   /**
    * WebSocket 메시지 전송
    */
-  private sendWebSocketMessage(message: any): void {
+  private sendWebSocketMessage(message: unknown): void {
     const OPEN = 1; // WebSocket.OPEN 상수
     if (!this.ws || this.ws.readyState !== OPEN) {
       console.error('[SignalingClient] WebSocket is not connected, readyState:', this.ws?.readyState);

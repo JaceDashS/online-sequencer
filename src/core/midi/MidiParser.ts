@@ -181,7 +181,6 @@ export function parseSmfFromBinary(data: Uint8Array): SmfFile {
     // Track data 파싱
     const trackEnd = offset + trackLength;
     const events: MidiEvent[] = [];
-    let currentTick = 0;
     let runningStatus = 0;
     let pendingDelta = 0;
     
@@ -189,7 +188,6 @@ export function parseSmfFromBinary(data: Uint8Array): SmfFile {
       // Delta-time 읽기
       const { value: deltaTime, bytesRead } = readVariableLengthQuantity(data, offset);
       offset += bytesRead;
-      currentTick += deltaTime;
       pendingDelta += deltaTime;
       
       if (offset >= trackEnd) break;

@@ -129,7 +129,7 @@ export const updateMidiPart = (partId: string, updates: Partial<MidiPart>, skipH
   let oldPart: MidiPart | undefined;
   if (!skipHistory) {
     // 노트를 제외한 파트 정보만 저장 (이벤트 디스플레이 히스토리는 노트 편집을 포함하지 않음)
-    const { notes, ...partWithoutNotes } = part;
+    const { notes: _notes, ...partWithoutNotes } = part;
     oldPart = {
       ...structuredClone(partWithoutNotes),
       notes: [] // 노트는 히스토리에 저장하지 않음 (언두 시 현재 노트를 유지)
@@ -290,14 +290,14 @@ export const updateMultipleMidiParts = (updates: Array<{ partId: string; updates
       if (!part) continue;
       
       // 노트를 제외한 파트 정보만 저장 (notes는 빈 배열로 설정하여 타입 호환성 유지)
-      const { notes, ...partWithoutNotes } = part;
+      const { notes: _notes, ...partWithoutNotes } = part;
       const oldPart: MidiPart = {
         ...structuredClone(partWithoutNotes),
         notes: [] // 노트는 히스토리에 저장하지 않음 (언두 시 현재 노트를 유지)
       };
       
       // updates에서도 notes를 제외
-      const { notes: updatedNotes, ...updatesWithoutNotes } = partUpdates;
+      const { notes: _updatedNotes, ...updatesWithoutNotes } = partUpdates;
       historyEntries.push({ partId, oldPart, newPart: updatesWithoutNotes });
     }
   }
@@ -311,7 +311,7 @@ export const updateMultipleMidiParts = (updates: Array<{ partId: string; updates
     const previousPart = { ...part };
     
     // updates에서 notes를 제외하고 업데이트
-    const { notes: updatedNotes, ...updatesWithoutNotes } = partUpdates;
+    const { notes: _updatedNotes, ...updatesWithoutNotes } = partUpdates;
     
     // startTick, durationTicks, trackId 업데이트
     if (updatesWithoutNotes.startTick !== undefined) {
@@ -378,14 +378,14 @@ export const preparePartLevelHistoryEntries = (
     if (!part) continue;
     
     // 노트를 제외한 파트 정보만 저장
-    const { notes, ...partWithoutNotes } = part;
+    const { notes: _notes, ...partWithoutNotes } = part;
     const oldPart: MidiPart = {
       ...structuredClone(partWithoutNotes),
       notes: [] // 노트는 히스토리에 저장하지 않음
     };
     
     // updates에서도 notes를 제외
-    const { notes: updatedNotes, ...updatesWithoutNotes } = partUpdates;
+    const { notes: _updatedNotes, ...updatesWithoutNotes } = partUpdates;
     historyEntries.push({ partId, oldPart, newPart: updatesWithoutNotes });
   }
   
@@ -860,4 +860,3 @@ export const cloneMultipleMidiParts = (clones: Array<{ partId: string; newMeasur
 
   return newPartIds;
 };
-

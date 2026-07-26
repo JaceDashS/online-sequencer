@@ -13,11 +13,14 @@ export function generateUUID(): string {
 
   // Node.js 환경에서 crypto 모듈 사용 (Electron 등)
   // require는 런타임에만 사용되므로 타입 체크를 우회
-  if (typeof (globalThis as any).require !== 'undefined') {
+  const nodeRequire = (globalThis as {
+    require?: (moduleId: string) => { randomUUID: () => string };
+  }).require;
+  if (nodeRequire) {
     try {
-      const crypto = (globalThis as any).require('crypto');
-      return crypto.randomUUID();
-    } catch (e) {
+      const nodeCrypto = nodeRequire('crypto');
+      return nodeCrypto.randomUUID();
+    } catch (_error) {
       // 폴백으로 계속 진행
     }
   }
@@ -51,4 +54,3 @@ export function getOrCreateClientId(): string {
   // Electron의 경우 localStorage가 사용 가능하지만, 안전을 위해 폴백 제공
   return generateUUID();
 }
-

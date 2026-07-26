@@ -82,7 +82,7 @@ export class EffectChain {
       // 기존 연결 해제
       try {
         this.inputGain.disconnect();
-      } catch (error) {
+      } catch (_error) {
         // 이미 disconnect된 경우 무시
       }
       

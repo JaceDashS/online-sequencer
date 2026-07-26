@@ -72,7 +72,7 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
       
       void audioEngineRef.current.previewNote(midiNote, 100, instrument);
     }
-  }, [noteNameToMidiNote, partId]);
+  }, [partId]);
 
   // Handle piano key release (stop preview)
   const handlePianoKeyRelease = useCallback((noteName: string, octave: number) => {
@@ -80,7 +80,7 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
     if (audioEngineRef.current) {
       audioEngineRef.current.stopPreview(midiNote);
     }
-  }, [noteNameToMidiNote]);
+  }, []);
 
   // 벨로시티 색상 계산 함수는 MidiEditorCalculations.ts에서 import
   
@@ -122,6 +122,7 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
   const isCtrlPressedDuringMarqueeRef = useRef<boolean>(false);
   // Marquee Selection이 푸터에서 시작되었는지 추적
   const marqueeSelectionSourceRef = useRef<'pianoRoll' | 'footer' | null>(null);
+  const [marqueeSelectionSource, setMarqueeSelectionSource] = useState<'pianoRoll' | 'footer' | null>(null);
   
   // 호버 관련 상태 (호버된 레인의 MIDI 노트 번호)
   const [hoveredNote, setHoveredNote] = useState<number | null>(null);
@@ -300,7 +301,8 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
   // 선택된 노트가 없으면 빨간색 테마 자동 비활성화
   useEffect(() => {
     if (selectedNotes.size === 0 && isRedThemeActive) {
-      setIsRedThemeActive(false);
+      const timer = window.setTimeout(() => setIsRedThemeActive(false), 0);
+      return () => window.clearTimeout(timer);
     }
   }, [selectedNotes, isRedThemeActive]);
   
@@ -343,11 +345,14 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
   
   // useMidiEditorData의 partNotes와 동기화
   useEffect(() => {
-    const dataStr = JSON.stringify(dataPartNotes);
-    const localStr = JSON.stringify(localPartNotes);
-    if (dataStr !== localStr) {
-      setLocalPartNotes(dataPartNotes);
-    }
+    const timer = window.setTimeout(() => {
+      setLocalPartNotes((currentNotes) => {
+        return JSON.stringify(dataPartNotes) === JSON.stringify(currentNotes)
+          ? currentNotes
+          : dataPartNotes;
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [dataPartNotes]);
 
 
@@ -426,6 +431,20 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
     isQuantizeEnabled: ui.isQuantizeEnabled,
     setPartNotes,
   });
+
+  // 콜백과 최초 트랙 ID를 구독 effect보다 먼저 최신 상태로 유지합니다.
+  const partTrackIdRef = useRef<string | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (part) {
+      partTrackIdRef.current = part.trackId;
+    }
+  }, [part]);
   
   // 프로젝트 변경 구독 (midiPart 변경 시 파트 확인 및 trackId 변경 감지)
   // 기존 로직 유지: useMidiEditorData에서 프로젝트 변경 구독을 하지만, 
@@ -468,11 +487,11 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
       );
       return { startTime, duration };
     });
-  }, [partNotes, bpm, timeSignature]);
+  }, [partNotes]);
 
   // Step 7.9.4: ???? ?? ?? useEffect? useSustainPedal ? ??? ???
   // 파트의 글로벌 시작 시간 계산 (마디 기준 퀀타이즈용)
-  const partStartTime = useMemo(() => {
+  const partStartTime = (() => {
     if (!part) return 0;
     const project = getProject();
     const projectTimeSignature = getTimeSignature(project);
@@ -486,7 +505,7 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
       ppqn
     );
     return startTime;
-  }, [part]);
+  })();
   
   const {
     isDrawingSustain,
@@ -564,13 +583,12 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
   }, [dataVisibleNotes, partNotes, noteTimings, visibleTimeRange]);
 
   // 컨텐츠 너비 계산 (여러 곳에서 사용)
-  const contentWidth = useMemo(() => {
-    return partDuration * (pixelsPerSecond || initialPixelsPerSecond);
-  }, [partDuration, pixelsPerSecond, initialPixelsPerSecond]);
+  const effectivePixelsPerSecond = pixelsPerSecond || initialPixelsPerSecond;
+  const contentWidth = partDuration * effectivePixelsPerSecond;
 
   const updateVisibleRange = useCallback(() => {
     const container = pianoRollContainerRef.current;
-    const currentPixelsPerSecond = pixelsPerSecond || initialPixelsPerSecond;
+    const currentPixelsPerSecond = effectivePixelsPerSecond;
 
     if (!container || !Number.isFinite(currentPixelsPerSecond) || currentPixelsPerSecond <= 0) {
       setVisibleTimeRange({ start: 0, end: partDuration });
@@ -580,7 +598,7 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
     const start = container.scrollLeft / currentPixelsPerSecond;
     const end = (container.scrollLeft + container.clientWidth) / currentPixelsPerSecond;
     setVisibleTimeRange({ start, end });
-  }, [pixelsPerSecond, initialPixelsPerSecond, partDuration]);
+  }, [effectivePixelsPerSecond, partDuration]);
 
 
   const scheduleVisibleRangeUpdate = useCallback(() => {
@@ -599,7 +617,8 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
   }, [updateVisibleRange]);
 
   useEffect(() => {
-    updateVisibleRange();
+    const frame = window.requestAnimationFrame(updateVisibleRange);
+    return () => window.cancelAnimationFrame(frame);
   }, [updateVisibleRange]);
 
   // Step 7.9.6: 스크롤 동기화 로직을 훅으로 추출
@@ -613,22 +632,6 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
   });
 
   // Step 7.9.6: 스크롤 동기화 관련 useEffect는 useMidiEditorScrollSync 훅 내부로 이동됨
-  
-  // 파트의 trackId 추적 (트랙 변경 감지용)
-  const partTrackIdRef = useRef<string | null>(null);
-  const onCloseRef = useRef(onClose);
-  
-  // onClose ref 업데이트 (dependency 문제 회피)
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-  
-  // 파트의 trackId 초기화 (별도 useEffect로 분리)
-  useEffect(() => {
-    if (part) {
-      partTrackIdRef.current = part.trackId;
-    }
-  }, [part]);
   
   // 미디파트가 없거나 트랙이 변경되면 경고하고 닫기 (폭 계산이 완료된 후에만)
   useEffect(() => {
@@ -721,7 +724,7 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
     const rect = pianoRollRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const currentPixelsPerSecond = pixelsPerSecond || initialPixelsPerSecond;
+    const currentPixelsPerSecond = effectivePixelsPerSecond;
     const time = x / currentPixelsPerSecond;
     const lanes = calculateLanePositions();
     // 레인은 이미 역순으로 계산되어 있으므로 (위=높은음, 아래=낮은음) y 좌표를 그대로 사용
@@ -733,7 +736,7 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
     if (pitchIndex === -1) return null;
     const pitch = lanes[pitchIndex].index;
     return { time, pitch };
-  }, [pixelsPerSecond, initialPixelsPerSecond, calculateLanePositions]);
+  }, [effectivePixelsPerSecond, calculateLanePositions]);
 
   // Helper function: 노트 퀀타이즈는 MidiEditorCalculations.ts에서 import
 
@@ -992,7 +995,7 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
   // 프로젝트에서 타이밍 정보 가져오기
   const project = selectProject();
   const ppqn = getPpqn(project);
-  const tempoMap = project.timing?.tempoMap ?? [];
+  const tempoMap = project.timing?.tempoMap;
 
   // Step 7.2: NoteLayer에 전달할 props 준비
   const noteLayerProps = useMemo(() => ({
@@ -1003,7 +1006,7 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
     bpm,
     timeSignature,
     ppqn,
-    tempoMap,
+    tempoMap: tempoMap ?? [],
     selectedNotes,
     isDragging,
     dragStartNotes,
@@ -1044,9 +1047,6 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
     splitPreviewX,
     splitPreviewNoteIndex,
     ui.cursorMode,
-    getVelocityColor,
-    getVelocityBorderColor,
-    isSplitMode,
     isRedThemeActive,
   ]);
 
@@ -1085,9 +1085,11 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
   const currentPreviewVelocityRef = useRef<{ noteIndex: number; velocity: number } | null>(null);
   useEffect(() => {
     if (!isAdjustingVelocity || adjustingVelocityNoteIndex === -1 || !velocityAdjustStartPos || !velocityGraphAreaRef.current) {
-      setPreviewVelocity(null);
-      currentPreviewVelocityRef.current = null;
-      return;
+      const timer = window.setTimeout(() => {
+        setPreviewVelocity(null);
+        currentPreviewVelocityRef.current = null;
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -1368,7 +1370,10 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
               isDragging={isDragging}
               calculateLanePositions={calculateLanePositions}
               setHoveredNote={setHoveredNote}
-              onMouseDown={handlePianoRollMouseDown}
+              onMouseDown={(event) => {
+                setMarqueeSelectionSource('pianoRoll');
+                handlePianoRollMouseDown(event);
+              }}
               onMouseMove={handlePianoRollMouseMove}
               onMouseUp={handlePianoRollMouseUp}
               onDoubleClick={handlePianoRollDoubleClick}
@@ -1449,6 +1454,8 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
           isCtrlPressedDuringMarqueeRef={isCtrlPressedDuringMarqueeRef}
           partNotes={partNotes}
           marqueeSelectionSourceRef={marqueeSelectionSourceRef}
+          marqueeSelectionSource={marqueeSelectionSource}
+          setMarqueeSelectionSource={setMarqueeSelectionSource}
         />
       </div>
     </div>
@@ -1456,6 +1463,3 @@ const MidiEditor: React.FC<MidiEditorProps> = ({ partId, onClose, bpm, timeSigna
 };
 
 export default MidiEditor;
-
-
-

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import styles from './SaveLoadButtons.module.css';
 import { getProject, setProject } from '../../store/projectStore';
 import type { Project } from '../../types/project';
@@ -51,6 +51,8 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
   platform,
 }) => {
   const ui = useUIState();
+  const exportRangeStart = ui.exportRangeStart;
+  const exportRangeEnd = ui.exportRangeEnd;
   const currentPlatform = platform || detectPlatform();
   const isWeb = currentPlatform === 'web';
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,45 +81,7 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
   
   const isNarrowScreen = windowWidth <= BREAKPOINTS.ICON_ONLY;
 
-  const handleSaveProject = () => {
-    if (isWeb) {
-      // 웹 환경: 항상 파일명 입력 모달 표시 (덮어쓰기 불가능하므로)
-      setSaveMode('project');
-      setShowSaveNameModal(true);
-      setProjectName(loadedProjectFile?.name || 'project');
-      // 모달이 열릴 때 입력 필드에 포커스
-      setTimeout(() => {
-        projectNameInputRef.current?.focus();
-        projectNameInputRef.current?.select();
-      }, 0);
-      setShowFileDropdown(false);
-    } else {
-      // React Native 환경: 로드된 파일이 있으면 바로 저장, 없으면 Save As
-      // TODO: React Native에서 File System Access API 사용하여 덮어쓰기 구현
-      if (loadedProjectFile) {
-        handleQuickSave();
-        setShowFileDropdown(false);
-      } else {
-        handleSaveProjectAs();
-      }
-    }
-  };
-
-  const handleSaveProjectAs = () => {
-    // Save As: 항상 프로젝트명 입력 모달 표시
-    // 웹에서는 사용되지 않지만, React Native 확장을 위해 유지
-    setSaveMode('project');
-    setShowSaveNameModal(true);
-    setProjectName(loadedProjectFile?.name || 'project');
-    // 모달이 열릴 때 입력 필드에 포커스
-    setTimeout(() => {
-      projectNameInputRef.current?.focus();
-      projectNameInputRef.current?.select();
-    }, 0);
-    setShowSaveDropdown(false);
-  };
-
-  const handleQuickSave = async () => {
+  const handleQuickSave = useCallback(async () => {
     if (!loadedProjectFile) return;
     
     const project = getProject();
@@ -128,7 +92,7 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
     let rangeStartTick: number | undefined;
     let rangeEndTick: number | undefined;
     
-    if (ui.exportRangeStart !== null && ui.exportRangeEnd !== null) {
+    if (exportRangeStart !== null && exportRangeEnd !== null) {
       const timing = project.timing || {
         ppqn: 480,
         tempoMap: [{ tick: 0, mpqn: 500000 }],
@@ -139,14 +103,14 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
       
       // 초를 tick으로 변환
       const startResult = secondsToTicksPure(
-        ui.exportRangeStart,
+        exportRangeStart,
         0,
         timing.tempoMap,
         timeSignature,
         ppqn
       );
       const endResult = secondsToTicksPure(
-        ui.exportRangeEnd,
+        exportRangeEnd,
         0,
         timing.tempoMap,
         timeSignature,
@@ -161,8 +125,8 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
     const savedProject = {
       ...project,
       midiFileName: midiFileName,
-      locatorStart: ui.exportRangeStart,
-      locatorEnd: ui.exportRangeEnd,
+      locatorStart: exportRangeStart,
+      locatorEnd: exportRangeEnd,
     };
     
     const json = JSON.stringify(savedProject, null, 2);
@@ -220,7 +184,45 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
       console.error('Failed to export MIDI file:', error);
       alert('Failed to export MIDI file');
     }
-  };
+  }, [loadedProjectFile, exportRangeStart, exportRangeEnd, isWeb]);
+
+  const handleSaveProjectAs = useCallback(() => {
+    // Save As: 항상 프로젝트명 입력 모달 표시
+    // 웹에서는 사용되지 않지만, React Native 확장을 위해 유지
+    setSaveMode('project');
+    setShowSaveNameModal(true);
+    setProjectName(loadedProjectFile?.name || 'project');
+    // 모달이 열릴 때 입력 필드에 포커스
+    setTimeout(() => {
+      projectNameInputRef.current?.focus();
+      projectNameInputRef.current?.select();
+    }, 0);
+    setShowSaveDropdown(false);
+  }, [loadedProjectFile]);
+
+  const handleSaveProject = useCallback(() => {
+    if (isWeb) {
+      // 웹 환경: 항상 파일명 입력 모달 표시 (덮어쓰기 불가능하므로)
+      setSaveMode('project');
+      setShowSaveNameModal(true);
+      setProjectName(loadedProjectFile?.name || 'project');
+      // 모달이 열릴 때 입력 필드에 포커스
+      setTimeout(() => {
+        projectNameInputRef.current?.focus();
+        projectNameInputRef.current?.select();
+      }, 0);
+      setShowFileDropdown(false);
+    } else {
+      // React Native 환경: 로드된 파일이 있으면 바로 저장, 없으면 Save As
+      // TODO: React Native에서 File System Access API 사용하여 덮어쓰기 구현
+      if (loadedProjectFile) {
+        void handleQuickSave();
+        setShowFileDropdown(false);
+      } else {
+        handleSaveProjectAs();
+      }
+    }
+  }, [isWeb, loadedProjectFile, handleQuickSave, handleSaveProjectAs]);
 
   const handleConfirmSave = async () => {
     const project = getProject();
@@ -419,7 +421,7 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
         
         // 로드된 파일 정보 저장 (파일 핸들 포함)
         const baseFileName = result.fileName?.replace(/\.json$/i, '') || 'project';
-        const midiFileName = (project as any).midiFileName || `${baseFileName}.mid`;
+        const midiFileName = project.midiFileName || `${baseFileName}.mid`;
         
         // MIDI 파일 경로 찾기 (같은 디렉토리에서)
         const jsonDir = result.filePath.substring(0, result.filePath.lastIndexOf('/') || result.filePath.lastIndexOf('\\'));
@@ -637,7 +639,7 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
         
         // 로드된 파일 정보 저장 (파일명만 저장)
         const baseFileName = file.name.replace(/\.json$/i, '');
-        const midiFileName = (project as any).midiFileName || `${baseFileName}.mid`;
+        const midiFileName = project.midiFileName || `${baseFileName}.mid`;
         setLoadedProjectFile({
           name: baseFileName,
           midiFileName: midiFileName,
@@ -762,7 +764,6 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
         }
         
         // 새 프로젝트의 트랙들을 기존 프로젝트에 추가
-        let addedTracksCount = 0;
         pendingProject.tracks.forEach((newTrack, index) => {
           // 최대 10개 제한 확인
           if (currentProject.tracks.length >= 10) {
@@ -777,7 +778,6 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
           
           try {
             addTrack(trackToAdd);
-            addedTracksCount++;
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             alert(`Error: Failed to add track ${index + 1}: ${errorMessage}`);
@@ -882,7 +882,7 @@ const SaveLoadButtons: React.FC<SaveLoadButtonsProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [loadedProjectFile, ui, isWeb]);
+  }, [loadedProjectFile, ui, isWeb, handleSaveProject, handleSaveProjectAs]);
 
   // 드롭다운 외부 클릭 시 닫기
   React.useEffect(() => {

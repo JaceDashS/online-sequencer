@@ -24,15 +24,23 @@ const Inspector: React.FC<InspectorProps> = ({ selectedTrackId }) => {
   const isMaster = trackId === 'master';
   
   // BPM과 Time Signature 가져오기 (딜레이 이펙트용)
-  const bpm = useMemo(() => getBpm(project), [project, updateCounter]);
-  const timeSignature = useMemo(() => getTimeSignature(project), [project, updateCounter]);
+  const bpm = useMemo(() => {
+    void updateCounter;
+    return getBpm(project);
+  }, [project, updateCounter]);
+  const timeSignature = useMemo(() => {
+    void updateCounter;
+    return getTimeSignature(project);
+  }, [project, updateCounter]);
   
   // track과 effects를 useMemo로 메모이제이션
   const track = useMemo(() => {
+    void updateCounter;
     return trackId && !isMaster ? findTrackById(trackId) : null;
   }, [trackId, isMaster, updateCounter]);
   
   const masterEffects = useMemo(() => {
+    void updateCounter;
     return isMaster ? (project.masterEffects || []) : [];
   }, [isMaster, project.masterEffects, updateCounter]);
   

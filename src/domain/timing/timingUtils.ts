@@ -4,7 +4,7 @@
  */
 
 import { MIDI_CONSTANTS } from '../../constants/midi';
-import type { Project, MidiProjectTiming } from '../../types/project';
+import type { LegacyProject, Project, MidiProjectTiming } from '../../types/project';
 import { bpmToMpqn, mpqnToBpm } from './timingConversions';
 
 /**
@@ -31,7 +31,7 @@ export function getBpm(project: Project): number {
     return mpqnToBpm(project.timing.tempoMap[0].mpqn);
   }
   // 마이그레이션용: 레거시 프로젝트의 bpm 필드 지원
-  const legacyProject = project as any;
+  const legacyProject = project as Project & Pick<LegacyProject, 'bpm'>;
   return legacyProject.bpm ?? 120;
 }
 
@@ -45,7 +45,7 @@ export function getTimeSignature(project: Project): [number, number] {
     return [timeSig.num, timeSig.den];
   }
   // 마이그레이션용: 레거시 프로젝트의 timeSignature 필드 지원
-  const legacyProject = project as any;
+  const legacyProject = project as Project & Pick<LegacyProject, 'timeSignature'>;
   return legacyProject.timeSignature ?? [4, 4];
 }
 
@@ -60,4 +60,3 @@ export function getPpqn(project: Project): number {
   // 기본값
   return MIDI_CONSTANTS.PPQN;
 }
-

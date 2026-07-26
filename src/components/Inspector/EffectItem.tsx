@@ -67,32 +67,6 @@ const EffectItem: React.FC<EffectItemProps> = ({ effect, effectIndex, trackId, o
     onRemove(trackId, effectIndex);
   }, [trackId, effectIndex, onRemove]);
 
-  const renderVerticalSlider = useCallback((label: string, paramKey: string, value: number | undefined, min: number, max: number, unit: string = '') => {
-    const actualValue = value ?? 0;
-    return (
-      <div className={styles.sliderContainer}>
-        <div className={styles.sliderLabel}>{label}</div>
-        <div className={styles.verticalSliderWrapper}>
-          <input
-            type="range"
-            className={styles.verticalSlider}
-            min={min}
-            max={max}
-            value={actualValue}
-            onChange={(e) => handleParamChange(paramKey, parseFloat(e.target.value))}
-            onKeyDown={(e) => {
-              // 스페이스바를 누르면 기본 동작만 방지 (전역 핸들러가 capture phase에서 처리)
-              if (e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space') {
-                e.preventDefault();
-              }
-            }}
-          />
-        </div>
-        <div className={styles.sliderValue}>{Math.round(actualValue)}{unit}</div>
-      </div>
-    );
-  }, [handleParamChange]);
-
   const renderHorizontalSlider = useCallback((label: string, paramKey: string, value: number | undefined, min: number, max: number, unit: string = '') => {
     const actualValue = value ?? 0;
     return (
@@ -304,7 +278,7 @@ const EffectItem: React.FC<EffectItemProps> = ({ effect, effectIndex, trackId, o
       default:
         return null;
     }
-  }, [effect.type, effect.params, renderVerticalSlider, renderHorizontalSlider, renderKnob, renderDivisionKnob]);
+  }, [effect.type, effect.params, renderHorizontalSlider, renderKnob, renderDivisionKnob]);
 
   const handleDragStart = useCallback((e: React.DragEvent) => {
     if (!isDraggable || !onReorder) return;

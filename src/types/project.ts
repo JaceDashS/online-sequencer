@@ -56,6 +56,8 @@ export interface Project {
   midiParts: MidiPart[];
   /** MIDI 파일 데이터 (partId -> base64 인코딩된 MIDI 파일) */
   midiFiles?: { [partId: string]: string };
+  /** 프로젝트와 함께 저장된 MIDI 파일 이름 */
+  midiFileName?: string;
   /** 마스터 볼륨 (0.0 ~ 1.0) */
   masterVolume?: number;
   /** 마스터 패닝 (-1.0 ~ 1.0) */
@@ -224,6 +226,7 @@ export interface LegacyPart {
   durationTicks?: Tick;
   notes: LegacyNote[];
   controlChanges?: MidiControlChange[];
+  historyIndex?: number;
 }
 
 /**
@@ -264,7 +267,5 @@ export interface MidiPart {
   /** 노트 레벨 히스토리의 현재 위치 (undoStack의 길이를 나타냄, 파트 레벨 undo/redo 시 노트 상태 복원에 사용) */
   historyIndex?: number;
 }
-
-
 
 

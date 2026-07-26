@@ -20,6 +20,11 @@ export interface EditorInteractionsProps {
   children: React.ReactNode;
 }
 
+type InteractionHandlerProps = Pick<
+  EditorInteractionsProps,
+  'onMouseDown' | 'onMouseMove' | 'onMouseUp' | 'onDoubleClick'
+>;
+
 /**
  * EditorInteractions 컴포넌트
  * Phase 7.6: MidiEditor의 상호작용 로직을 담당하는 컴포넌트
@@ -40,8 +45,8 @@ export const EditorInteractions: React.FC<EditorInteractionsProps> = ({
   return (
     <>
       {React.Children.map(children, (child) => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child as React.ReactElement<any>, {
+        if (React.isValidElement<Partial<InteractionHandlerProps>>(child)) {
+          return React.cloneElement(child, {
             onMouseDown,
             onMouseMove,
             onMouseUp,
@@ -53,4 +58,3 @@ export const EditorInteractions: React.FC<EditorInteractionsProps> = ({
     </>
   );
 };
-

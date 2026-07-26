@@ -81,7 +81,7 @@ export const useMidiEditorMouseMove = ({
   partId,
   partNotes,
   bpm,
-  timeSignature,
+  timeSignature: _timeSignature,
   pixelsPerSecond,
   initialPixelsPerSecond,
   setSplitPreviewX,
@@ -310,7 +310,7 @@ export const useMidiEditorMouseMove = ({
         endY: y,
       });
     }
-  }, [pianoRollRef, handleDragMouseMove, isDragging, ui, calculateLanePositions, getTimeAndPitchFromMouse, quantizeNote, partId, partNotes, bpm, timeSignature, pixelsPerSecond, initialPixelsPerSecond, setSplitPreviewX, setSplitPreviewNoteIndex, isResizingNote, selectedNotes, setHoveredResizeHandle, isDrawing, drawingNote, setDrawingNote, setHoveredNote, isSelecting, selectionRect, setSelectionRect, partStartTime]);
+  }, [pianoRollRef, handleDragMouseMove, isDragging, ui, calculateLanePositions, getTimeAndPitchFromMouse, quantizeNote, partId, partNotes, bpm, pixelsPerSecond, initialPixelsPerSecond, setSplitPreviewX, setSplitPreviewNoteIndex, isResizingNote, selectedNotes, setHoveredResizeHandle, isDrawing, drawingNote, setDrawingNote, setHoveredNote, isSelecting, selectionRect, setSelectionRect, partStartTime]);
 
   useEffect(() => {
     if (!isSelecting || !selectionRect) return;
@@ -334,4 +334,3 @@ export const useMidiEditorMouseMove = ({
     handlePianoRollMouseMove,
   };
 };
-

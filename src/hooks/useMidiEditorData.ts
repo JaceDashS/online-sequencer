@@ -61,6 +61,7 @@ export const useMidiEditorData = (
   
   // 파트 정보 (메모이제이션)
   const part = useMemo<MidiPart | undefined>(() => {
+    void projectUpdateCounter;
     const currentProject = getProject();
     return currentProject.midiParts.find(p => p.id === partId);
   }, [partId, projectUpdateCounter]);
@@ -116,7 +117,7 @@ export const useMidiEditorData = (
     }
 
     return ranges;
-  }, [part?.controlChanges, part?.durationTicks]);
+  }, [part]);
 
   // 노트 타이밍 계산 (각 노트의 시작 시간과 지속 시간)
   const noteTimings = useMemo<NoteTiming[]>(() => {
@@ -196,4 +197,3 @@ export const useMidiEditorData = (
     projectUpdateCounter,
   };
 };
-

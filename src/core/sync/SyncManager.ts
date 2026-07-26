@@ -13,12 +13,27 @@ import type { ProjectChangeEvent, TrackChangeEvent, MidiPartChangeEvent, MidiNot
 import { createSimpleTiming, getBpm, getTimeSignature } from '../../utils/midiTickUtils';
 import { clearTimingCache } from '../../domain/timing/timingCache';
 import type { P2PMessage, RemoteChange, InitialStateMessage, ChangeMessage } from './types/p2p';
-import type { Project } from '../../types/project';
+import type { MidiNote, MidiPart, Project } from '../../types/project';
 import { addMidiPart, removeMidiPart, updateMidiPart, findMidiPart } from '../../store/midiPartActions';
 import { addNoteToMidiPart, updateNoteInMidiPart, removeNoteFromMidiPart, addMultipleNotesToMidiPart, removeMultipleNotesFromMidiPart } from '../../store/actions/noteActions';
 
 type SerializableValue = string | number | boolean | null | SerializableValue[] | { [key: string]: SerializableValue };
 type SerializableRecord = { [key: string]: SerializableValue };
+type MidiPartChangeValue = {
+  action: 'add' | 'remove' | 'update' | 'move' | 'resize';
+  part?: MidiPart;
+  changes?: Partial<MidiPart>;
+  newStartTick?: number;
+  newDurationTicks?: number;
+};
+type MidiNoteChangeValue = {
+  action: 'add' | 'remove' | 'update' | 'addMultiple' | 'removeMultiple';
+  note?: MidiNote;
+  noteIndex?: number;
+  changes?: Partial<MidiNote>;
+  notes?: MidiNote[];
+  noteIndices?: number[];
+};
 
 /**
  * SyncManager
@@ -180,11 +195,15 @@ export class SyncManager {
    * 디바운싱이 필요한 변경사항인지 확인
    */
   private shouldDebounce(change: RemoteChange): boolean {
+    const action = typeof change.value === 'object' && change.value !== null && 'action' in change.value
+      ? change.value.action
+      : undefined;
+
     // 노트 드래그, 미디파트 이동 등은 디바운싱 적용
-    if (change.type === 'midi-note' && change.value?.action === 'update') {
+    if (change.type === 'midi-note' && action === 'update') {
       return true;
     }
-    if (change.type === 'midi-part' && (change.value?.action === 'move' || change.value?.action === 'resize')) {
+    if (change.type === 'midi-part' && (action === 'move' || action === 'resize')) {
       return true;
     }
     return false;
@@ -454,7 +473,7 @@ export class SyncManager {
           if (change.trackId) {
             const track = project.tracks.find(t => t.id === change.trackId);
             if (track) {
-              track.volume = change.value;
+              track.volume = change.value as number;
             }
           }
           break;
@@ -463,7 +482,7 @@ export class SyncManager {
           if (change.trackId) {
             const track = project.tracks.find(t => t.id === change.trackId);
             if (track) {
-              track.pan = change.value;
+              track.pan = change.value as number;
             }
           }
           break;
@@ -472,20 +491,21 @@ export class SyncManager {
           if (change.trackId) {
             const track = project.tracks.find(t => t.id === change.trackId);
             if (track) {
-              track.effects = change.value;
+              track.effects = change.value as typeof track.effects;
             }
           }
           break;
 
         case 'midi-part': {
           // 미디파트 변경 (추가, 삭제, 업데이트, 이동, 리사이즈)
-          const action = change.value.action;
+          const value = change.value as MidiPartChangeValue;
+          const action = value.action;
           
           switch (action) {
             case 'add':
               // 파트 추가 (skipHistory=true로 설정하여 동기화 메시지가 다시 전송되지 않도록)
-              if (change.value.part) {
-                addMidiPart(change.value.part, true);
+              if (value.part) {
+                addMidiPart(value.part, true);
               }
               break;
 
@@ -498,22 +518,22 @@ export class SyncManager {
 
             case 'update':
               // 파트 업데이트
-              if (change.partId && change.value.changes) {
-                updateMidiPart(change.partId, change.value.changes, true);
+              if (change.partId && value.changes) {
+                updateMidiPart(change.partId, value.changes, true);
               }
               break;
 
             case 'move':
               // 파트 이동
-              if (change.partId && change.value.newStartTick !== undefined) {
-                updateMidiPart(change.partId, { startTick: change.value.newStartTick }, true);
+              if (change.partId && value.newStartTick !== undefined) {
+                updateMidiPart(change.partId, { startTick: value.newStartTick }, true);
               }
               break;
 
             case 'resize':
               // 파트 리사이즈
-              if (change.partId && change.value.newDurationTicks !== undefined) {
-                updateMidiPart(change.partId, { durationTicks: change.value.newDurationTicks }, true);
+              if (change.partId && value.newDurationTicks !== undefined) {
+                updateMidiPart(change.partId, { durationTicks: value.newDurationTicks }, true);
               }
               break;
           }
@@ -522,7 +542,8 @@ export class SyncManager {
 
         case 'midi-note': {
           // 미디 노트 변경 (추가, 삭제, 업데이트)
-          const action = change.value.action;
+          const value = change.value as MidiNoteChangeValue;
+          const action = value.action;
           const part = change.partId ? findMidiPart(change.partId) : null;
 
           if (!part) break;
@@ -530,36 +551,36 @@ export class SyncManager {
           switch (action) {
             case 'add':
               // 노트 추가
-              if (change.value.note) {
-                addNoteToMidiPart(change.partId!, change.value.note, true);
+              if (value.note) {
+                addNoteToMidiPart(change.partId!, value.note, true);
               }
               break;
 
             case 'remove':
               // 노트 삭제
-              if (change.value.noteIndex !== undefined) {
-                removeNoteFromMidiPart(change.partId!, change.value.noteIndex, true);
+              if (value.noteIndex !== undefined) {
+                removeNoteFromMidiPart(change.partId!, value.noteIndex, true);
               }
               break;
 
             case 'update':
               // 노트 업데이트
-              if (change.value.noteIndex !== undefined && change.value.changes) {
-                updateNoteInMidiPart(change.partId!, change.value.noteIndex, change.value.changes, true);
+              if (value.noteIndex !== undefined && value.changes) {
+                updateNoteInMidiPart(change.partId!, value.noteIndex, value.changes, true);
               }
               break;
 
             case 'addMultiple':
               // 여러 노트 추가
-              if (change.value.notes && Array.isArray(change.value.notes)) {
-                addMultipleNotesToMidiPart(change.partId!, change.value.notes, true);
+              if (value.notes) {
+                addMultipleNotesToMidiPart(change.partId!, value.notes, true);
               }
               break;
 
             case 'removeMultiple':
               // 여러 노트 삭제
-              if (change.value.noteIndices && Array.isArray(change.value.noteIndices)) {
-                removeMultipleNotesFromMidiPart(change.partId!, change.value.noteIndices, true);
+              if (value.noteIndices) {
+                removeMultipleNotesFromMidiPart(change.partId!, value.noteIndices, true);
               }
               break;
           }
@@ -1051,7 +1072,6 @@ export class SyncManager {
     this.debounceTimers.clear();
   }
 }
-
 
 
 

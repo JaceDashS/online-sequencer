@@ -133,9 +133,8 @@ async function testSignalingClient() {
       console.error('   에러 메시지:', error.message);
       console.error('   스택:', error.stack);
     }
-    // @ts-ignore - Node.js 환경에서만 실행
-    if (typeof process !== 'undefined' && (process as any).exit) {
-      (process as any).exit(1);
+    if (typeof process !== 'undefined') {
+      process.exitCode = 1;
     }
   }
 }

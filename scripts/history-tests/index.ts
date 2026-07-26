@@ -17,7 +17,6 @@ import { createSimpleTiming } from '../../src/utils/midiTickUtils';
 
 import {
   setProject,
-  getProject,
   addMidiPart,
   findMidiPart,
   addNoteToMidiPart,
@@ -191,5 +190,4 @@ test('mergeParts undo/redo restores originals and keeps notes', () => {
 console.log('\n' + '='.repeat(60));
 console.log(`\nResult: ${passCount}/${testCount} passed`);
 if (failCount > 0) process.exit(1);
-
 

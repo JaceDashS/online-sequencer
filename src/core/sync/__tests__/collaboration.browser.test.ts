@@ -13,21 +13,6 @@ import { SyncManager } from '../SyncManager';
 import { getOrCreateClientId } from '../utils/uuid';
 
 /**
- * 전역 테스트 인스턴스 (브라우저 콘솔에서 접근 가능)
- */
-declare global {
-  interface Window {
-    testCollaboration?: {
-      host?: CollaborationManager;
-      guest?: CollaborationManager;
-      hostSync?: SyncManager;
-      guestSync?: SyncManager;
-      clientId?: string;
-    };
-  }
-}
-
-/**
  * 테스트 헬퍼 함수들
  */
 export const testCollaboration = {
@@ -251,9 +236,21 @@ export const testCollaboration = {
   }
 };
 
+declare global {
+  interface Window {
+    testCollaboration?: typeof testCollaboration & {
+      host?: CollaborationManager;
+      guest?: CollaborationManager;
+      hostSync?: SyncManager;
+      guestSync?: SyncManager;
+      clientId?: string;
+    };
+  }
+}
+
 // 브라우저 콘솔에서 접근 가능하도록 전역에 등록
 if (typeof window !== 'undefined') {
-  (window as any).testCollaboration = testCollaboration;
+  window.testCollaboration = testCollaboration;
   console.log('========================================');
   console.log('[TEST] Collaboration Test Functions');
   console.log('========================================');
@@ -274,4 +271,3 @@ if (typeof window !== 'undefined') {
   console.log('  - window.testCollaboration.disconnectAll()');
   console.log('========================================');
 }
-

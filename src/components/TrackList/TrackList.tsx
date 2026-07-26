@@ -493,7 +493,7 @@ const TrackList = forwardRef<TrackListRef, TrackListProps>(({ onTrackHeightsChan
         cancelAnimationFrame(updateTimeout);
       }
     };
-  }, [tracks, onTrackHeightsChange]);
+  }, [tracks, measureAndUpdateTrackHeights]);
 
   // 창 크기 변경 감지 및 트랙 높이 동기화
   // ResizeObserver가 자동으로 처리하지만, 창 크기 변경 시에도 확실히 업데이트

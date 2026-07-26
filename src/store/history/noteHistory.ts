@@ -81,7 +81,7 @@ export function restoreNotesFromHistoryIndex(partId: string, historyIndex: numbe
           notes.splice(action.noteIndex, 1);
         }
         break;
-      case 'removeMultipleNotes':
+      case 'removeMultipleNotes': {
         // 여러 노트 삭제: 인덱스를 역순으로 정렬하여 삭제 (인덱스가 변경되지 않도록)
         const sortedRemoves = [...action.notes]
           .sort((a, b) => b.noteIndex - a.noteIndex);
@@ -91,6 +91,7 @@ export function restoreNotesFromHistoryIndex(partId: string, historyIndex: numbe
           }
         });
         break;
+      }
       case 'updateNote':
         if (action.noteIndex >= 0 && action.noteIndex < notes.length) {
           notes[action.noteIndex] = { ...notes[action.noteIndex], ...action.newNote };

@@ -45,6 +45,7 @@ const PianoOctave: React.FC<PianoOctaveProps> = ({ octave = 4, minMidiNote = 0, 
 
   // 한 옥타브의 흰 건반: C, D, E, F, G, A, B (7개)
   const allWhiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'] as const;
+  type WhiteKey = (typeof allWhiteKeys)[number];
   const whiteKeys = allWhiteKeys.filter((note) => {
     const midi = noteNameToMidiNote(note, octave);
     return midi >= minMidiNote && midi <= maxMidiNote;
@@ -60,7 +61,7 @@ const PianoOctave: React.FC<PianoOctaveProps> = ({ octave = 4, minMidiNote = 0, 
   // 위쪽(높은 음계): F, G, A, B 구간에 3개 (F#, G#, A#)
   // topOffset: 경계에 위치 (아래쪽 백건반의 top 위치)
   // C가 맨 아래(index 0 → top: 6*whiteKeyHeight), B가 맨 위(index 6 → top: 0)
-  const blackKeyDefs: Array<{ name: string; lowerWhite: string; upperWhite: string }> = [
+  const blackKeyDefs: Array<{ name: string; lowerWhite: WhiteKey; upperWhite: WhiteKey }> = [
     { name: 'C#', lowerWhite: 'C', upperWhite: 'D' },
     { name: 'D#', lowerWhite: 'D', upperWhite: 'E' },
     { name: 'F#', lowerWhite: 'F', upperWhite: 'G' },
@@ -115,10 +116,10 @@ const PianoOctave: React.FC<PianoOctaveProps> = ({ octave = 4, minMidiNote = 0, 
           const midiNote = noteNameToMidiNote(blackKey.name, octave);
           const isInRange = midiNote >= minMidiNote && midiNote <= maxMidiNote;
           // 인접한 두 백건반이 모두 표시되는 경우에만 흑건반을 표시 (부분 옥타브 정합)
-          const hasAdjacentWhites = whiteKeys.includes(blackKey.lowerWhite as any) && whiteKeys.includes(blackKey.upperWhite as any);
+          const hasAdjacentWhites = whiteKeys.includes(blackKey.lowerWhite) && whiteKeys.includes(blackKey.upperWhite);
           if (!isInRange || !hasAdjacentWhites) return null;
 
-          const lowerWhiteIndex = whiteKeys.indexOf(blackKey.lowerWhite as any);
+          const lowerWhiteIndex = whiteKeys.indexOf(blackKey.lowerWhite);
           // lowerWhiteIndex는 화면에서 아래(낮은 음)쪽에 더 가까움. 현재 렌더링은 역순 top 배치이므로
           // lower white의 topPercent를 그대로 사용하면 두 백건반 경계에 흑건반이 위치함.
           const topPercent = (whiteKeyCount - 1 - lowerWhiteIndex) * whiteKeyHeight;

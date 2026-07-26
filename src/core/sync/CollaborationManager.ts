@@ -3,35 +3,15 @@
  * SignalingClient와 WebRTCManager를 통합하여 전체 콜라보레이션 기능을 관리합니다.
  */
 
-import { SignalingClient, type SignalingMessage } from './SignalingClient';
+import {
+  SignalingClient,
+  type ServerToClientMessage,
+  type SignalingMessage,
+} from './SignalingClient';
 import { WebRTCManager } from './WebRTCManager';
 import { SyncManager } from './SyncManager';
 import { getOrCreateClientId } from './utils/uuid';
 import type { P2PMessage, ConnectionState } from './types/p2p';
-
-/**
- * 서버 → 클라이언트 메시지 (SignalingClient에서 import)
- */
-type ServerToClientMessage = {
-  action: 'connected' | 'registered' | 'joined' | 'signaling' | 'error' | 'room-closed' | 'kicked' | 'allow-join-expired' | 'room-expiring' | 'room-session-expired' | 'participant-joined' | 'participant-left';
-  roomCode?: string;
-  clientId?: string;
-  data?: {
-    status?: string;
-    hostId?: string;
-    participantId?: string;
-    participantCount?: number;
-    minutesLeft?: number;
-    roomCreatedAt?: number;
-    type?: 'offer' | 'answer' | 'ice-candidate';
-    from?: string;
-    sdp?: any;
-    candidate?: any;
-    [key: string]: any;
-  };
-  error?: string;
-  timestamp?: number;
-};
 
 /**
  * CollaborationManager
@@ -345,7 +325,7 @@ export class CollaborationManager {
   /**
    * 시그널링 메시지 전송
    */
-  private sendSignalingMessage(message: { type: 'offer' | 'answer' | 'ice-candidate'; from: string; to: string; data: any }): void {
+  private sendSignalingMessage(message: Omit<SignalingMessage, 'roomCode' | 'timestamp'>): void {
     if (!this.roomCode) {
       console.warn('[CollaborationManager] Cannot send signaling message: no room code');
       return;

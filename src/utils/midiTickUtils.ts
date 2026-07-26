@@ -12,7 +12,7 @@
  */
 
 import { MIDI_CONSTANTS } from '../constants/midi';
-import type { MidiNote, MidiPart, Project, TempoEvent, TimeSigEvent, MidiProjectTiming, Tick } from '../types/project';
+import type { LegacyNote, LegacyPart, MidiNote, MidiPart, Project, TempoEvent, TimeSigEvent, MidiProjectTiming, Tick } from '../types/project';
 import { getProject } from '../store/projectStore';
 import * as timingConversions from '../domain/timing/timingConversions';
 import { 
@@ -444,7 +444,7 @@ export function ticksToSeconds(
  * ```
  */
 export function migrateNoteToTicks(
-  note: any, // 레거시 노트는 measure 필드를 가질 수 있음
+  note: LegacyNote,
   _part: MidiPart,
   timeSignature?: [number, number], // 옵셔널, 기본값: 프로젝트의 timeSignature (SSOT)
   ppqn: number = MIDI_CONSTANTS.PPQN
@@ -510,40 +510,19 @@ export function migrateProjectToTicks(
 ): Project {
   // 레거시 프로젝트에서 bpm, timeSignature 제거를 위한 타입 단언
   const legacyProject = project as Project & { bpm?: number; timeSignature?: [number, number] };
-  const { bpm, timeSignature, midiParts, ...rest } = legacyProject;
+  const { bpm: _bpm, timeSignature, midiParts, ...rest } = legacyProject;
   
   // 모든 MIDI 파트의 노트를 Tick 기반으로 변환
   const migratedParts: MidiPart[] = midiParts.map((part) => {
-    const migratedNotes: MidiNote[] = part.notes.map((note: any) => {
-      // 이미 Tick 필드가 있으면 그대로 사용 (measure 필드 제거, channel/releaseVelocity 보존)
-      if (note.startTick !== undefined && note.durationTicks !== undefined) {
-        return {
-          note: note.note,
-          velocity: note.velocity,
-          channel: note.channel, // SMF 표준 준수: 채널 정보 보존
-          releaseVelocity: note.releaseVelocity, // SMF 표준 준수: 릴리즈 벨로시티 보존
-          startTick: note.startTick,
-          durationTicks: note.durationTicks,
-        };
-      }
-      
-      // 레거시: measureStart/measureDuration이 있으면 Tick으로 변환
-      // SSOT: timeSignature는 프로젝트에서 가져오므로 명시적으로 전달하지 않아도 됨
-      // 하지만 마이그레이션 중에는 프로젝트가 아직 설정되지 않았을 수 있으므로 명시적으로 전달 가능
-      // BPM은 measureToTicks에서 사용하지 않으므로 제거됨
-      if (note.measureStart !== undefined && note.measureDuration !== undefined) {
-        return migrateNoteToTicks(note, part, timeSignature, ppqn);
-      }
-      
-      // 둘 다 없으면 에러
-      throw new Error(`Note missing both Tick and measure fields: ${JSON.stringify(note)}`);
-    });
+    const migratedNotes: MidiNote[] = part.notes.map((note) =>
+      migrateNoteToTicks(note, part, timeSignature, ppqn)
+    );
     
     return {
       ...part,
       notes: migratedNotes,
       controlChanges: Array.isArray(part.controlChanges)
-        ? part.controlChanges.map((cc: any) => ({ ...cc }))
+        ? part.controlChanges.map((cc) => ({ ...cc }))
         : undefined,
     };
   });
@@ -576,7 +555,7 @@ export function needsMigration(project: Project): boolean {
  * @returns Tick 기반 MidiPart
  */
 export function migrateLegacyPartToTickPart(
-  part: any, // 레거시 part (measureStart/measureDuration 포함)
+  part: MidiPart | LegacyPart,
   timing: MidiProjectTiming
 ): MidiPart {
   // 이미 Tick 필드가 있으면 그대로 사용 (레거시 필드는 제거)
@@ -586,22 +565,23 @@ export function migrateLegacyPartToTickPart(
       trackId: part.trackId,
       startTick: part.startTick,
       durationTicks: part.durationTicks,
-      notes: part.notes ?? [],
+      notes: part.notes as MidiNote[],
       controlChanges: Array.isArray(part.controlChanges)
-        ? part.controlChanges.map((cc: any) => ({ ...cc }))
+        ? part.controlChanges.map((cc) => ({ ...cc }))
         : undefined,
       historyIndex: part.historyIndex,
     };
   }
   
   // 레거시: measureStart/measureDuration -> (bar/beat 기반) tick 변환
-  if (part.measureStart !== undefined && part.measureDuration !== undefined) {
+  const legacyPart = part as LegacyPart;
+  if (legacyPart.measureStart !== undefined && legacyPart.measureDuration !== undefined) {
     const timeSig = getTimeSigAtTick(timing.timeSigMap, 0); // 초기 타임 시그니처 사용
     const timeSignature: [number, number] = [timeSig.num, timeSig.den];
     
     const { startTick, durationTicks } = measureToTicks(
-      part.measureStart,
-      part.measureDuration,
+      legacyPart.measureStart,
+      legacyPart.measureDuration,
       timeSignature,
       timing.ppqn
     );
@@ -611,9 +591,9 @@ export function migrateLegacyPartToTickPart(
       trackId: part.trackId,
       startTick,
       durationTicks,
-      notes: part.notes ?? [],
+      notes: part.notes as MidiNote[],
       controlChanges: Array.isArray(part.controlChanges)
-        ? part.controlChanges.map((cc: any) => ({ ...cc }))
+        ? part.controlChanges.map((cc) => ({ ...cc }))
         : undefined,
       historyIndex: part.historyIndex,
     };

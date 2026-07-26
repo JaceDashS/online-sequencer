@@ -281,7 +281,7 @@ export const undoMidiPart = (partId: string): void => {
   
   undoNoteLevel(partId, (action: MidiPartHistoryAction) => {
     switch (action.type) {
-    case 'addNote':
+    case 'addNote': {
       // 노트 추가의 undo는 노트 삭제 (Tick 기반으로 찾기)
       const index = part.notes.findIndex(n => 
         n.startTick === action.note.startTick &&
@@ -293,6 +293,7 @@ export const undoMidiPart = (partId: string): void => {
         notifyProjectChange({ type: 'midiPart' as const, partId });
       }
       break;
+    }
     case 'addMultipleNotes':
       // 여러 노트 추가의 undo는 모든 노트 삭제 (Tick 기반으로 찾기)
       action.notes.forEach(note => {
@@ -316,7 +317,7 @@ export const undoMidiPart = (partId: string): void => {
         notifyProjectChange({ type: 'midiPart' as const, partId });
       }
       break;
-    case 'removeMultipleNotes':
+    case 'removeMultipleNotes': {
       // 여러 노트 삭제의 undo는 여러 노트를 다시 추가
       // 인덱스를 정렬하여 순서대로 삽입 (인덱스가 변경되지 않도록)
       const sortedNotesToRestore = [...action.notes]
@@ -330,6 +331,7 @@ export const undoMidiPart = (partId: string): void => {
         notifyProjectChange({ type: 'midiPart' as const, partId });
       }
       break;
+    }
     case 'updateNote':
       // 노트 업데이트의 undo는 이전 상태로 복원
       if (action.noteIndex >= 0 && action.noteIndex < part.notes.length) {
@@ -425,7 +427,7 @@ export const redoMidiPart = (partId: string): void => {
         notifyProjectChange({ type: 'midiPart' as const, partId });
       }
       break;
-    case 'removeMultipleNotes':
+    case 'removeMultipleNotes': {
       // 여러 노트 삭제의 redo는 여러 노트를 다시 삭제
       // 인덱스를 역순으로 정렬하여 삭제 (인덱스가 변경되지 않도록)
       const sortedNotesToRemove = [...action.notes]
@@ -439,6 +441,7 @@ export const redoMidiPart = (partId: string): void => {
         notifyProjectChange({ type: 'midiPart' as const, partId });
       }
       break;
+    }
     case 'updateNote':
       // 노트 업데이트
       if (action.noteIndex >= 0 && action.noteIndex < part.notes.length) {
@@ -505,7 +508,7 @@ export const undoMidiPartLevel = (): void => {
       // 파트 추가의 undo는 파트 삭제
       removeMidiPart(action.part.id, true);
       break;
-    case 'removePart':
+    case 'removePart': {
       // 파트 삭제의 undo는 파트 추가 (히스토리 상태를 사용하여 노트 복원)
       const partToAdd = structuredClone(action.part);
       const existingHistory = getMidiPartHistory(partToAdd.id);
@@ -515,6 +518,7 @@ export const undoMidiPartLevel = (): void => {
       }
       addMidiPart(partToAdd, true);
       break;
+    }
     case 'removeMultipleParts':
       // 여러 파트 삭제의 undo는 여러 파트 추가 (히스토리 상태를 사용하여 노트 복원)
       action.parts.forEach(partData => {
@@ -527,7 +531,7 @@ export const undoMidiPartLevel = (): void => {
         addMidiPart(partToAdd, true);
       });
       break;
-    case 'updatePart':
+    case 'updatePart': {
       // 파트 업데이트의 undo는 이전 상태로 복원 (노트는 보존)
       const partToRestore = findMidiPart(action.partId);
       if (partToRestore) {
@@ -549,7 +553,7 @@ export const undoMidiPartLevel = (): void => {
         if (action.oldPart.durationTicks !== undefined) {
           partToRestore.durationTicks = action.oldPart.durationTicks;
         } else {
-          const legacyPart = action.oldPart as any; // 마이그레이션을 위해 레거시 필드 접근 (타입 안전성을 위해 any로 캐스팅)
+          const legacyPart = action.oldPart as LegacyPart;
           if (legacyPart.measureDuration !== undefined) {
             const project = getProject();
             const timeSignature = getTimeSignature(project);
@@ -564,7 +568,8 @@ export const undoMidiPartLevel = (): void => {
         notifyProjectChange({ type: 'midiPart' as const, partId: action.partId });
       }
       break;
-    case 'updateMultipleParts':
+    }
+    case 'updateMultipleParts': {
       // 여러 파트 업데이트의 undo는 모든 파트를 이전 상태로 복원 (노트는 보존)
       const updatedPartIds: string[] = [];
       for (const { partId, oldPart } of action.updates) {
@@ -612,6 +617,7 @@ export const undoMidiPartLevel = (): void => {
         }
       }
       break;
+    }
     case 'splitPart': {
       // 스플릿의 undo는 원본 파트 복원 (두 파트 삭제하고 원본 추가)
       const firstPartId = action.firstPart.id;
@@ -692,7 +698,7 @@ export const redoMidiPartLevel = (): void => {
         removeMidiPart(partData.id, true);
       });
       break;
-    case 'updatePart':
+    case 'updatePart': {
       // 파트 업데이트 (노트는 보존)
       const partToUpdate = findMidiPart(action.partId);
       if (partToUpdate) {
@@ -714,7 +720,7 @@ export const redoMidiPartLevel = (): void => {
         if (action.newPart.durationTicks !== undefined) {
           partToUpdate.durationTicks = action.newPart.durationTicks;
         } else {
-          const legacyPart = action.newPart as any; // 마이그레이션을 위해 레거시 필드 접근 (타입 안전성을 위해 any로 캐스팅)
+          const legacyPart = action.newPart as LegacyPart;
           if (legacyPart.measureDuration !== undefined) {
             const project = getProject();
             const timeSignature = getTimeSignature(project);
@@ -731,7 +737,8 @@ export const redoMidiPartLevel = (): void => {
         notifyProjectChange({ type: 'midiPart' as const, partId: action.partId });
       }
       break;
-    case 'updateMultipleParts':
+    }
+    case 'updateMultipleParts': {
       // 여러 파트 업데이트의 redo는 모든 파트를 새로운 상태로 복원 (노트는 보존)
       const redoUpdatedPartIds: string[] = [];
       for (const { partId, newPart } of action.updates) {
@@ -777,6 +784,7 @@ export const redoMidiPartLevel = (): void => {
         }
       }
       break;
+    }
     case 'splitPart': {
       // 스플릿 (원본 삭제하고 두 파트 추가)
       removeMidiPart(action.originalPart.id, true);

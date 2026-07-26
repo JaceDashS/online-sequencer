@@ -28,7 +28,10 @@ const MasterChannel: React.FC<MasterChannelProps> = ({ isSelected, onClick }) =>
   }, []);
 
   // 최신 프로젝트 데이터 가져오기 (메모이제이션)
-  const project = useMemo(() => getProject(), [updateCounter]);
+  const project = useMemo(() => {
+    void updateCounter;
+    return getProject();
+  }, [updateCounter]);
   
   // 마스터 볼륨/패닝 기본값
   const masterVolume = project.masterVolume ?? AUDIO_CONSTANTS.VOLUME_DEFAULT / AUDIO_CONSTANTS.VOLUME_MAX_DISPLAY;

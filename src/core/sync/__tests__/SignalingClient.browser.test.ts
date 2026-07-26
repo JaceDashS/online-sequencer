@@ -11,6 +11,12 @@
 import { SignalingClient } from '../SignalingClient';
 import { getOrCreateClientId } from '../utils/uuid';
 
+declare global {
+  interface Window {
+    testSignalingClient?: typeof testSignalingClientInBrowser;
+  }
+}
+
 /**
  * 브라우저 콘솔에서 실행할 수 있는 테스트 함수
  */
@@ -124,6 +130,6 @@ export async function testSignalingClientInBrowser() {
 // 브라우저 환경에서만 자동 실행
 if (typeof window !== 'undefined') {
   // 전역 함수로 등록하여 콘솔에서 직접 호출 가능
-  (window as any).testSignalingClient = testSignalingClientInBrowser;
+  window.testSignalingClient = testSignalingClientInBrowser;
   console.log('테스트 함수가 등록되었습니다. 콘솔에서 testSignalingClient()를 호출하세요.');
 }

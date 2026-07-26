@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from './CollaborationButtons.module.css';
 import { CollaborationManager } from '../../core/sync/CollaborationManager';
+import type { ServerToClientMessage } from '../../core/sync/SignalingClient';
 import { getCollaborationManager, setCollaborationManager } from '../../core/sync/collaborationSession';
 import { getOrCreateClientId } from '../../core/sync/utils/uuid';
 import type { ConnectionState } from '../../core/sync/types/p2p';
@@ -55,7 +56,7 @@ const CollaborationButtons: React.FC = () => {
     };
 
     // participant-joined 메시지 핸들러 등록
-    const handleParticipantJoined = (message: any) => {
+    const handleParticipantJoined = (message: ServerToClientMessage) => {
       if (message.data?.participantId) {
         const participantId = message.data.participantId;
         setParticipants(prev => {
@@ -81,7 +82,7 @@ const CollaborationButtons: React.FC = () => {
     };
 
     // participant-left 메시지 핸들러 등록
-    const handleParticipantLeft = (message: any) => {
+    const handleParticipantLeft = (message: ServerToClientMessage) => {
       if (message.data?.participantId) {
         const participantId = message.data.participantId;
         setParticipants(prev => prev.filter(p => p.id !== participantId));
@@ -147,7 +148,7 @@ const CollaborationButtons: React.FC = () => {
       }
       // 컴포넌트 언마운트 시에는 연결을 유지하고 리스너만 해제 (중복 언마운트/마운트 보호)
     };
-  }, []);
+  }, [clientId, isHost]);
 
 
   const handleStartHost = async () => {

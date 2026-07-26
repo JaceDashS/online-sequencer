@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { MIDI_EDITOR_CONSTANTS } from '../constants/ui';
 import type { MidiPart } from '../types/project';
 
+const MIN_ZOOM = MIDI_EDITOR_CONSTANTS.MIN_ZOOM;
+const MAX_ZOOM = MIDI_EDITOR_CONSTANTS.MAX_ZOOM;
+
 /**
  * useMidiEditorZoom 훅 Props
  */
@@ -57,10 +60,6 @@ export const useMidiEditorZoom = ({
   
   const resizeDebounceRef = useRef<number | null>(null);
   
-  // 줌 범위 설정
-  const MIN_ZOOM = MIDI_EDITOR_CONSTANTS.MIN_ZOOM;
-  const MAX_ZOOM = MIDI_EDITOR_CONSTANTS.MAX_ZOOM;
-
   // 컨테이너가 렌더링되고 실제 너비가 측정될 때까지 대기
   useEffect(() => {
     if (!part || isContainerReady) return;
@@ -277,4 +276,3 @@ export const useMidiEditorZoom = ({
     minZoom,
   };
 };
-

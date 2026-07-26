@@ -41,8 +41,8 @@ export const useMidiEditorDoubleClick = ({
   getTimeAndPitchFromMouse,
   clampPianoPitch,
   partId,
-  bpm,
-  timeSignature,
+  bpm: _bpm,
+  timeSignature: _timeSignature,
   setPartNotes,
 }: UseMidiEditorDoubleClickProps): UseMidiEditorDoubleClickReturn => {
   
@@ -89,10 +89,9 @@ export const useMidiEditorDoubleClick = ({
       const instrument = track?.instrument || 'piano';
       void audioEngineRef.current.previewNote(newNote.note, newNote.velocity ?? 100, instrument);
     }
-  }, [getTimeAndPitchFromMouse, clampPianoPitch, partId, bpm, timeSignature, setPartNotes, audioEngineRef]);
+  }, [getTimeAndPitchFromMouse, clampPianoPitch, partId, setPartNotes, audioEngineRef]);
 
   return {
     handlePianoRollDoubleClick,
   };
 };
-

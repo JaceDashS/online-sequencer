@@ -19,9 +19,7 @@ export interface UseMidiEditorScrollSyncProps {
 /**
  * useMidiEditorScrollSync 훅 반환 타입
  */
-export interface UseMidiEditorScrollSyncReturn {
-  // 현재는 반환값 없음 (내부에서 직접 상태 업데이트)
-}
+export type UseMidiEditorScrollSyncReturn = Record<string, never>;
 
 /**
  * 스크롤 동기화 로직을 관리하는 훅
@@ -148,4 +146,3 @@ export const useMidiEditorScrollSync = ({
 
   return {};
 };
-

@@ -57,6 +57,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   // PPQN ????
   const project = selectProject();
   const ppqn = getPpqn(project);
+  const [isDragging, setIsDragging] = useState(false);
   
   // Alt ? ??
   const prevAltPressedRef = useRef(false);
@@ -238,7 +239,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [hoveredPartId, ui.cursorMode, ui, handleKey3, handleKey4, handleKey1, handleAltKey, isDraggingPart, bpm, timeSignature, pixelsPerSecond, contentRef]);
+  }, [hoveredPartId, ui.cursorMode, ui, handleKey3, handleKey4, handleKey1, handleAltKey, isDraggingPart, isDragging, bpm, timeSignature, ppqn, pixelsPerSecond, contentRef]);
 
   // split ??? ? ?? ??? ?? ???? ???? ? ????
   useEffect(() => {
@@ -288,7 +289,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
     };
-  }, [hoveredPartId, bpm, timeSignature, pixelsPerSecond, ui.cursorMode, ui.isQuantizeEnabled, ui]);
+  }, [hoveredPartId, bpm, timeSignature, ppqn, pixelsPerSecond, ui.cursorMode, ui.isQuantizeEnabled, ui]);
 
   // Alt ?? ??? ??? ??? ? Split ???
   useEffect(() => {
@@ -623,7 +624,6 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   // ????? ?? ?? (??????)
 
   // Ctrl+???? ?? ??
-  const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; trackId: string } | null>(null);
   const [dragCurrent, setDragCurrent] = useState<{ x: number; y: number } | null>(null);
   const [editingPartId, setEditingPartId] = useState<string | null>(null);
@@ -760,7 +760,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
         onTrackSelect(null);
       }
     }
-  }, [contentRef, ui, onTrackSelect, styles.clip, styles.eventTrack, styles.measureDivider]);
+  }, [contentRef, ui, onTrackSelect]);
 
   // ? ?? ?? ? ??? ??
   const handleContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -873,7 +873,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     if (isDragging && dragStart && dragCurrent) {
       // ?? ??
       const startTime = Math.min(dragStart.x, dragCurrent.x) / pixelsPerSecond;
@@ -920,7 +920,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       setSelectionStart(null);
       setSelectionEnd(null);
     }
-  };
+  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, timeSignature, ppqn, isSelectingClips]);
 
   // ?? ?? ?? ?? (????? ?? ?? ??? ?? ??)
   const calculateDropPosition = useCallback(() => {
@@ -1043,7 +1043,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       baseNewTrackId,
       partDropPositions,
     };
-  }, [isDraggingPart, partDragStart, partDragOffset, draggedPartId, draggedPartsInfo, pixelsPerSecond, tracks, trackHeights, isTrackMovingMode, ui.isQuantizeEnabled, bpm, timeSignature, ppqn, contentRef]);
+  }, [isDraggingPart, partDragStart, draggedPartId, draggedPartsInfo, pixelsPerSecond, tracks, trackHeights, isTrackMovingMode, ui.isQuantizeEnabled, bpm, timeSignature, ppqn, contentRef]);
 
   // ???? ??? ?? ???
   const handlePartMouseUp = useCallback(() => {
@@ -1197,7 +1197,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     dragOriginRef.current = null;
     ui.setDuplicateModeActive(false);
     setHasDraggedPart(false);
-  }, [isDraggingPart, partDragStart, partDragOffset, draggedPartId, draggedPartsInfo, hasDraggedPart, isCtrlPressedDuringDrag, ui, editingPartId, calculateDropPosition]);
+  }, [isDraggingPart, partDragStart, draggedPartId, draggedPartsInfo, hasDraggedPart, isCtrlPressedDuringDrag, ui, editingPartId, calculateDropPosition, ppqn, timeSignature]);
 
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
@@ -1541,7 +1541,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, isDraggingPart, partDragStart, draggedPartId, isTrackMovingMode, handlePartMouseUp, ui.isQuantizeEnabled, bpm, timeSignature, isSelectingClips, selectionStart, trackHeights, ui, startTime, isResizingPart, resizePartId, resizeStart, resizeSide, resizePreview, editingPartId]);
+  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, isDraggingPart, partDragStart, draggedPartId, isTrackMovingMode, handleMouseUp, handlePartMouseUp, ui.isQuantizeEnabled, bpm, timeSignature, ppqn, isSelectingClips, selectionStart, selectionEnd, trackHeights, ui, startTime, isResizingPart, resizePartId, resizeStart, resizeSide, resizePreview, editingPartId]);
 
   // ???? ??? ?? ???
   const handlePartMouseDown = useCallback((partId: string, e: React.MouseEvent) => {
@@ -2043,9 +2043,6 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
 };
 
 export default EventDisplay;
-
-
-
 
 
 

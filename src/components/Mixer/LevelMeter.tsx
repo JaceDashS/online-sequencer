@@ -11,24 +11,22 @@ interface LevelMeterProps {
 
 const LevelMeter: React.FC<LevelMeterProps> = ({ trackId, channel = 'left' }) => {
   const ui = useUIStateOnly();
-  if (!ui.levelMeterEnabled) {
-    return null;
-  }
   const [level, setLevel] = useState<number>(-Infinity);
   const smoothedLevelRef = useRef<number>(-Infinity);
   const animationFrameRef = useRef<number | null>(null);
   const targetLevelRef = useRef<number>(-Infinity);
-  const [isPartyTimeMode, setIsPartyTimeMode] = useState(false);
+  const [isPartyTimeMode, setIsPartyTimeMode] = useState(() => isPartyTimeEnabled());
 
   useEffect(() => {
+    if (!ui.levelMeterEnabled) {
+      return;
+    }
+
     // 파티타임 모드 구독
     const unsubscribePartyTime = subscribePartyTime((isActive) => {
       setIsPartyTimeMode(isActive);
     });
     
-    // 초기 상태 확인
-    setIsPartyTimeMode(isPartyTimeEnabled());
-
     const unsubscribe = audioLevelStore.subscribe(trackId, (audioLevel) => {
       // 파티타임 모드일 때는 실제 오디오 레벨 무시
       if (isPartyTimeEnabled()) {
@@ -106,7 +104,11 @@ const LevelMeter: React.FC<LevelMeterProps> = ({ trackId, channel = 'left' }) =>
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [trackId, channel, isPartyTimeMode]);
+  }, [trackId, channel, isPartyTimeMode, ui.levelMeterEnabled]);
+
+  if (!ui.levelMeterEnabled) {
+    return null;
+  }
 
   // 각 바의 dB 임계값을 정의 (아래에서 위로, 지수적 분할)
   // 데시벨 로직에 맞게 지수적으로 표시 (각 바는 특정 dB 레벨을 나타냄)
