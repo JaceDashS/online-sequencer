@@ -3,8 +3,14 @@
 ## 실행
 - 목록 확인: `npm run test:case:list`
 - 메뉴 실행: `npm run test:case`
-- 전체 suite 실행: `npm run test:case:all`
+- 전체 suite 순차 실행: `npm run test:case:all`
 - 기존 별칭: `npm test`는 `npm run test:case`와 동일
+
+## 운영 방식
+- `case-tests/index.cjs`는 suite 메뉴를 표시하고 `scripts/*-tests` 러너를 실행한다.
+- 각 suite 러너는 대응하는 `.cases.json` 목록과 `.md` 절차 문서를 함께 사용한다.
+- 이 케이스 테스트는 브라우저 E2E 자동화가 아니라 수동 확인을 기록하기 위한 실행 보조 도구다.
+- 아래 `CT-*` 항목은 공통 개요 체크리스트이며, 실제 메뉴에 표시되는 실행 suite는 `실행 suite` 표를 따른다.
 
 ## 범위
 - UI 레이아웃, 트랙 리스트, 타임라인, 인스펙터, 믹서 패널
@@ -23,7 +29,7 @@
 - 트랙 2: 긴 MIDI 클립 1개
 - 트랙 3: 비어 있음
 
-## 테스트 케이스
+## 공통 개요 체크리스트
 
 ### CT-001 앱 로드 및 기본 패널 렌더링
 사전조건: 새로고침 후 최초 진입
@@ -137,26 +143,15 @@
 - 클립 선택, 분할, 병합, 실행 취소/다시 실행
 - BPM 및 박자표 변경 시 룰러 갱신
 
-## 트랙 리스트 케이스 테스트
-- 트랙 리스트 관련 케이스는 `case-tests/tracklist.md` 참고
+## 실행 suite
 
-## 이벤트 디스플레이 케이스 테스트
-- 이벤트 디스플레이 관련 케이스는 `case-tests/eventdisplay.md` 참고
-
-## 단축키 케이스 테스트
-- 단축키 관련 케이스는 `case-tests/shortcuts.md` 참고
-
-## 툴바 케이스 테스트
-- 툴바 관련 케이스는 `case-tests/toolbar.md` 참고
-
-## 믹서 케이스 테스트
-- 믹서 관련 케이스는 `case-tests/mixer.md` 참고
-
-## 인스펙터 케이스 테스트
-- 인스펙터 관련 케이스는 `case-tests/inspector.md` 참고
-
-## 룰러 케이스 테스트
-- 룰러 관련 케이스는 `case-tests/ruler.md` 참고
-
-## MIDI 에디터 케이스 테스트
-- MIDI 에디터 관련 케이스는 `case-tests/midieditor.md` 참고
+| 메뉴 | Suite | 케이스 목록 | 절차 문서 | 러너 |
+|------|-------|-------------|-----------|------|
+| 1 | Tracklist | [tracklist.cases.json](tracklist.cases.json) | [tracklist.md](tracklist.md) | [scripts/tracklist-tests](../scripts/tracklist-tests/index.cjs) |
+| 2 | EventDisplay | [eventdisplay.cases.json](eventdisplay.cases.json) | [eventdisplay.md](eventdisplay.md) | [scripts/eventdisplay-tests](../scripts/eventdisplay-tests/index.cjs) |
+| 3 | Shortcuts | [shortcuts.cases.json](shortcuts.cases.json) | [shortcuts.md](shortcuts.md) | [scripts/shortcuts-tests](../scripts/shortcuts-tests/index.cjs) |
+| 4 | Toolbar | [toolbar.cases.json](toolbar.cases.json) | [toolbar.md](toolbar.md) | [scripts/toolbar-tests](../scripts/toolbar-tests/index.cjs) |
+| 5 | Mixer | [mixer.cases.json](mixer.cases.json) | [mixer.md](mixer.md) | [scripts/mixer-tests](../scripts/mixer-tests/index.cjs) |
+| 6 | Inspector | [inspector.cases.json](inspector.cases.json) | [inspector.md](inspector.md) | [scripts/inspector-tests](../scripts/inspector-tests/index.cjs) |
+| 7 | Ruler | [ruler.cases.json](ruler.cases.json) | [ruler.md](ruler.md) | [scripts/ruler-tests](../scripts/ruler-tests/index.cjs) |
+| 8 | MidiEditor | [midieditor.cases.json](midieditor.cases.json) | [midieditor.md](midieditor.md) | [scripts/midieditor-tests](../scripts/midieditor-tests/index.cjs) |
