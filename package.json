@@ -18,6 +18,7 @@
     "test:case:all": "node case-tests/index.cjs --all",
     "test:unit": "tsx scripts/unit-tests/index.ts",
     "test:history": "tsx scripts/history-tests/index.ts",
+    "test:store": "tsx scripts/store-tests/index.ts",
     "test:tracklist": "node scripts/tracklist-tests/index.cjs",
     "test:midi-tick": "node scripts/midi-tick-tests/index.cjs",
     "test:midi-migration": "node scripts/midi-migration-tests/index.cjs",

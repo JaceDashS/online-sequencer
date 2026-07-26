@@ -108,6 +108,9 @@ npm run test:midi-all
 
 # 히스토리 회귀 테스트
 npm run test:history
+
+# store 모듈 검증 테스트
+npm run test:store
 ```
 
 ### 수동 케이스 테스트

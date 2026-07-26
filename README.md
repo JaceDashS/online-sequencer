@@ -107,6 +107,9 @@ npm run test:midi-all
 
 # Run history regression tests
 npm run test:history
+
+# Run store module verification tests
+npm run test:store
 ```
 
 ### Manual case tests

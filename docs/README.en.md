@@ -88,6 +88,7 @@ Documents that explain system structure, design decisions, optimization techniqu
 - `npm run test:unit`: Core compliance tests including tempo map-based time conversion and SMF export same-tick event ordering
 - `npm run test:midi-all`: Existing MIDI-related regression tests
 - `npm run test:history`: History undo/redo regression tests
+- `npm run test:store`: Store module verification tests
 
 ### Manual Case Tests
 - `npm run test:case:list`: Lists manual case test suites
@@ -99,4 +100,3 @@ Documents that explain system structure, design decisions, optimization techniqu
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
 **Last Updated**: 2026-01-14
-
