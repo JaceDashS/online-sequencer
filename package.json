@@ -17,6 +17,7 @@
     "test:case:list": "node case-tests/index.cjs --list",
     "test:case:all": "node case-tests/index.cjs --all",
     "test:unit": "tsx scripts/unit-tests/index.ts",
+    "test:sync": "tsx scripts/sync-tests/index.ts",
     "test:history": "tsx scripts/history-tests/index.ts",
     "test:store": "tsx scripts/store-tests/index.ts",
     "test:tracklist": "node scripts/tracklist-tests/index.cjs",

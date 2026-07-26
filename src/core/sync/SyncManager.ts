@@ -7,6 +7,7 @@
 import { CollaborationManager } from './CollaborationManager';
 import { ConflictResolver } from './ConflictResolver';
 import { getProject, setProject } from '../../store/projectState';
+import { migrateProjectAtLoad } from '../../store/projectMigration';
 import { subscribeToProjectChanges, subscribeToTrackChanges, subscribeToMidiPartChanges, subscribeToMidiNoteChanges } from '../../store/projectEvents';
 import type { ProjectChangeEvent, TrackChangeEvent, MidiPartChangeEvent, MidiNoteChangeEvent } from '../../store/projectEvents';
 import { createSimpleTiming, getBpm, getTimeSignature } from '../../utils/midiTickUtils';
@@ -15,6 +16,9 @@ import type { P2PMessage, RemoteChange, InitialStateMessage, ChangeMessage } fro
 import type { Project } from '../../types/project';
 import { addMidiPart, removeMidiPart, updateMidiPart, findMidiPart } from '../../store/midiPartActions';
 import { addNoteToMidiPart, updateNoteInMidiPart, removeNoteFromMidiPart, addMultipleNotesToMidiPart, removeMultipleNotesFromMidiPart } from '../../store/actions/noteActions';
+
+type SerializableValue = string | number | boolean | null | SerializableValue[] | { [key: string]: SerializableValue };
+type SerializableRecord = { [key: string]: SerializableValue };
 
 /**
  * SyncManager
@@ -279,7 +283,7 @@ export class SyncManager {
   /**
    * 게스트: 초기 프로젝트 상태 적용
    */
-  applyProjectState(state: any): void {
+  applyProjectState(state: unknown): void {
     if (this.isHost) {
       throw new Error('Host cannot apply project state');
     }
@@ -926,18 +930,90 @@ export class SyncManager {
   /**
    * 프로젝트 직렬화 (초기 상태 전송용)
    */
-  private serializeProject(project: Project): any {
-    // TODO: 프로젝트를 직렬화 가능한 형태로 변환
-    // 순환 참조 제거, 함수 제거 등
-    return JSON.parse(JSON.stringify(project));
+  private serializeProject(project: Project): SerializableRecord {
+    const serialized = this.toSerializableValue(project);
+
+    if (!this.isSerializableRecord(serialized)) {
+      throw new Error('Project serialization failed');
+    }
+
+    return serialized;
   }
 
   /**
    * 프로젝트 역직렬화 (초기 상태 수신용)
    */
-  private deserializeProject(state: any): Project {
-    // TODO: 직렬화된 상태를 Project 타입으로 변환
-    return state as Project;
+  private deserializeProject(state: unknown): Project {
+    const serialized = this.toSerializableValue(state);
+
+    if (!this.isSerializableRecord(serialized)) {
+      throw new Error('Invalid project state');
+    }
+
+    this.assertProjectShape(serialized);
+
+    return migrateProjectAtLoad(serialized as unknown as Project);
+  }
+
+  private toSerializableValue(value: unknown, seen: WeakSet<object> = new WeakSet()): SerializableValue | undefined {
+    if (value === null) {
+      return null;
+    }
+
+    switch (typeof value) {
+      case 'string':
+      case 'boolean':
+        return value;
+      case 'number':
+        return Number.isFinite(value) ? value : null;
+      case 'undefined':
+      case 'function':
+      case 'symbol':
+      case 'bigint':
+        return undefined;
+      case 'object':
+        break;
+    }
+
+    if (seen.has(value)) {
+      return undefined;
+    }
+
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      const arrayValue = value.map(item => {
+        const serializedItem = this.toSerializableValue(item, seen);
+        return serializedItem === undefined ? null : serializedItem;
+      });
+      seen.delete(value);
+      return arrayValue;
+    }
+
+    const record: SerializableRecord = {};
+    Object.entries(value as Record<string, unknown>).forEach(([key, entryValue]) => {
+      const serializedEntry = this.toSerializableValue(entryValue, seen);
+      if (serializedEntry !== undefined) {
+        record[key] = serializedEntry;
+      }
+    });
+
+    seen.delete(value);
+    return record;
+  }
+
+  private isSerializableRecord(value: SerializableValue | undefined): value is SerializableRecord {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private assertProjectShape(state: SerializableRecord): void {
+    if (!Array.isArray(state.tracks)) {
+      throw new Error('Invalid project state: tracks must be an array');
+    }
+
+    if (!Array.isArray(state.midiParts)) {
+      throw new Error('Invalid project state: midiParts must be an array');
+    }
   }
 
   /**
@@ -956,7 +1032,6 @@ export class SyncManager {
     this.debounceTimers.clear();
   }
 }
-
 
 
 
