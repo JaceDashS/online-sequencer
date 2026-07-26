@@ -6,13 +6,13 @@
 [![Windows 포터블 버전 다운로드](https://img.shields.io/badge/Windows-포터블%20버전%20다운로드-green?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online-Sequencer-0.1.0-Windows-Portable.zip)
 
 Online DAW는 React, TypeScript, Vite 기반으로 구현된 **웹 기반 디지털 오디오 워크스테이션(DAW)**입니다.  
-MIDI 편집 기능과 WebRTC 기반 실시간 협업 기능을 제공합니다.
+MIDI 편집 기능과 클라이언트 측 실시간 협업 기능을 제공합니다.
 
 ## 주요 기능
 
 - **MIDI 편집**: 피아노 롤 기반 UI를 통한 MIDI 노트 생성 및 편집
 - **표준 MIDI 파일(SMF) 지원**: MIDI 1.0 규격을 준수하는 MIDI 파일 불러오기 및 내보내기
-- **실시간 협업**: WebRTC P2P 통신 기반 실시간 공동 작업 (Star Topology)
+- **실시간 협업**: WebSocket 시그널링 연동과 WebRTC P2P 기반 클라이언트 협업
 - **멀티 트랙 지원**: 각 트랙별 볼륨, 패닝, 이펙트 개별 제어
 - **오디오 엔진**: 샘플 기반 재생 구조 (SFZ 지원: 피아노, GM 드럼), 커스텀 이펙트 체인 아키텍처
 - **오디오 이펙트**: EQ, 딜레이, 컴프레서, 리버브 등 트랙/마스터 채널 이펙트 적용
@@ -33,10 +33,10 @@ MIDI 편집 기능과 WebRTC 기반 실시간 협업 기능을 제공합니다.
 - **IPC**: Context Isolation, Preload Script
 - **빌드**: electron-builder (Windows NSIS / Portable, macOS DMG, Linux AppImage)
 
-### 백엔드 (시그널링 서버)
-- **런타임**: Node.js, Express
-- **실시간 통신**: WebSocket(ws), WebRTC 시그널링
-- **토폴로지**: 확장성을 고려한 Star Topology
+### 협업 네트워킹
+- **시그널링 클라이언트**: `VITE_API_BASE_URL` 기반 HTTP 및 WebSocket API 연동
+- **P2P 전송**: WebRTC DataChannel
+- **토폴로지**: 호스트 중심 Star Topology
 
 ## 프로젝트 구조
 
@@ -58,7 +58,9 @@ online-daw/
 │   ├── utils/        # 유틸리티 (Logger, 수학, 시간 계산)
 │   └── workers/      # Web Worker (재생 클럭, 디버그 로거)
 ├── docs/             # 문서 (아키텍처, 사양, 매뉴얼)
-├── server/           # 협업용 시그널링 서버
+├── electron/         # Electron main/preload 프로세스
+├── scripts/          # 테스트 및 검증 스크립트
+├── case-tests/       # 수동 케이스 테스트 정의 및 러너
 └── public/           # 정적 에셋 (샘플, 아이콘)
 ```
 
@@ -102,7 +104,7 @@ npm run test:unit
 # MIDI 관련 전체 테스트
 npm run test:midi-all
 
-# 전체 테스트
+# 수동 케이스 테스트 메뉴 열기
 npm run test
 ```
 

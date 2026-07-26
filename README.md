@@ -5,13 +5,13 @@
 [![Download Installer](https://img.shields.io/badge/Windows-Download%20Installer-blue?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online.Sequencer.Setup.0.1.0.exe)
 [![Download Portable](https://img.shields.io/badge/Windows-Download%20Portable-green?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online-Sequencer-0.1.0-Windows-Portable.zip)
 
-A web-based Digital Audio Workstation (DAW) built with React, TypeScript, and Vite. Online DAW provides MIDI editing capabilities with real-time collaboration support.
+A web-based Digital Audio Workstation (DAW) built with React, TypeScript, and Vite. Online DAW provides MIDI editing capabilities and client-side real-time collaboration features.
 
 ## Features
 
 - **MIDI Editing**: Create and edit MIDI notes with a visual piano roll interface
 - **Standard MIDI File (SMF) Support**: Import and export MIDI files compliant with MIDI 1.0 specification
-- **Real-time Collaboration**: Collaborate with others using WebRTC P2P communication (Star Topology)
+- **Real-time Collaboration**: Client-side WebRTC P2P collaboration with WebSocket signaling integration
 - **Multi-track Support**: Work with multiple tracks, each with independent volume, panning, and effects
 - **Audio Engine**: Sample-based playback (SFZ support for Piano, GM Drums), custom effect chain architecture
 - **Audio Effects**: Apply effects such as EQ, Delay, Compressor, and Reverb to tracks and master channel
@@ -32,10 +32,10 @@ A web-based Digital Audio Workstation (DAW) built with React, TypeScript, and Vi
 - **IPC**: Context Isolation, Preload Scripts
 - **Build**: electron-builder (Windows NSIS/Portable, macOS DMG, Linux AppImage)
 
-### Backend (Signaling Server)
-- **Runtime**: Node.js, Express
-- **Real-time**: WebSocket (ws), WebRTC Signaling
-- **Topology**: Star Topology for scalable collaboration
+### Collaboration Networking
+- **Signaling Client**: HTTP and WebSocket APIs configured through `VITE_API_BASE_URL`
+- **P2P Transport**: WebRTC DataChannel
+- **Topology**: Star Topology for host-centered collaboration
 
 ## Project Structure
 
@@ -57,7 +57,9 @@ online-daw/
 │   ├── utils/        # Utilities (Logger, Math, Time calculation)
 │   └── workers/      # Web Workers (Playback Clock, Debug Logger)
 ├── docs/             # Documentation (Architecture, Specs, Manuals)
-├── server/           # Signaling server for collaboration
+├── electron/         # Electron main and preload processes
+├── scripts/          # Test and verification scripts
+├── case-tests/       # Manual case test definitions and runner
 └── public/           # Static assets (Samples, Icons)
 ```
 
@@ -101,28 +103,8 @@ npm run test:unit
 # Run MIDI-related tests
 npm run test:midi-all
 
-# Run case tests
+# Open the manual case test menu
 npm run test
-```
-
-## Project Structure
-
-```
-online-daw/
-├── src/
-│   ├── components/   # React UI components
-│   ├── constants/    # App constants (MIDI, UI)
-│   ├── core/         # Core logic (Audio engine, MIDI parser, Sync)
-│   ├── domain/       # Domain models (Project, Timing)
-│   ├── hooks/        # Custom React hooks
-│   ├── pages/        # Route pages
-│   ├── store/        # State management & Actions
-│   ├── transport/    # Transport layer (Web/Electron abstraction)
-│   ├── utils/        # Utilities (Logger, Math, Time)
-│   └── workers/      # Web Workers (Clock, Logger)
-├── docs/             # Documentation (Architecture, Specs, Manuals)
-├── server/           # Signaling server for collaboration
-└── public/           # Static assets (Samples, Icons)
 ```
 
 ## Documentation
