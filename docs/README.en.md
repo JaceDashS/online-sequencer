@@ -84,8 +84,15 @@ Documents that explain system structure, design decisions, optimization techniqu
 
 ## Testing
 
-- `npm run test:unit`: Core compliance tests including tempo map-based time conversion, SMF export same-tick event ordering
+### Automated Tests
+- `npm run test:unit`: Core compliance tests including tempo map-based time conversion and SMF export same-tick event ordering
 - `npm run test:midi-all`: Existing MIDI-related regression tests
+- `npm run test:history`: History undo/redo regression tests
+
+### Manual Case Tests
+- `npm run test:case:list`: Lists manual case test suites
+- `npm run test:case`: Opens the manual case test menu
+- `npm test`: Alias for `npm run test:case`
 
 ---
 

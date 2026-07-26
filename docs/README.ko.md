@@ -136,8 +136,15 @@ mindmap
 
 ## 테스트
 
+### 자동 테스트
 - `npm run test:unit`: 템포맵 기반 시간 변환, SMF export 동일 tick 이벤트 정렬 등 핵심 정합성 테스트
 - `npm run test:midi-all`: 기존 MIDI 관련 회귀 테스트
+- `npm run test:history`: 히스토리 undo/redo 회귀 테스트
+
+### 수동 케이스 테스트
+- `npm run test:case:list`: 수동 케이스 테스트 suite 목록 출력
+- `npm run test:case`: 수동 케이스 테스트 메뉴 열기
+- `npm test`: `npm run test:case` 별칭
 
 ---
 

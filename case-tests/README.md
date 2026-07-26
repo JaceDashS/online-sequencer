@@ -1,5 +1,11 @@
 # 케이스 테스트
 
+## 실행
+- 목록 확인: `npm run test:case:list`
+- 메뉴 실행: `npm run test:case`
+- 전체 suite 실행: `npm run test:case:all`
+- 기존 별칭: `npm test`는 `npm run test:case`와 동일
+
 ## 범위
 - UI 레이아웃, 트랙 리스트, 타임라인, 인스펙터, 믹서 패널
 - MIDI 클립 생성, 선택, 분할, 병합, 이동, 리사이즈

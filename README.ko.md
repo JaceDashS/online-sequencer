@@ -97,6 +97,8 @@ npm run electron:build
 
 ## 테스트
 
+### 자동 테스트
+
 ```bash
 # 유닛 테스트 실행
 npm run test:unit
@@ -104,8 +106,21 @@ npm run test:unit
 # MIDI 관련 전체 테스트
 npm run test:midi-all
 
+# 히스토리 회귀 테스트
+npm run test:history
+```
+
+### 수동 케이스 테스트
+
+```bash
+# 케이스 테스트 suite 목록 출력
+npm run test:case:list
+
 # 수동 케이스 테스트 메뉴 열기
-npm run test
+npm run test:case
+
+# 수동 케이스 테스트 메뉴 별칭
+npm test
 ```
 
 ## 문서

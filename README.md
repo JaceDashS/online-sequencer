@@ -96,6 +96,8 @@ npm run electron:build
 
 ## Testing
 
+### Automated tests
+
 ```bash
 # Run unit tests
 npm run test:unit
@@ -103,8 +105,21 @@ npm run test:unit
 # Run MIDI-related tests
 npm run test:midi-all
 
+# Run history regression tests
+npm run test:history
+```
+
+### Manual case tests
+
+```bash
+# Show available case suites
+npm run test:case:list
+
 # Open the manual case test menu
-npm run test
+npm run test:case
+
+# Alias for the manual case test menu
+npm test
 ```
 
 ## Documentation
