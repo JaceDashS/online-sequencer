@@ -49,3 +49,6 @@ docs/plans
 release/
 
 docs/manual/devPannel.md
+
+# private
+*.private.*

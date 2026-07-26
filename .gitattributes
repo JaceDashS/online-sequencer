@@ -27,3 +27,5 @@
 *.mid binary
 *.midi binary
 
+# private
+*.private.*
