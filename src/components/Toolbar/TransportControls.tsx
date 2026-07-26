@@ -12,24 +12,23 @@ import { subscribeCollaborationManager } from '../../core/sync/collaborationSess
 import { isPartyTimeEnabled, subscribePartyTime } from '../../utils/partyTime';
 
 /**
- * íŠ¸ëžœìŠ¤í¬íŠ¸ ì»¨íŠ¸ë¡¤ ì»´í¬ë„ŒíŠ¸ Props
+ * TransportControls가 받는 props입니다.
  */
 interface TransportControlsProps {
-  /** ë…¹ìŒ ìƒíƒœ ë³€ê²½ ì½œë°± í•¨ìˆ˜ (ì„ íƒ) */
+  /** 녹음 상태가 변경될 때 호출됩니다. */
   onRecordingChange?: (isRecording: boolean) => void;
 }
 
 /**
- * íŠ¸ëžœìŠ¤í¬íŠ¸ ì»¨íŠ¸ë¡¤ ì»´í¬ë„ŒíŠ¸
- * ìž¬ìƒ, ì¼ì‹œì •ì§€, ì •ì§€, ë…¹ìŒ ê¸°ëŠ¥ì„ ì œê³µí•˜ëŠ” ì»¨íŠ¸ë¡¤ìž…ë‹ˆë‹¤.
+ * 재생, 일시정지, 정지, 녹음 버튼을 제공하는 트랜스포트 컨트롤입니다.
  * 
  * @param props - TransportControlsProps
- * @returns íŠ¸ëžœìŠ¤í¬íŠ¸ ì»¨íŠ¸ë¡¤ JSX ìš”ì†Œ
+ * @returns 트랜스포트 컨트롤 JSX 요소입니다.
  * 
  * @remarks
- * - Space í‚¤: ìž¬ìƒ/ì¼ì‹œì •ì§€ í† ê¸€
- * - R í‚¤: ë…¹ìŒ í† ê¸€
- * - ìž…ë ¥ í•„ë“œì— í¬ì»¤ìŠ¤ê°€ ìžˆì„ ë•ŒëŠ” í‚¤ ì´ë²¤íŠ¸ê°€ ë¬´ì‹œë©ë‹ˆë‹¤.
+ * - Space 키는 재생과 일시정지를 전환합니다.
+ * - R 키는 녹음을 전환합니다.
+ * - 입력 필드에 포커스가 있으면 키 이벤트를 무시합니다.
  */
 const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange }) => {
   const ui = useUIState();
@@ -49,12 +48,12 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   const collaborationManagerRef = useRef<CollaborationManager | null>(null);
   const pendingLatencyHintRef = useRef<number | null>(null);
   
-  // ë””ë²„ê¹…ìš© ë…ë¦½ íƒ€ì´ë¨¸ (ì‹¤ì œ ì‹œê°„ ê¸°ë°˜)
+  // 실제 시간을 기준으로 재생 드리프트를 확인하기 위한 디버그 타이머입니다.
   const realTimeStartRef = useRef<number | null>(null);
   const playbackTimeStartRef = useRef<number | null>(null);
   const debugTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // setCurrentPlaybackTimeì„ refë¡œ ì €ìž¥í•˜ì—¬ useEffect ìž¬ì‹¤í–‰ ë°©ì§€
+  // 현재 재생 시간을 ref에 보관해 불필요한 effect 재실행을 피합니다.
   useEffect(() => {
     currentTimeRef.current = getPlaybackTime();
     lastWorkerTimeRef.current = currentTimeRef.current;
@@ -292,29 +291,29 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     if (isPlaying) {
       clearScheduledPause();
       setPlaybackRunning(true);
-      // í”Œë ˆì´ ì‹œìž‘ ì‹œ ì‹¤ì œ ì‹œê°„ê³¼ í”Œë ˆì´ë°± ì‹œê°„ ê¸°ë¡
+      // 재생 시작 시점의 실제 시간과 재생 시간을 함께 기록합니다.
       const playbackStartTime = currentTimeRef.current;
       const realStartTime = performance.now();
       realTimeStartRef.current = realStartTime;
       playbackTimeStartRef.current = playbackStartTime;
       
-      // ë…ë¦½ëœ íƒ€ì´ë¨¸ ì‹œìž‘ (1ì´ˆë§ˆë‹¤ ë¹„êµ)
+      // 1초마다 드리프트 확인용 타이머를 실행합니다.
       debugTimerRef.current = setInterval(() => {
         if (realTimeStartRef.current === null || playbackTimeStartRef.current === null) return;
         
-        // Timer for drift monitoring (currently no action taken)
-      }, 1000); // 1ì´ˆë§ˆë‹¤ ë¹„êµ
+        // 현재는 드리프트 값을 계산하지 않습니다.
+      }, 1000); // 1초마다 확인합니다.
       
       startPlaybackClock(playbackStartTime);
       const project = selectProject();
       void playbackController.start(playbackStartTime, project);
     } else {
       clearScheduledPause();
-      // ì¼ì‹œì •ì§€ ì§ì „ì— ìµœì‹  ìž¬ìƒ ì‹œê°„ì„ ê°€ì ¸ì˜´
+      // 일시정지 직전에 최신 재생 시간을 가져옵니다.
       const useRemoteTime = skipLocalPauseRef.current;
       const currentPlaybackTime = useRemoteTime ? currentTimeRef.current : getPlaybackTime();
       setPlaybackRunning(false);
-      // í”Œë ˆì´ ì •ì§€ ì‹œ ë””ë²„ê·¸ íƒ€ì´ë¨¸ ì •ë¦¬
+      // 재생이 멈추면 디버그 타이머를 정리합니다.
       if (debugTimerRef.current !== null) {
         clearInterval(debugTimerRef.current);
         debugTimerRef.current = null;
@@ -324,7 +323,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
       
       pausePlaybackClock();
       playbackController.pause();
-      // ìµœì‹  ìž¬ìƒ ì‹œê°„ì„ UIì— ë°˜ì˜
+      // 최신 재생 시간을 UI 상태에 반영합니다.
       ui.setCurrentPlaybackTime(currentPlaybackTime);
       currentTimeRef.current = currentPlaybackTime;
       lastWorkerTimeRef.current = currentPlaybackTime;
@@ -334,7 +333,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     }
     
     return () => {
-      // cleanup: ì»´í¬ë„ŒíŠ¸ ì–¸ë§ˆìš´íŠ¸ ì‹œ íƒ€ì´ë¨¸ ì •ë¦¬
+      // 컴포넌트가 언마운트되면 타이머를 정리합니다.
       if (debugTimerRef.current !== null) {
         clearInterval(debugTimerRef.current);
         debugTimerRef.current = null;
@@ -364,7 +363,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     currentTimeRef.current = 0;
     lastWorkerTimeRef.current = 0;
     
-    // ë””ë²„ê·¸ íƒ€ì´ë¨¸ ì •ë¦¬
+    // 정지 시 디버그 타이머를 정리합니다.
     if (debugTimerRef.current !== null) {
       clearInterval(debugTimerRef.current);
       debugTimerRef.current = null;
@@ -423,14 +422,14 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     if (onRecordingChange) {
       onRecordingChange(newRecordingState);
     }
-    // TODO: ì‹¤ì œ ë…¹ìŒ ë¡œì§ ì¶”ê°€
+    // TODO: 실제 녹음 로직을 연결해야 합니다.
   }, [isRecording, onRecordingChange]);
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      // ìŠ¤íŽ˜ì´ìŠ¤ë°”ëŠ” ìŠ¬ë¼ì´ë”ì—ì„œë„ ì²˜ë¦¬í•˜ë„ë¡ ì˜ˆì™¸ ì²˜ë¦¬
+      // Space 키는 슬라이더에 포커스가 있어도 재생 토글로 처리합니다.
       if (event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar') {
-        // ìž…ë ¥ í•„ë“œê°€ ìŠ¬ë¼ì´ë”(input type="range")ì¸ ê²½ìš° ì˜ˆì™¸ ì²˜ë¦¬
+        // range 입력은 Space 키를 재생 토글로 사용합니다.
         if (event.target instanceof HTMLInputElement && event.target.type === 'range') {
           event.preventDefault();
           event.stopPropagation();
@@ -438,20 +437,20 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
           togglePlayPause();
           return;
         }
-        // ë‹¤ë¥¸ ìž…ë ¥ í•„ë“œ(text input, textarea ë“±)ëŠ” ë¬´ì‹œ
-        // ë²„íŠ¼/selectëŠ” ê¸°ë³¸ ë™ìž‘ë§Œ ë§‰ê³  ìž¬ìƒ/ì¼ì‹œì •ì§€ëŠ” ìˆ˜í–‰
+        // text input이나 textarea 같은 실제 입력 필드는 Space 키를 무시합니다.
+        // button과 select는 기본 동작만 막고 재생 토글은 수행합니다.
         if (!(event.target instanceof HTMLElement)) return;
         const target = event.target;
         
-        // ë²„íŠ¼/selectì— í¬ì»¤ìŠ¤ê°€ ìžˆìœ¼ë©´ ê¸°ë³¸ ë™ìž‘ë§Œ ë§‰ê³  ìž¬ìƒ/ì¼ì‹œì •ì§€ëŠ” ìˆ˜í–‰
+        // button이나 select에 포커스가 있으면 기본 동작만 막고 재생 토글을 수행합니다.
         if (target.tagName === 'BUTTON' || target.tagName === 'SELECT') {
           event.preventDefault();
-          event.stopPropagation(); // useKeyboardShortcutsë¡œ ì „íŒŒ ë°©ì§€
+          event.stopPropagation(); // useKeyboardShortcuts로 이벤트가 전파되지 않게 합니다.
           togglePlayPause();
           return;
         }
         
-        // ì‹¤ì œ ìž…ë ¥ ìš”ì†ŒëŠ” ë¬´ì‹œ
+        // 실제 입력 요소에서는 전역 Space 단축키를 실행하지 않습니다.
         if (
           (target.tagName === 'INPUT' && (target as HTMLInputElement).type !== 'range') ||
           target.tagName === 'TEXTAREA' ||
@@ -465,9 +464,9 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
         return;
       }
 
-      // R í‚¤ ì²˜ë¦¬
+      // R 키는 녹음 토글로 처리합니다.
       if (event.key === 'r' || event.key === 'R') {
-        // ìž…ë ¥ í•„ë“œ, ë²„íŠ¼, select ë“±ì— í¬ì»¤ìŠ¤ê°€ ìžˆìœ¼ë©´ í‚¤ë³´ë“œ ì´ë²¤íŠ¸ ë¬´ì‹œ
+        // 입력 필드, 버튼, select에 포커스가 있으면 R 키를 무시합니다.
         if (!(event.target instanceof HTMLElement)) return;
         const target = event.target;
         if (
@@ -484,7 +483,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
       }
     };
 
-    // capture phaseì—ì„œ ë“±ë¡í•˜ì—¬ ìŠ¬ë¼ì´ë” í•¸ë“¤ëŸ¬ë³´ë‹¤ ë¨¼ì € ì‹¤í–‰ë˜ë„ë¡ í•¨
+    // 슬라이더 핸들러보다 먼저 실행되도록 capture phase에 등록합니다.
     window.addEventListener('keydown', handleKeyPress, true);
     return () => {
       window.removeEventListener('keydown', handleKeyPress, true);
@@ -530,7 +529,3 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
 };
 
 export default TransportControls;
-
-
-
-
