@@ -1,7 +1,8 @@
 /**
  * WebRTCManager
- * WebRTC P2P ∞ù░Ω▓░ δ░Å DataChannel Ω┤Çδª¼δÑ╝ δï┤δï╣φò⌐δïêδïñ.
- * φÿ╕∞èñφè╕∞ÖÇ Ω▓î∞èñφè╕ δ¬¿δæÉ∞ùÉ∞ä£ ∞é¼∞Ü⌐δÉ⌐δïêδïñ.
+ * WebRTC P2P 연결과 DataChannel 관리를 담당합니다.
+ *
+ * 호스트와 게스트 모두에서 사용됩니다.
  */
 
 import { getIceServers } from './config/iceServers';
@@ -9,20 +10,20 @@ import type { P2PMessage, PeerInfo, ConnectionState } from './types/p2p';
 
 /**
  * WebRTCManager
- * Star φåáφÅ┤δí£∞ºÇ: Ω▓î∞èñφè╕δèö φÿ╕∞èñφè╕δÑ╝ Ω▓╜∞£áφò┤∞ä£ φå╡∞ïá
+ * Star 토폴로지에서 게스트는 호스트를 경유해 통신합니다.
  */
 export class WebRTCManager {
   private isHost: boolean;
   private clientId: string;
   private iceServers: RTCConfiguration;
   
-  // φÿ╕∞èñφè╕∞Ü⌐: Ω▓î∞èñφè╕δ│ä ∞ù░Ω▓░ Ω┤Çδª¼
+  // ホスト接続
   private guestConnections = new Map<string, PeerInfo>();
   
-  // Ω▓î∞èñφè╕∞Ü⌐: φÿ╕∞èñφè╕∞ÖÇ∞¥ÿ ∞ù░Ω▓░
+  // ゲスト接続
   private hostConnection: PeerInfo | null = null;
   
-  // δ⌐ö∞ï£∞ºÇ ∞╜£δ░▒
+  // コールバック
   private messageCallbacks: Array<(message: P2PMessage) => void> = [];
   private guestMessageCallbacks: Map<string, Array<(message: P2PMessage) => void>> = new Map();
   private connectionStateCallbacks: Map<string, Array<(state: ConnectionState) => void>> = new Map();
@@ -30,7 +31,7 @@ export class WebRTCManager {
   private pendingIceCandidates: Map<string, RTCIceCandidateInit[]> = new Map();
   private pendingMessages: Map<string, P2PMessage[]> = new Map();
   
-  // ∞ï£Ω╖╕δäÉδºü ∞╜£δ░▒ (offer/answer/ICE candidate ∞áä∞åí∞Ü⌐)
+  // シグナリング
   private signalingCallback?: (message: { type: 'offer' | 'answer' | 'ice-candidate'; from: string; to: string; data: any }) => void;
 
   constructor(clientId: string, isHost: boolean = false, iceServers?: RTCConfiguration) {
@@ -41,15 +42,16 @@ export class WebRTCManager {
   }
 
   /**
-   * ∞ï£Ω╖╕δäÉδºü δ⌐ö∞ï£∞ºÇ ∞áä∞åí ∞╜£δ░▒ δô▒δí¥
-   * SignalingClientΩ░Ç offer/answer/ICE candidateδÑ╝ ∞áä∞åíφòá ∞êÿ ∞₧êδÅäδí¥ φò¿
+   * 시그널링 메시지 전송 콜백을 등록합니다.
+   *
+   * SignalingClient가 offer, answer, ICE candidate를 전송할 수 있게 합니다.
    */
   setSignalingCallback(callback: (message: { type: 'offer' | 'answer' | 'ice-candidate'; from: string; to: string; data: any }) => void): void {
     this.signalingCallback = callback;
   }
 
   /**
-   * φÿ╕∞èñφè╕: Ω▓î∞èñφè╕ ∞╢öΩ░Ç (offer ∞êÿ∞ïá ∞ï£)
+   * 호스트가 offer를 보낸 게스트를 추가합니다.
    */
   async addGuest(guestId: string, offer: RTCSessionDescriptionInit): Promise<RTCSessionDescriptionInit> {
     if (!this.isHost) {
@@ -57,10 +59,10 @@ export class WebRTCManager {
     }
 
 
-    // PeerConnection ∞â¥∞ä▒
+    // PeerConnection 생성
     const peerConnection = new RTCPeerConnection(this.iceServers);
 
-    // Peer ∞áòδ│┤ ∞áÇ∞₧Ñ
+    // Peer 정보 저장
     const peerInfo: PeerInfo = {
       id: guestId,
       state: 'connecting',
@@ -68,14 +70,14 @@ export class WebRTCManager {
     };
     this.guestConnections.set(guestId, peerInfo);
 
-    // Ω▓î∞èñφè╕Ω░Ç ∞â¥∞ä▒φò£ DataChannel ∞êÿ∞ïá
+    // 게스트가 생성한 DataChannel을 수신합니다.
     peerConnection.ondatachannel = (event) => {
       const dataChannel = event.channel;
       peerInfo.dataChannel = dataChannel;
       this.setupDataChannel(dataChannel, guestId);
     };
 
-    // ICE candidate ∞êÿ∞ºæ δ░Å ∞áä∞åí
+    // ICE candidate를 수집하고 전송합니다.
     peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.signalingCallback) {
         this.signalingCallback({
@@ -88,12 +90,12 @@ export class WebRTCManager {
       }
     };
 
-    // ∞ù░Ω▓░ ∞âüφâ£ δ│ÇφÖö Ω░É∞ºÇ
+    // 연결 상태 변화를 감지합니다.
     peerConnection.onconnectionstatechange = () => {
       const state = this.mapConnectionState(peerConnection.connectionState);
       peerInfo.state = state;
       
-      // ∞╜£δ░▒ φÿ╕∞╢£
+      // コールバック実行
       const callbacks = this.connectionStateCallbacks.get(guestId);
       if (callbacks) {
         callbacks.forEach(cb => cb(state));
@@ -105,7 +107,7 @@ export class WebRTCManager {
       }
     };
 
-    // Offer ∞äñ∞áò δ░Å Answer ∞â¥∞ä▒
+    // Offer를 설정하고 answer를 생성합니다.
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
     await this.flushQueuedIceCandidates(guestId, peerConnection);
     const answer = await peerConnection.createAnswer();
@@ -119,7 +121,7 @@ export class WebRTCManager {
   }
 
   /**
-   * Ω▓î∞èñφè╕: φÿ╕∞èñφè╕∞ÖÇ ∞ù░Ω▓░ (offer ∞â¥∞ä▒)
+   * 게스트가 호스트와 연결하기 위한 offer를 생성합니다.
    */
   async connectToHost(hostId: string): Promise<RTCSessionDescriptionInit> {
     if (this.isHost) {
@@ -131,10 +133,10 @@ export class WebRTCManager {
     }
 
 
-    // PeerConnection ∞â¥∞ä▒
+    // PeerConnection 생성
     const peerConnection = new RTCPeerConnection(this.iceServers);
     
-    // Peer ∞áòδ│┤ ∞áÇ∞₧Ñ
+    // Peer 정보 저장
     const peerInfo: PeerInfo = {
       id: hostId,
       state: 'connecting',
@@ -142,15 +144,15 @@ export class WebRTCManager {
     };
     this.hostConnection = peerInfo;
 
-    // DataChannel ∞â¥∞ä▒ (Ω▓î∞èñφè╕Ω░Ç initiator)
+    // 게스트가 initiator로 DataChannel을 생성합니다.
     const dataChannel = peerConnection.createDataChannel('sync', {
-      ordered: true, // ∞ê£∞ä£ δ│┤∞₧Ñ
+      ordered: true, // 순서 보장
       maxRetransmits: 3
     });
     peerInfo.dataChannel = dataChannel;
     this.setupDataChannel(dataChannel, hostId);
 
-    // ICE candidate ∞êÿ∞ºæ δ░Å ∞áä∞åí
+    // ICE candidate를 수집하고 전송합니다.
     peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.signalingCallback) {
         this.signalingCallback({
@@ -163,12 +165,12 @@ export class WebRTCManager {
       }
     };
 
-    // ∞ù░Ω▓░ ∞âüφâ£ δ│ÇφÖö Ω░É∞ºÇ
+    // 연결 상태 변화를 감지합니다.
     peerConnection.onconnectionstatechange = () => {
       const state = this.mapConnectionState(peerConnection.connectionState);
       peerInfo.state = state;
       
-      // ∞╜£δ░▒ φÿ╕∞╢£
+      // コールバック実行
       const callbacks = this.connectionStateCallbacks.get(hostId);
       if (callbacks) {
         callbacks.forEach(cb => cb(state));
@@ -180,7 +182,7 @@ export class WebRTCManager {
       }
     };
 
-    // Offer ∞â¥∞ä▒
+    // Offer 생성
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
     await this.waitForIceGatheringComplete(peerConnection);
@@ -192,7 +194,7 @@ export class WebRTCManager {
   }
 
   /**
-   * Ω▓î∞èñφè╕: φÿ╕∞èñφè╕∞¥ÿ answer ∞êÿ∞ïá δ░Å ∞äñ∞áò
+   * 게스트가 호스트의 answer를 수신해 설정합니다.
    */
   async setHostAnswer(answer: RTCSessionDescriptionInit): Promise<void> {
     if (this.isHost) {
@@ -208,14 +210,14 @@ export class WebRTCManager {
   }
 
   /**
-   * φÿ╕∞èñφè╕: Ω▓î∞èñφè╕∞¥ÿ offer ∞êÿ∞ïá δ░Å answer ∞â¥∞ä▒ (addGuest∞ÖÇ δÅÖ∞¥╝φòÿ∞ºÇδºî offerδÑ╝ δ¿╝∞áÇ δ░¢δèö Ω▓╜∞Ü░)
+   * 호스트가 게스트의 offer를 받고 answer를 생성합니다.
    */
   async handleGuestOffer(guestId: string, offer: RTCSessionDescriptionInit): Promise<RTCSessionDescriptionInit> {
     return this.addGuest(guestId, offer);
   }
 
   /**
-   * ICE candidate ∞╢öΩ░Ç
+   * ICE candidate를 추가합니다.
    */
   async addIceCandidate(peerId: string, candidate: RTCIceCandidateInit): Promise<void> {
     const peerInfo = this.isHost 
@@ -262,7 +264,7 @@ export class WebRTCManager {
   }
 
   /**
-   * φÿ╕∞èñφè╕: Ω▓î∞èñφè╕ ∞á£Ω▒░
+   * 호스트가 게스트 연결을 제거합니다.
    */
   removeGuest(guestId: string): void {
     if (!this.isHost) {
@@ -284,7 +286,7 @@ export class WebRTCManager {
   }
 
   /**
-   * φÿ╕∞èñφè╕: Ω▓î∞èñφè╕∞ùÉΩ▓î δ⌐ö∞ï£∞ºÇ ∞áä∞åí
+   * 호스트가 특정 게스트에게 메시지를 전송합니다.
    */
   sendToGuest(guestId: string, message: P2PMessage): void {
     if (!this.isHost) {
@@ -301,7 +303,7 @@ export class WebRTCManager {
       const messageStr = JSON.stringify(message);
       peerInfo.dataChannel.send(messageStr);
     } catch (error) {
-      console.error(`[WebRTCManager] Γ¥î Failed to send message to guest ${guestId}:`, error, {
+      console.error(`[WebRTCManager] Failed to send message to guest ${guestId}:`, error, {
         messageType: message.type,
         dataChannelState: peerInfo.dataChannel?.readyState
       });
@@ -309,7 +311,7 @@ export class WebRTCManager {
   }
 
   /**
-   * φÿ╕∞èñφè╕: δïñδÑ╕ Ω▓î∞èñφè╕δôñ∞ùÉΩ▓î δ╕îδí£δô£∞║É∞èñφè╕ (δ░£∞ïá∞₧É ∞á£∞Ö╕)
+   * 호스트가 보낸 사람을 제외한 다른 게스트에게 메시지를 브로드캐스트합니다.
    */
   broadcastToOthers(senderId: string, message: P2PMessage): void {
     if (!this.isHost) {
@@ -324,7 +326,7 @@ export class WebRTCManager {
   }
 
   /**
-   * φÿ╕∞èñφè╕: δ¬¿δôá Ω▓î∞èñφè╕∞ùÉΩ▓î δ╕îδí£δô£∞║É∞èñφè╕
+   * 호스트가 모든 게스트에게 메시지를 브로드캐스트합니다.
    */
   broadcastToAll(message: P2PMessage): void {
     if (!this.isHost) {
@@ -337,7 +339,7 @@ export class WebRTCManager {
   }
 
   /**
-   * Ω▓î∞èñφè╕: φÿ╕∞èñφè╕∞ùÉΩ▓î δ⌐ö∞ï£∞ºÇ ∞áä∞åí
+   * 게스트가 호스트에게 메시지를 전송합니다.
    */
   sendToHost(message: P2PMessage): void {
     if (this.isHost) {
@@ -353,7 +355,7 @@ export class WebRTCManager {
       const messageStr = JSON.stringify(message);
       this.hostConnection.dataChannel.send(messageStr);
     } catch (error) {
-      console.error(`[WebRTCManager] Γ¥î Failed to send message to host:`, error, {
+      console.error(`[WebRTCManager] Failed to send message to host:`, error, {
         messageType: message.type,
         dataChannelState: this.hostConnection.dataChannel?.readyState
       });
@@ -361,7 +363,7 @@ export class WebRTCManager {
   }
 
   /**
-   * Ω▓î∞èñφè╕: φÿ╕∞èñφè╕ δ⌐ö∞ï£∞ºÇ ∞êÿ∞ïá ∞╜£δ░▒ δô▒δí¥
+   * 게스트가 호스트 메시지 수신 콜백을 등록합니다.
    */
   onMessage(callback: (message: P2PMessage) => void): void {
     this.messageCallbacks.push(callback);
@@ -372,7 +374,7 @@ export class WebRTCManager {
   }
 
   /**
-   * φÿ╕∞èñφè╕: Ω▓î∞èñφè╕ δ⌐ö∞ï£∞ºÇ ∞êÿ∞ïá ∞╜£δ░▒ δô▒δí¥
+   * 호스트가 게스트 메시지 수신 콜백을 등록합니다.
    */
   onMessageFromGuest(guestId: string, callback: (message: P2PMessage) => void): void {
     if (!this.isHost) {
@@ -385,7 +387,7 @@ export class WebRTCManager {
   }
 
   /**
-   * ∞ù░Ω▓░ ∞âüφâ£ δ│ÇφÖö ∞╜£δ░▒ δô▒δí¥
+   * 연결 상태 변경 콜백을 등록합니다.
    */
   onConnectionStateChange(peerId: string, callback: (state: ConnectionState) => void): void {
     if (!this.connectionStateCallbacks.has(peerId)) {
@@ -395,10 +397,10 @@ export class WebRTCManager {
   }
 
   /**
-   * DataChannel ∞ù┤δª╝ ∞╜£δ░▒ δô▒δí¥
+   * DataChannel open 콜백을 등록합니다.
    */
   onDataChannelOpen(peerId: string, callback: () => void): void {
-    // ∞¥┤δ»╕ ∞ù░Ω▓░δÉ£ Ω▓╜∞Ü░ ∞ªë∞ï£ φÿ╕∞╢£
+    // 이미 연결되어 있으면 즉시 호출합니다.
     const peerInfo = this.isHost 
       ? this.guestConnections.get(peerId)
       : (peerId === this.hostConnection?.id ? this.hostConnection : null);
@@ -408,7 +410,7 @@ export class WebRTCManager {
       return;
     }
 
-    // DataChannel∞¥┤ ∞ù┤δª┤ δòî φÿ╕∞╢£δÉÿδÅäδí¥ ∞╜£δ░▒ ∞áÇ∞₧Ñ
+    // DataChannel이 열린 뒤 호출되도록 콜백을 저장합니다.
     if (!this.dataChannelOpenCallbacks.has(peerId)) {
       this.dataChannelOpenCallbacks.set(peerId, []);
     }
@@ -416,17 +418,17 @@ export class WebRTCManager {
   }
 
   /**
-   * δ¬¿δôá ∞ù░Ω▓░ ∞óàδúî
+   * 모든 WebRTC 연결을 종료합니다.
    */
   disconnect(): void {
 
     if (this.isHost) {
-      // δ¬¿δôá Ω▓î∞èñφè╕ ∞ù░Ω▓░ ∞óàδúî
+      // 모든 게스트 연결 종료
       this.guestConnections.forEach((_peerInfo, guestId) => {
         this.removeGuest(guestId);
       });
     } else {
-      // φÿ╕∞èñφè╕ ∞ù░Ω▓░ ∞óàδúî
+      // 호스트 연결 종료
       if (this.hostConnection) {
         if (this.hostConnection.dataChannel) {
           this.hostConnection.dataChannel.close();
@@ -438,7 +440,7 @@ export class WebRTCManager {
       }
     }
 
-    // ∞╜£δ░▒ ∞┤êΩ╕░φÖö
+    // コールバック初期化
     this.messageCallbacks = [];
     this.guestMessageCallbacks.clear();
     this.connectionStateCallbacks.clear();
@@ -446,12 +448,12 @@ export class WebRTCManager {
   }
 
   /**
-   * DataChannel ∞äñ∞áò
+   * DataChannel을 설정합니다.
    */
   private setupDataChannel(dataChannel: RTCDataChannel, peerId: string): void {
     dataChannel.onopen = () => {
 
-      // DataChannel ∞ù┤δª╝ ∞╜£δ░▒ φÿ╕∞╢£
+      // DataChannel open 콜백 호출
       const callbacks = this.dataChannelOpenCallbacks.get(peerId);
       if (callbacks) {
         callbacks.forEach(cb => {
@@ -468,7 +470,7 @@ export class WebRTCManager {
 
     dataChannel.onclose = () => {
       
-      // DataChannel∞¥┤ δï½φÿö∞¥ä δòî ∞ù░Ω▓░ ∞âüφâ£δÑ╝ disconnectedδí£ ∞ùàδì░∞¥┤φè╕
+      // DataChannel이 닫히면 연결 상태를 disconnected로 갱신합니다.
       const peerInfo = this.isHost 
         ? this.guestConnections.get(peerId)
         : (peerId === this.hostConnection?.id ? this.hostConnection : null);
@@ -483,7 +485,7 @@ export class WebRTCManager {
     };
 
     dataChannel.onerror = (error) => {
-      console.error(`[WebRTCManager] Γ¥î DataChannel error with ${peerId}:`, error);
+      console.error(`[WebRTCManager] DataChannel error with ${peerId}:`, error);
     };
 
     dataChannel.onmessage = (event) => {
@@ -491,7 +493,7 @@ export class WebRTCManager {
         const message: P2PMessage = JSON.parse(event.data);
 
         if (this.isHost) {
-          // φÿ╕∞èñφè╕: Ω▓î∞èñφè╕δí£δ╢Çφä░ δ⌐ö∞ï£∞ºÇ ∞êÿ∞ïá
+          // 호스트는 게스트별 메시지 콜백을 호출합니다.
           const callbacks = this.guestMessageCallbacks.get(peerId);
           if (callbacks) {
             callbacks.forEach(cb => cb(message));
@@ -500,7 +502,7 @@ export class WebRTCManager {
         // Common callbacks fire regardless of role.
         this.messageCallbacks.forEach(cb => cb(message));
       } catch (error) {
-        console.error(`[WebRTCManager] Γ¥î Failed to parse message from ${peerId}:`, error, {
+        console.error(`[WebRTCManager] Failed to parse message from ${peerId}:`, error, {
           rawData: event.data
         });
       }
@@ -508,7 +510,7 @@ export class WebRTCManager {
   }
 
   /**
-   * RTCPeerConnectionStateδÑ╝ ConnectionStateδí£ δºñφòæ
+   * RTCPeerConnectionState를 내부 ConnectionState로 변환합니다.
    */
   private mapConnectionState(state: RTCPeerConnectionState): ConnectionState {
     switch (state) {
@@ -551,7 +553,7 @@ export class WebRTCManager {
     });
   }
   /**
-   * ICE gathering ∞ÖäδúîΩ╣î∞ºÇ δîÇΩ╕░ (φâÇ∞₧ä∞òä∞¢â φÅ¼φò¿)
+   * ICE gathering이 완료될 때까지 기다립니다. 타임아웃을 포함합니다.
    */
   private async waitForIceGatheringComplete(peerConnection: RTCPeerConnection): Promise<void> {
     if (peerConnection.iceGatheringState === 'complete') {
@@ -577,7 +579,7 @@ export class WebRTCManager {
   }
 
   /**
-   * ∞ù░Ω▓░δÉ£ Ω▓î∞èñφè╕ δ¬⌐δí¥ ∞í░φÜî (φÿ╕∞èñφè╕∞Ü⌐)
+   * 호스트가 연결된 게스트 목록을 조회합니다.
    */
   getConnectedGuests(): string[] {
     if (!this.isHost) {
@@ -589,7 +591,7 @@ export class WebRTCManager {
   }
 
   /**
-   * φÿ╕∞èñφè╕ ∞ù░Ω▓░ ∞âüφâ£ ∞í░φÜî (Ω▓î∞èñφè╕∞Ü⌐)
+   * 게스트가 호스트 연결 상태를 조회합니다.
    */
   getHostConnectionState(): ConnectionState | null {
     if (this.isHost) {
@@ -599,7 +601,7 @@ export class WebRTCManager {
   }
 
   /**
-   * Peer ∞ù░Ω▓░ ∞âüφâ£ ∞í░φÜî
+   * 특정 peer의 연결 상태를 조회합니다.
    */
   getPeerConnectionState(peerId: string): ConnectionState | null {
     if (this.isHost) {
@@ -613,5 +615,3 @@ export class WebRTCManager {
     }
   }
 }
-
-
