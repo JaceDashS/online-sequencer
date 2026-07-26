@@ -12,7 +12,9 @@ import { buildApiUrl, buildWebSocketUrl } from '../../utils/apiConfig';
  * 상세 로그 출력 여부 확인
  */
 const isVerboseLogging = (): boolean => {
-  return import.meta.env.LOG_VERBOSE === 'true';
+  const viteEnv = import.meta.env as unknown as Record<string, string | undefined> | undefined;
+  const nodeProcess = (globalThis as typeof globalThis & { process?: { env?: Record<string, string | undefined> } }).process;
+  return (viteEnv?.LOG_VERBOSE ?? nodeProcess?.env?.LOG_VERBOSE) === 'true';
 };
 
 /**
@@ -695,4 +697,3 @@ export class SignalingClient {
     return this.clientId;
   }
 }
-

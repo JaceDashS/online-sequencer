@@ -2,24 +2,43 @@
  * SignalingClient 테스트
  * 
  * 실행 방법:
- * 1. 서버를 시작: cd server && npm run dev
- * 2. 이 파일을 실행: tsx src/core/sync/__tests__/SignalingClient.test.ts
+ * 1. 외부 시그널링 서버를 실행한다.
+ * 2. VITE_API_BASE_URL에 콜라보레이션 API base URL을 설정한다.
+ * 3. 이 파일을 실행한다: tsx src/core/sync/__tests__/SignalingClient.test.ts
  */
 
 import { SignalingClient } from '../SignalingClient';
 import { getOrCreateClientId } from '../utils/uuid';
 
-// 테스트 설정
-// @ts-ignore - Node.js 환경에서만 실행
-const SERVER_URL = (typeof process !== 'undefined' && (process as any).env?.VITE_COLLABORATION_SERVER_URL) || 'http://localhost:3000';
+type TestProcess = {
+  env?: Record<string, string | undefined>;
+  exit?: (code?: number) => never;
+};
+
+function getTestProcess(): TestProcess | undefined {
+  return (globalThis as typeof globalThis & { process?: TestProcess }).process;
+}
+
+function getRequiredApiBaseUrl(): string | null {
+  return getTestProcess()?.env?.VITE_API_BASE_URL || null;
+}
 
 async function testSignalingClient() {
   console.log('=== SignalingClient 테스트 시작 ===\n');
 
+  const apiBaseUrl = getRequiredApiBaseUrl();
+  if (!apiBaseUrl) {
+    console.error('VITE_API_BASE_URL을 설정한 뒤 외부 시그널링 통합 테스트를 실행하세요.');
+    getTestProcess()?.exit?.(1);
+    return;
+  }
+
+  console.log(`API base URL: ${apiBaseUrl}\n`);
+
   try {
     // 1. 클라이언트 생성
     console.log('1. SignalingClient 인스턴스 생성...');
-    const client = new SignalingClient(SERVER_URL);
+    const client = new SignalingClient();
     console.log(`   클라이언트 ID: ${client.id}`);
     console.log('   ✅ 클라이언트 생성 성공\n');
 
@@ -87,7 +106,7 @@ async function testSignalingClient() {
     // 게스트 클라이언트 테스트 (별도)
     console.log('=== 게스트 클라이언트 테스트 ===\n');
 
-    const guestClient = new SignalingClient(SERVER_URL);
+    const guestClient = new SignalingClient();
     console.log(`게스트 클라이언트 ID: ${guestClient.id}`);
 
     await guestClient.connect();
@@ -128,4 +147,3 @@ if (typeof window === 'undefined') {
   console.log('브라우저 환경에서는 이 테스트를 실행할 수 없습니다.');
   console.log('Node.js 환경에서 실행하세요: tsx src/core/sync/__tests__/SignalingClient.test.ts');
 }
-

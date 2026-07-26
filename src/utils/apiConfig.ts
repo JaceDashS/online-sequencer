@@ -5,6 +5,21 @@
  * VITE_API_BASE_URL은 전체 API 베이스 URL을 포함합니다.
  */
 
+type NodeProcessWithEnv = {
+  env?: Record<string, string | undefined>;
+};
+
+function getEnvValue(key: 'VITE_API_BASE_URL' | 'VITE_BASE_URL' | 'VITE_API_PATH'): string | undefined {
+  const viteEnv = import.meta.env as unknown as Record<string, string | undefined> | undefined;
+  const viteValue = viteEnv?.[key];
+  if (viteValue) {
+    return viteValue;
+  }
+
+  const nodeProcess = (globalThis as typeof globalThis & { process?: NodeProcessWithEnv }).process;
+  return nodeProcess?.env?.[key];
+}
+
 /**
  * API 베이스 URL을 가져옵니다.
  * 
@@ -12,9 +27,9 @@
  * @throws 환경변수가 설정되지 않은 경우 에러를 던집니다
  */
 export function getApiBaseUrl(): string {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  const baseUrl = import.meta.env.VITE_BASE_URL;
-  const apiPath = import.meta.env.VITE_API_PATH;
+  const apiBaseUrl = getEnvValue('VITE_API_BASE_URL');
+  const baseUrl = getEnvValue('VITE_BASE_URL');
+  const apiPath = getEnvValue('VITE_API_PATH');
 
   if (apiBaseUrl) {
     return apiBaseUrl.replace(/\/$/, '');
@@ -86,4 +101,3 @@ export function buildWebSocketUrl(path: string, queryParams?: Record<string, str
   
   return url;
 }
-

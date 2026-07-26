@@ -2,9 +2,10 @@
  * SignalingClient 브라우저 테스트
  * 
  * 실행 방법:
- * 1. 서버를 시작: cd server && npm run dev
- * 2. 브라우저에서 개발 서버 실행: npm run dev
- * 3. 브라우저 콘솔에서 이 파일을 import하여 테스트 실행
+ * 1. 외부 시그널링 서버를 실행한다.
+ * 2. VITE_API_BASE_URL에 콜라보레이션 API base URL을 설정한다.
+ * 3. 브라우저에서 개발 서버를 실행한다: npm run dev
+ * 4. 브라우저 콘솔에서 이 파일을 import하여 테스트 실행
  */
 
 import { SignalingClient } from '../SignalingClient';
@@ -126,4 +127,3 @@ if (typeof window !== 'undefined') {
   (window as any).testSignalingClient = testSignalingClientInBrowser;
   console.log('테스트 함수가 등록되었습니다. 콘솔에서 testSignalingClient()를 호출하세요.');
 }
-
