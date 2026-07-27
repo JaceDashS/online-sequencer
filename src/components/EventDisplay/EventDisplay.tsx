@@ -7,7 +7,6 @@ import { useUIState, isSplitMode, isSplitByKey3Mode, isSplitByAltMode } from '..
 import { useCursorModeKeyboard } from '../../hooks/useCursorModeKeyboard';
 import { TIMELINE_CONSTANTS } from '../../constants/ui';
 import type { MidiPart } from '../../types/project';
-import MidiEditor from '../MidiEditor/MidiEditor';
 import styles from './EventDisplay.module.css';
 import { ticksToSecondsPure, secondsToTicksPure, ticksToMeasurePure, getPpqn, getBpm, getTimeSignature } from '../../utils/midiTickUtils';
 import { getProject } from '../../store/projectStore';
@@ -23,6 +22,8 @@ import {
   calculateSplitPreviewX,
   calculateSplitMeasure
 } from './EventDisplayCalculations';
+
+const MidiEditor = React.lazy(() => import('../MidiEditor/MidiEditor'));
 
 const PERF_LOG_THRESHOLD_MS = 8;
 const PERF_LOG_THROTTLE_MS = 1000;
@@ -1856,17 +1857,26 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       {editingPartId && (() => {
         if (typeof window !== 'undefined' && document.body) {
           return createPortal(
-            <MidiEditor
-              partId={editingPartId}
-              onClose={() => {
-                setEditingPartId(null);
-                ui.setEditingPartId(null);
-                // pub-sub? ???? ??????? forceUpdate ???
-              }}
-              bpm={bpm}
-              timeSignature={timeSignature}
-              pixelsPerSecond={pixelsPerSecond}
-            />,
+            <React.Suspense
+              fallback={(
+                <div className={styles.midiEditorLoadingOverlay} role="status">
+                  <div className={styles.midiEditorLoadingSpinner} />
+                  <span className={styles.midiEditorLoadingText}>Loading MIDI editor...</span>
+                </div>
+              )}
+            >
+              <MidiEditor
+                partId={editingPartId}
+                onClose={() => {
+                  setEditingPartId(null);
+                  ui.setEditingPartId(null);
+                  // pub-sub? ???? ??????? forceUpdate ???
+                }}
+                bpm={bpm}
+                timeSignature={timeSignature}
+                pixelsPerSecond={pixelsPerSecond}
+              />
+            </React.Suspense>,
             document.body
           );
         }
@@ -2043,11 +2053,3 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
 };
 
 export default EventDisplay;
-
-
-
-
-
-
-
-
