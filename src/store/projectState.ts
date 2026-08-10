@@ -6,6 +6,7 @@ import {
 } from '../domain/timing/timingUtils';
 import { migrateProjectAtLoad } from './projectMigration';
 import { notifyProjectChange, notifyTrackChange } from './projectEvents';
+import { checkAndUpdatePartyTime } from '../utils/partyTime';
 // import { preloadPlaybackSamples } from '../utils/audioPreload';
 
 /**
@@ -136,9 +137,7 @@ export const setProject = (project: Project, skipMigration = false): void => {
   // void preloadPlaybackSamples(projectToLoad);
   
   // 파티타임 확인 (프로젝트 로드 시)
-  import('../utils/partyTime').then(({ checkAndUpdatePartyTime }) => {
-    checkAndUpdatePartyTime();
-  });
+  void Promise.resolve().then(checkAndUpdatePartyTime);
 };
 
 /**
