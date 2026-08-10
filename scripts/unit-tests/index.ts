@@ -4,7 +4,7 @@ import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
 import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
-import { calculateMarqueeSelectedPartIds, calculatePartDropPosition, calculateSelectionRectangle } from '../../src/components/EventDisplay/EventDisplayCalculations';
+import { calculateMarqueeSelectedPartIds, calculatePartDropPosition, calculatePartResizePreview, calculateSelectionRectangle } from '../../src/components/EventDisplay/EventDisplayCalculations';
 import type { Project } from '../../src/types/project';
 
 type TestFn = () => void | Promise<void>;
@@ -220,6 +220,66 @@ test('calculateMarqueeSelectedPartIds includes touching part and track boundarie
   });
 
   assert.deepEqual(Array.from(selectedPartIds), ['part-1', 'part-2']);
+});
+
+const baseResizePreviewParams = {
+  resizeSide: 'right' as const,
+  resizeStart: { x: 0, originalStartTick: 480, originalDurationTicks: 960 },
+  mouseX: 110,
+  timelineStartTime: 0,
+  pixelsPerSecond: 100,
+  tempoMap: [{ tick: 0, mpqn: bpmToMpqn(120) }],
+  timeSignature: [4, 4] as [number, number],
+  ppqn: 480,
+  isQuantizeEnabled: false,
+  minDurationTicks: 1,
+};
+
+test('calculatePartResizePreview resizes the right edge and enforces minimum duration', () => {
+  assert.deepEqual(calculatePartResizePreview(baseResizePreviewParams), {
+    startTick: 480,
+    durationTicks: 576,
+  });
+  assert.deepEqual(calculatePartResizePreview({
+    ...baseResizePreviewParams,
+    mouseX: 0,
+  }), {
+    startTick: 480,
+    durationTicks: 1,
+  });
+});
+
+test('calculatePartResizePreview resizes the left edge and rejects inverted ranges', () => {
+  assert.deepEqual(calculatePartResizePreview({
+    ...baseResizePreviewParams,
+    resizeSide: 'left',
+  }), {
+    startTick: 1056,
+    durationTicks: 384,
+  });
+  assert.equal(calculatePartResizePreview({
+    ...baseResizePreviewParams,
+    resizeSide: 'left',
+    mouseX: 160,
+  }), null);
+});
+
+test('calculatePartResizePreview quantizes both resize edges to beats', () => {
+  assert.deepEqual(calculatePartResizePreview({
+    ...baseResizePreviewParams,
+    isQuantizeEnabled: true,
+  }), {
+    startTick: 480,
+    durationTicks: 480,
+  });
+  assert.deepEqual(calculatePartResizePreview({
+    ...baseResizePreviewParams,
+    resizeSide: 'left',
+    isQuantizeEnabled: true,
+  }), {
+    startTick: 960,
+    durationTicks: 480,
+  });
 });
 
 const baseDropPositionParams = {

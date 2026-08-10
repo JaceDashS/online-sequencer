@@ -20,6 +20,7 @@ import {
   calculateMeasureMarkersInRange,
   calculateTotalWidth,
   calculatePartDropPosition,
+  calculatePartResizePreview,
   calculateMarqueeSelectedPartIds,
   calculateSelectionRectangle,
   calculateSplitPreviewX,
@@ -1183,81 +1184,22 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
         const part = findMidiPartById(resizePartId);
         if (!part) return;
         
-        // Tick ?? ?? ???? (SMF ?? ??)
-        // ?? ??? Tick ?? (?? tick??? ?? ??)
-        const originalPartStartTick = resizeStart.originalStartTick;
-        const originalPartDurationTicks = resizeStart.originalDurationTicks;
-        const originalPartEndTick = originalPartStartTick + originalPartDurationTicks;
-        
-        if (resizeSide === 'right') {
-          // ??? ? ????: ?? ??? ?? (Tick ??)
-          // props? ?? timeSignature? ?? ???? ?? ???? ?? ? ?? ??
-          const project = getProject();
-          const mouseTime = (x / pixelsPerSecond) + startTime;
-          const projectTimeSignature = timeSignature || getTimeSignature(project);
-          const projectPpqn = ppqn || getPpqn(project);
-          const tempoMap = project.timing?.tempoMap ?? [];
-          const { startTick: mouseTick } = secondsToTicksPure(
-            mouseTime,
-            0,
-            tempoMap,
-            projectTimeSignature,
-            projectPpqn
-          );
-          
-          // ??? ?? (Tick ??)
-          let newDurationTicks = Math.max(MIDI_CONSTANTS.MIN_NOTE_DURATION_TICKS, mouseTick - originalPartStartTick);
-          
-          // ???? ?? (Tick ??) - ????? ?? PPQN ??
-          if (ui.isQuantizeEnabled) {
-            const ticksPerBeat = getPpqn(selectProject());
-            const newEndTick = originalPartStartTick + newDurationTicks;
-            const snappedEndTick = Math.round(newEndTick / ticksPerBeat) * ticksPerBeat;
-            newDurationTicks = Math.max(MIDI_CONSTANTS.MIN_NOTE_DURATION_TICKS, snappedEndTick - originalPartStartTick);
-          }
-          
-          // ?? ?? ?? ? ???? ???? (tick ??)
-          if (newDurationTicks >= MIDI_CONSTANTS.MIN_NOTE_DURATION_TICKS) {
-            setResizePreview({
-              startTick: originalPartStartTick,
-              durationTicks: newDurationTicks
-            });
-          }
-        } else {
-          // ?? ? ????: ?? ??? ?? ?? (Tick ??)
-          // props? ?? timeSignature? ?? ???? ?? ???? ?? ? ?? ??
-          const project = getProject();
-          const mouseTime = (x / pixelsPerSecond) + startTime;
-          const projectTimeSignature = timeSignature || getTimeSignature(project);
-          const projectPpqn = ppqn || getPpqn(project);
-          const tempoMap = project.timing?.tempoMap ?? [];
-          const { startTick: mouseTick } = secondsToTicksPure(
-            mouseTime,
-            0,
-            tempoMap,
-            projectTimeSignature,
-            projectPpqn
-          );
-          
-          // ??? ?? ?? (Tick ??)
-          let newStartTick = Math.max(0, mouseTick);
-          let newDurationTicks = originalPartEndTick - newStartTick;
-          
-          // ???? ?? (Tick ??) - ????? ?? PPQN ??
-          if (ui.isQuantizeEnabled) {
-            const ticksPerBeat = getPpqn(selectProject());
-            newStartTick = Math.round(newStartTick / ticksPerBeat) * ticksPerBeat;
-            newStartTick = Math.max(0, newStartTick);
-            newDurationTicks = originalPartEndTick - newStartTick;
-          }
-          
-          // ?? ?? ?? ? ???? ???? (tick ??)
-          if (newDurationTicks >= MIDI_CONSTANTS.MIN_NOTE_DURATION_TICKS && newStartTick >= 0) {
-            setResizePreview({
-              startTick: newStartTick,
-              durationTicks: newDurationTicks
-            });
-          }
+        const project = getProject();
+        const preview = calculatePartResizePreview({
+          resizeSide,
+          resizeStart,
+          mouseX: x,
+          timelineStartTime: startTime,
+          pixelsPerSecond,
+          tempoMap: project.timing?.tempoMap ?? [],
+          timeSignature: timeSignature || getTimeSignature(project),
+          ppqn: ppqn || getPpqn(project),
+          isQuantizeEnabled: ui.isQuantizeEnabled,
+          minDurationTicks: MIDI_CONSTANTS.MIN_NOTE_DURATION_TICKS,
+        });
+
+        if (preview) {
+          setResizePreview(preview);
         }
       }
       

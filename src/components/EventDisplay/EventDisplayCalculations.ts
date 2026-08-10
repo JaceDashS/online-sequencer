@@ -6,7 +6,7 @@
 import type { MeasureMarker } from './EventDisplayTypes';
 import type { TempoEvent, MidiPart } from '../../types/project';
 import { ticksToSecondsPure, secondsToTicksPure, ticksToMeasurePure } from '../../utils/midiTickUtils';
-import type { CalculateDropPositionParams, CalculateSplitPreviewParams, DropPositionResult } from './EventDisplayLogicTypes';
+import type { CalculateDropPositionParams, CalculatePartResizePreviewParams, CalculateSplitPreviewParams, DropPositionResult, ResizeState } from './EventDisplayLogicTypes';
 import { TIMELINE_CONSTANTS } from '../../constants/ui';
 
 /**
@@ -215,6 +215,59 @@ export function calculatePartDropPosition({
     baseNewTrackId,
     partDropPositions,
   };
+}
+
+/**
+ * 마우스 위치를 기준으로 좌우 파트 리사이즈 미리보기를 계산합니다.
+ */
+export function calculatePartResizePreview({
+  resizeSide,
+  resizeStart,
+  mouseX,
+  timelineStartTime,
+  pixelsPerSecond,
+  tempoMap,
+  timeSignature,
+  ppqn,
+  isQuantizeEnabled,
+  minDurationTicks,
+}: CalculatePartResizePreviewParams): ResizeState['resizePreview'] {
+  const mouseTime = (mouseX / pixelsPerSecond) + timelineStartTime;
+  const { startTick: mouseTick } = secondsToTicksPure(
+    mouseTime,
+    0,
+    tempoMap,
+    timeSignature,
+    ppqn
+  );
+  const originalPartEndTick = resizeStart.originalStartTick + resizeStart.originalDurationTicks;
+
+  if (resizeSide === 'right') {
+    let durationTicks = Math.max(minDurationTicks, mouseTick - resizeStart.originalStartTick);
+
+    if (isQuantizeEnabled) {
+      const endTick = resizeStart.originalStartTick + durationTicks;
+      const snappedEndTick = Math.round(endTick / ppqn) * ppqn;
+      durationTicks = Math.max(minDurationTicks, snappedEndTick - resizeStart.originalStartTick);
+    }
+
+    return {
+      startTick: resizeStart.originalStartTick,
+      durationTicks,
+    };
+  }
+
+  let startTick = Math.max(0, mouseTick);
+  if (isQuantizeEnabled) {
+    startTick = Math.max(0, Math.round(startTick / ppqn) * ppqn);
+  }
+
+  const durationTicks = originalPartEndTick - startTick;
+  if (durationTicks < minDurationTicks) {
+    return null;
+  }
+
+  return { startTick, durationTicks };
 }
 
 /**

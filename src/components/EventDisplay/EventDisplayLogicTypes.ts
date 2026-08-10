@@ -30,6 +30,22 @@ export interface ResizeState {
 }
 
 /**
+ * 파트 리사이즈 미리보기 계산 함수 파라미터
+ */
+export interface CalculatePartResizePreviewParams {
+  resizeSide: NonNullable<ResizeState['resizeSide']>;
+  resizeStart: NonNullable<ResizeState['resizeStart']>;
+  mouseX: number;
+  timelineStartTime: number;
+  pixelsPerSecond: number;
+  tempoMap: TempoEvent[];
+  timeSignature: [number, number];
+  ppqn: number;
+  isQuantizeEnabled: boolean;
+  minDurationTicks: number;
+}
+
+/**
  * 스플릿 상태 타입
  */
 export interface SplitState {
