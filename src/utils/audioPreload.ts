@@ -1,12 +1,13 @@
 import type { Project } from '../types/project';
+import { playbackAudioEngine } from '../core/audio/playbackAudioEngine';
 
 export async function preloadPlaybackSamples(project?: Project): Promise<void> {
   try {
-    const { playbackController } = await import('../core/audio/PlaybackController');
+    await Promise.resolve();
     if (project) {
-      await playbackController.getEngine().prefetchSamplesForProject(project);
+      await playbackAudioEngine.prefetchSamplesForProject(project);
     } else {
-      await playbackController.getEngine().ensureReady();
+      await playbackAudioEngine.ensureReady();
     }
   } catch {
     // Ignore preload errors; playback will retry on demand.

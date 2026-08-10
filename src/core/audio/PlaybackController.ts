@@ -2,7 +2,8 @@ import { subscribeToTrackChanges, getProject, subscribeToProjectChanges } from '
 import { getPlaybackTime } from '../../utils/playbackTimeStore';
 import { getBpm, getTimeSignature } from '../../utils/midiTickUtils';
 import type { Project } from '../../types/project';
-import { AudioEngine } from './AudioEngine';
+import type { AudioEngine } from './AudioEngine';
+import { playbackAudioEngine } from './playbackAudioEngine';
 import { buildPlaybackEvents, type NoteEvent } from './buildPlaybackEvents';
 import { getScheduleLogEnabled } from '../../utils/debugLogToggles';
 import { enqueueDebugLog } from '../../utils/debugLogger';
@@ -17,7 +18,7 @@ const LARGE_BATCH_COUNT = 1000;
 const LOG_THROTTLE_MS = 1000;
 
 export class PlaybackController {
-  private engine = new AudioEngine();
+  private engine = playbackAudioEngine;
   private metronome = new Metronome();
   private isMetronomeEnabled = false;
   
