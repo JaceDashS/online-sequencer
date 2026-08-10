@@ -4,7 +4,7 @@ import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
 import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
-import { calculatePartDropPosition, calculateSelectionRectangle } from '../../src/components/EventDisplay/EventDisplayCalculations';
+import { calculateMarqueeSelectedPartIds, calculatePartDropPosition, calculateSelectionRectangle } from '../../src/components/EventDisplay/EventDisplayCalculations';
 import type { Project } from '../../src/types/project';
 
 type TestFn = () => void | Promise<void>;
@@ -175,6 +175,51 @@ test('calculateSelectionRectangle normalizes every drag direction', () => {
   dragPoints.forEach(([start, end]) => {
     assert.deepEqual(calculateSelectionRectangle(start, end), expectedRectangle);
   });
+});
+
+test('calculateMarqueeSelectedPartIds finds parts intersecting selected tracks and time', () => {
+  const selectedPartIds = calculateMarqueeSelectedPartIds({
+    selectionRectangle: { left: 75, right: 125, top: 20, bottom: 90 },
+    tracks: [{ id: 'track-1' }, { id: 'track-2' }, { id: 'track-3' }],
+    midiParts: [
+      { id: 'part-1', trackId: 'track-1', startTick: 480, durationTicks: 480, notes: [] },
+      { id: 'part-2', trackId: 'track-1', startTick: 1440, durationTicks: 480, notes: [] },
+      { id: 'part-3', trackId: 'track-2', startTick: 960, durationTicks: 480, notes: [] },
+      { id: 'part-4', trackId: 'track-3', startTick: 960, durationTicks: 480, notes: [] },
+    ],
+    trackHeights: new Map([
+      ['track-1', 70],
+      ['track-2', 70],
+      ['track-3', 70],
+    ]),
+    tempoMap: [{ tick: 0, mpqn: bpmToMpqn(120) }],
+    timeSignature: [4, 4],
+    ppqn: 480,
+    pixelsPerSecond: 100,
+  });
+
+  assert.deepEqual(Array.from(selectedPartIds), ['part-1', 'part-3']);
+});
+
+test('calculateMarqueeSelectedPartIds includes touching part and track boundaries', () => {
+  const selectedPartIds = calculateMarqueeSelectedPartIds({
+    selectionRectangle: { left: 100, right: 100, top: 70, bottom: 70 },
+    tracks: [{ id: 'track-1' }, { id: 'track-2' }],
+    midiParts: [
+      { id: 'part-1', trackId: 'track-1', startTick: 480, durationTicks: 480, notes: [] },
+      { id: 'part-2', trackId: 'track-2', startTick: 960, durationTicks: 480, notes: [] },
+    ],
+    trackHeights: new Map([
+      ['track-1', 70],
+      ['track-2', 70],
+    ]),
+    tempoMap: [{ tick: 0, mpqn: bpmToMpqn(120) }],
+    timeSignature: [4, 4],
+    ppqn: 480,
+    pixelsPerSecond: 100,
+  });
+
+  assert.deepEqual(Array.from(selectedPartIds), ['part-1', 'part-2']);
 });
 
 const baseDropPositionParams = {

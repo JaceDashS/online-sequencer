@@ -10,7 +10,7 @@ import type { MidiPart } from '../../types/project';
 import styles from './EventDisplay.module.css';
 import { ticksToSecondsPure, secondsToTicksPure, ticksToMeasurePure, getPpqn, getBpm, getTimeSignature } from '../../utils/midiTickUtils';
 import { getProject } from '../../store/projectStore';
-import { findMidiPartById, findMidiPartsByTrackId } from '../../store/projectState';
+import { findMidiPartById } from '../../store/projectState';
 import { MIDI_CONSTANTS } from '../../constants/midi';
 import { TimelineView } from './TimelineView';
 import type { EventDisplayProps, MeasureMarker } from './EventDisplayTypes';
@@ -20,6 +20,7 @@ import {
   calculateMeasureMarkersInRange,
   calculateTotalWidth,
   calculatePartDropPosition,
+  calculateMarqueeSelectedPartIds,
   calculateSelectionRectangle,
   calculateSplitPreviewX,
   calculateSplitMeasure
@@ -1155,47 +1156,18 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
         // ?? ?? ?? ?? ??
         const selectRect = calculateSelectionRectangle(selectionStart, { x, y });
         
-        // ?? ???? ??? ????
-        const project = selectProject();
-        const currentTracks = project.tracks;
-        
-        const selectedIds = new Set<string>();
-        let accumulatedHeight = 0;
-        currentTracks.forEach(track => {
-          const trackHeight = trackHeights.get(track.id) || 70;
-          const trackTop = accumulatedHeight;
-          const trackBottom = accumulatedHeight + trackHeight;
-          
-          // ??? ?? ??? ???? ??
-          if (selectRect.bottom >= trackTop && selectRect.top <= trackBottom) {
-            // ???? ???? ??? ?? ??
-            const trackParts = findMidiPartsByTrackId(track.id);
-            trackParts.forEach(part => {
-                // Tick ?? ?? ?? ?? ?? (SMF ?? ??)
-                // props? ?? timeSignature? ?? ???? ?? ???? ?? ? ?? ??
-                const currentProject = getProject();
-                const partStartTick = part.startTick;
-                const partDurationTicks = part.durationTicks;
-                const projectTimeSignature = timeSignature || getTimeSignature(currentProject);
-                const projectPpqn = ppqn || getPpqn(currentProject);
-                const tempoMap = currentProject.timing?.tempoMap ?? [];
-                const { startTime: partStartTime, duration: partDuration } = ticksToSecondsPure(
-                  partStartTick,
-                  partDurationTicks,
-                  tempoMap,
-                  projectTimeSignature,
-                  projectPpqn
-                );
-                const partX = partStartTime * pixelsPerSecond;
-                const partRight = partX + partDuration * pixelsPerSecond;
-                
-                // ????? ?? ??? ???? ??
-                if (partRight >= selectRect.left && partX <= selectRect.right) {
-                  selectedIds.add(part.id);
-                }
-              });
-          }
-          accumulatedHeight += trackHeight;
+        const currentProject = getProject();
+        const projectTimeSignature = timeSignature || getTimeSignature(currentProject);
+        const projectPpqn = ppqn || getPpqn(currentProject);
+        const selectedIds = calculateMarqueeSelectedPartIds({
+          selectionRectangle: selectRect,
+          tracks: currentProject.tracks,
+          midiParts: currentProject.midiParts,
+          trackHeights,
+          tempoMap: currentProject.timing?.tempoMap ?? [],
+          timeSignature: projectTimeSignature,
+          ppqn: projectPpqn,
+          pixelsPerSecond,
         });
         
         ui.setSelectedClipIds(selectedIds);

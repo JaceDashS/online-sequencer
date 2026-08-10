@@ -249,6 +249,68 @@ export function calculatePartPixelPosition(
 }
 
 /**
+ * 선택 사각형과 겹치는 MIDI 파트 ID를 계산합니다.
+ */
+export function calculateMarqueeSelectedPartIds({
+  selectionRectangle,
+  tracks,
+  midiParts,
+  trackHeights,
+  tempoMap,
+  timeSignature,
+  ppqn,
+  pixelsPerSecond,
+}: {
+  selectionRectangle: { left: number; right: number; top: number; bottom: number };
+  tracks: Array<{ id: string }>;
+  midiParts: MidiPart[];
+  trackHeights: Map<string, number>;
+  tempoMap: TempoEvent[];
+  timeSignature: [number, number];
+  ppqn: number;
+  pixelsPerSecond: number;
+}): Set<string> {
+  const selectedPartIds = new Set<string>();
+  const partsByTrackId = new Map<string, MidiPart[]>();
+  let accumulatedHeight = 0;
+
+  midiParts.forEach((part) => {
+    const trackParts = partsByTrackId.get(part.trackId) ?? [];
+    trackParts.push(part);
+    partsByTrackId.set(part.trackId, trackParts);
+  });
+
+  tracks.forEach((track) => {
+    const trackHeight = trackHeights.get(track.id) || 70;
+    const trackTop = accumulatedHeight;
+    const trackBottom = accumulatedHeight + trackHeight;
+    accumulatedHeight = trackBottom;
+
+    if (selectionRectangle.bottom < trackTop || selectionRectangle.top > trackBottom) {
+      return;
+    }
+
+    (partsByTrackId.get(track.id) ?? []).forEach((part) => {
+      const { x: partLeft, width: partWidth } = calculatePartPixelPosition(
+        part.startTick,
+        part.durationTicks,
+        tempoMap,
+        timeSignature,
+        ppqn,
+        pixelsPerSecond
+      );
+      const partRight = partLeft + partWidth;
+
+      if (partRight >= selectionRectangle.left && partLeft <= selectionRectangle.right) {
+        selectedPartIds.add(part.id);
+      }
+    });
+  });
+
+  return selectedPartIds;
+}
+
+/**
  * 마우스 X 좌표를 시간(초)으로 변환합니다.
  * 
  * @param x - 마우스 X 좌표 (픽셀)
