@@ -4,6 +4,7 @@ import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
 import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
+import { calculatePartDropPosition } from '../../src/components/EventDisplay/EventDisplayCalculations';
 import type { Project } from '../../src/types/project';
 
 type TestFn = () => void | Promise<void>;
@@ -160,6 +161,84 @@ test('createPartDragResetState returns complete fresh defaults', () => {
   });
   assert.notEqual(firstResetState.draggedPartsInfo, secondResetState.draggedPartsInfo);
   assert.notEqual(firstResetState.partDragOffset, secondResetState.partDragOffset);
+});
+
+const baseDropPositionParams = {
+  partDragStart: { x: 0, y: 20, partStartTick: 480, partTrackId: 'track-1', clickOffsetX: 0 },
+  partDragOffset: { x: 50, y: 0 },
+  draggedPartsInfo: [
+    { partId: 'part-1', originalStartTick: 480, originalTrackId: 'track-1' },
+    { partId: 'part-2', originalStartTick: 960, originalTrackId: 'track-2' },
+  ],
+  pixelsPerSecond: 100,
+  tracks: [{ id: 'track-1' }, { id: 'track-2' }, { id: 'track-3' }],
+  trackHeights: new Map([
+    ['track-1', 70],
+    ['track-2', 70],
+    ['track-3', 70],
+  ]),
+  isTrackMovingMode: false,
+  isQuantizeEnabled: false,
+  bpm: 120,
+  timeSignature: [4, 4] as [number, number],
+  ppqn: 480,
+};
+
+test('calculatePartDropPosition applies horizontal tick offsets to every dragged part', () => {
+  assert.deepEqual(calculatePartDropPosition(baseDropPositionParams), {
+    baseTickDelta: 480,
+    trackIndexDelta: 0,
+    baseNewTrackId: 'track-1',
+    partDropPositions: [
+      { partId: 'part-1', newStartTick: 960, newTrackId: 'track-1' },
+      { partId: 'part-2', newStartTick: 1440, newTrackId: 'track-2' },
+    ],
+  });
+});
+
+test('calculatePartDropPosition clamps the base part at tick zero', () => {
+  const result = calculatePartDropPosition({
+    ...baseDropPositionParams,
+    partDragOffset: { x: -100, y: 0 },
+  });
+
+  assert.equal(result.baseTickDelta, -480);
+  assert.deepEqual(result.partDropPositions.map((position) => position.newStartTick), [0, 480]);
+});
+
+test('calculatePartDropPosition quantizes the base part to the nearest beat', () => {
+  const result = calculatePartDropPosition({
+    ...baseDropPositionParams,
+    partDragOffset: { x: 30, y: 0 },
+    isQuantizeEnabled: true,
+  });
+
+  assert.equal(result.baseTickDelta, 480);
+  assert.equal(result.partDropPositions[0].newStartTick, 960);
+});
+
+test('calculatePartDropPosition preserves relative tracks within timeline boundaries', () => {
+  const movedDown = calculatePartDropPosition({
+    ...baseDropPositionParams,
+    partDragOffset: { x: 0, y: 100 },
+    isTrackMovingMode: true,
+  });
+  const movedAboveTimeline = calculatePartDropPosition({
+    ...baseDropPositionParams,
+    partDragOffset: { x: 0, y: -100 },
+    isTrackMovingMode: true,
+  });
+  const movedBelowTimeline = calculatePartDropPosition({
+    ...baseDropPositionParams,
+    partDragOffset: { x: 0, y: 300 },
+    isTrackMovingMode: true,
+  });
+
+  assert.equal(movedDown.baseNewTrackId, 'track-2');
+  assert.deepEqual(movedDown.partDropPositions.map((position) => position.newTrackId), ['track-2', 'track-3']);
+  assert.equal(movedAboveTimeline.baseNewTrackId, 'track-1');
+  assert.equal(movedBelowTimeline.baseNewTrackId, 'track-3');
+  assert.deepEqual(movedBelowTimeline.partDropPositions.map((position) => position.newTrackId), ['track-3', 'track-2']);
 });
 
 test('ticksToSeconds (tempoMap): startTick and duration are both correct (constant tempo)', () => {

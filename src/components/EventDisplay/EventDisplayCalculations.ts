@@ -6,7 +6,7 @@
 import type { MeasureMarker } from './EventDisplayTypes';
 import type { TempoEvent, MidiPart } from '../../types/project';
 import { ticksToSecondsPure, secondsToTicksPure, ticksToMeasurePure } from '../../utils/midiTickUtils';
-import type { CalculateSplitPreviewParams } from './EventDisplayLogicTypes';
+import type { CalculateDropPositionParams, CalculateSplitPreviewParams, DropPositionResult } from './EventDisplayLogicTypes';
 import { TIMELINE_CONSTANTS } from '../../constants/ui';
 
 /**
@@ -127,6 +127,79 @@ export function snapTickToBeat(
   ppqn: number
 ): number {
   return Math.round(tick / ppqn) * ppqn;
+}
+
+/**
+ * 드래그 오프셋을 기준으로 각 파트의 드롭 위치를 계산합니다.
+ */
+export function calculatePartDropPosition({
+  partDragStart,
+  partDragOffset,
+  draggedPartsInfo,
+  pixelsPerSecond,
+  tracks,
+  trackHeights,
+  isTrackMovingMode,
+  isQuantizeEnabled,
+  bpm,
+  timeSignature,
+  ppqn,
+}: CalculateDropPositionParams): DropPositionResult {
+  const beatUnit = timeSignature[1];
+  const secondsPerBeat = (60 / bpm) * (4 / beatUnit);
+  const ticksPerSecond = ppqn / secondsPerBeat;
+  const offsetTicks = Math.round((partDragOffset.x / pixelsPerSecond) * ticksPerSecond);
+
+  let baseNewStartTick = Math.max(0, partDragStart.partStartTick + offsetTicks);
+  if (isQuantizeEnabled) {
+    baseNewStartTick = Math.max(0, Math.round(baseNewStartTick / ppqn) * ppqn);
+  }
+
+  const baseTickDelta = baseNewStartTick - partDragStart.partStartTick;
+  let baseNewTrackId = partDragStart.partTrackId;
+
+  if (isTrackMovingMode && tracks.length > 0) {
+    const dragY = partDragStart.y + partDragOffset.y;
+
+    if (dragY < 0) {
+      baseNewTrackId = tracks[0].id;
+    } else {
+      let accumulatedHeight = 0;
+      const targetTrack = tracks.find((track) => {
+        const trackHeight = trackHeights.get(track.id) || 70;
+        const isWithinTrack = dragY >= accumulatedHeight && dragY < accumulatedHeight + trackHeight;
+        accumulatedHeight += trackHeight;
+        return isWithinTrack;
+      });
+
+      baseNewTrackId = targetTrack?.id ?? tracks[tracks.length - 1].id;
+    }
+  }
+
+  const baseOriginalTrackIndex = tracks.findIndex((track) => track.id === partDragStart.partTrackId);
+  const baseNewTrackIndex = tracks.findIndex((track) => track.id === baseNewTrackId);
+  const trackIndexDelta = baseNewTrackIndex - baseOriginalTrackIndex;
+
+  const partDropPositions = draggedPartsInfo.map(({ partId, originalStartTick, originalTrackId }) => {
+    const originalTrackIndex = tracks.findIndex((track) => track.id === originalTrackId);
+    const newTrackIndex = originalTrackIndex + trackIndexDelta;
+    const newTrackId = newTrackIndex >= 0 && newTrackIndex < tracks.length
+      ? tracks[newTrackIndex].id
+      : originalTrackId;
+
+    return {
+      partId,
+      newStartTick: originalStartTick + baseTickDelta,
+      newTrackId,
+    };
+  });
+
+  return {
+    baseTickDelta,
+    trackIndexDelta,
+    baseNewTrackId,
+    partDropPositions,
+  };
 }
 
 /**
@@ -352,4 +425,3 @@ export function calculateSplitMeasure(
   
   return null;
 }
-

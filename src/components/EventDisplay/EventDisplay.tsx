@@ -19,6 +19,7 @@ import { usePlaybackTimeControlled } from '../../hooks/usePlaybackTime';
 import {
   calculateMeasureMarkersInRange,
   calculateTotalWidth,
+  calculatePartDropPosition,
   calculateSplitPreviewX,
   calculateSplitMeasure
 } from './EventDisplayCalculations';
@@ -965,122 +966,30 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       return null;
     }
 
-    if (!draggedPartId) {
-      return null;
-    }
     const basePart = findMidiPartById(draggedPartId);
     if (!basePart) {
       return null;
     }
 
-    // ref?? ?? offset ???? (?? ???? ?? ?? ??)
-    const currentOffset = partDragOffsetRef.current;
-
-    // Tick ?? ?? ??? ?? ?? (SMF ?? ??)
-    // ?? ????? ?? Tick ?? (?? tick??? ?? ??)
-    const baseCurrentStartTick = partDragStart.partStartTick;
-    
-    // X ???? ???? ?? ? Tick?? ??
-    // currentOffset.x? ??? ?? ????? ??? ??
-    // (?? ???? ??? ?? ? ?? ???? ??? ??? ?????,
-    //  ?? ?? ???? ??? ?? ??? ??)
-    const finalOffsetX = currentOffset.x;
-    const offsetTime = finalOffsetX / pixelsPerSecond;
-    
-    // offsetTime? ??? ?? ??? ???? ?? ?? ??
-    // ?? BPM ?? ?? (???? ??? ?? ???? ?? ???? ??)
     const project = getProject();
     const effectiveBpm = bpm ?? getBpm(project);
-    // props? ?? timeSignature? ppqn? ?? ???? ?? ???? ?? ? ?? ??
     const effectiveTimeSignature = timeSignature || getTimeSignature(project);
     const effectivePpqn = ppqn || getPpqn(project);
-    const beatUnit = effectiveTimeSignature[1];
-    const noteValueRatio = 4 / beatUnit;
-    const secondsPerBeat = (60 / effectiveBpm) * noteValueRatio;
-    const ticksPerSecond = effectivePpqn / secondsPerBeat;
-    const offsetTicks = Math.round(offsetTime * ticksPerSecond);
-    
-    // ??? Tick ?? ?? (??? ????, ?? ??? 0 ??)
-    let baseNewStartTick = baseCurrentStartTick + offsetTicks;
-    baseNewStartTick = Math.max(0, baseNewStartTick);
-    
-    // ????? ????? ??? Tick ???? ?? - ????? ?? PPQN ??
-    if (ui.isQuantizeEnabled) {
-      const ticksPerBeat = getPpqn(selectProject());
-      baseNewStartTick = Math.round(baseNewStartTick / ticksPerBeat) * ticksPerBeat;
-      baseNewStartTick = Math.max(0, baseNewStartTick);
-    }
-    
-    // ?? ????? tick ??? (SMF ?? ??)
-    const baseTickDelta = baseNewStartTick - partDragStart.partStartTick;
-    
-    // Y ??? ?? ??
-    // ?? ? ?? ??? ??? ?? ???? ??
-    let baseNewTrackId = partDragStart.partTrackId;
-    
-    if (!isTrackMovingMode) {
-      // ?? ? ?? ??? ???: ?? ????? ??
-      baseNewTrackId = partDragStart.partTrackId;
-    } else if (contentRef.current) {
-      // ? ?? ?? (Y??? ? ?? ?????, ?? ? ?? ?????, y??? ??? ??): Y ??? ?? ??
-      contentRef.current.getBoundingClientRect();
-      let accumulatedHeight = 0;
-      const dragY = partDragStart.y + currentOffset.y;
-      
-      // dragY? ??? ??? ? ?? ???? ???
-      if (dragY < 0 && tracks.length > 0) {
-        baseNewTrackId = tracks[0].id;
-      } else {
-        let foundTrack = false;
-        
-        for (const track of tracks) {
-          const trackHeight = trackHeights.get(track.id) || 70;
-          const trackTop = accumulatedHeight;
-          const trackBottom = accumulatedHeight + trackHeight;
-          
-          if (dragY >= trackTop && dragY < trackBottom) {
-            baseNewTrackId = track.id;
-            foundTrack = true;
-            break;
-          }
-          accumulatedHeight += trackHeight;
-        }
-        
-        // ??? ???? ?? ??? ???? ???
-        if (!foundTrack && tracks.length > 0) {
-          baseNewTrackId = tracks[tracks.length - 1].id;
-        }
-      }
-    }
-    
-    // ?? ??? ??? (?? ??? ??)
-    const baseOriginalTrackIndex = tracks.findIndex(t => t.id === partDragStart.partTrackId);
-    const baseNewTrackIndex = tracks.findIndex(t => t.id === baseNewTrackId);
-    const trackIndexDelta = baseNewTrackIndex - baseOriginalTrackIndex;
-    
-    // ? ??? ?? ?? ?? (tick ??)
-    const partDropPositions = draggedPartsInfo.map(({ partId, originalStartTick, originalTrackId }) => {
-      const newStartTick = originalStartTick + baseTickDelta;
-      const originalTrackIndex = tracks.findIndex(t => t.id === originalTrackId);
-      const newTrackIndex = originalTrackIndex + trackIndexDelta;
-      const newTrackId = newTrackIndex >= 0 && newTrackIndex < tracks.length 
-        ? tracks[newTrackIndex].id 
-        : originalTrackId;
-      
-      return {
-        partId,
-        newStartTick,
-        newTrackId,
-      };
+
+    return calculatePartDropPosition({
+      partDragStart,
+      partDragOffset: partDragOffsetRef.current,
+      draggedPartsInfo,
+      pixelsPerSecond,
+      tracks,
+      trackHeights,
+      isTrackMovingMode: isTrackMovingMode && contentRef.current !== null,
+      isQuantizeEnabled: ui.isQuantizeEnabled,
+      bpm: effectiveBpm,
+      timeSignature: effectiveTimeSignature,
+      ppqn: effectivePpqn,
     });
-    
-    return {
-      baseTickDelta,
-      trackIndexDelta,
-      baseNewTrackId,
-      partDropPositions,
-    };
-  }, [isDraggingPart, partDragStart, draggedPartId, draggedPartsInfo, pixelsPerSecond, tracks, trackHeights, isTrackMovingMode, ui.isQuantizeEnabled, bpm, timeSignature, ppqn, contentRef]);
+  }, [isDraggingPart, partDragStart, draggedPartId, draggedPartsInfo, pixelsPerSecond, tracks, trackHeights, isTrackMovingMode, ui.isQuantizeEnabled, bpm, timeSignature, ppqn]);
 
   // ???? ??? ?? ???
   const handlePartMouseUp = useCallback(() => {

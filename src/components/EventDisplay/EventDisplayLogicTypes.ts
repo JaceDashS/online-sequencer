@@ -55,19 +55,16 @@ export interface DropPositionResult {
  * 드롭 위치 계산 함수 파라미터
  */
 export interface CalculateDropPositionParams {
-  isDraggingPart: boolean;
-  partDragStart: { x: number; y: number; partStartTick: number; partTrackId: string; clickOffsetX: number } | null;
-  partDragOffset: { x: number; y: number };
-  draggedPartId: string | null;
-  draggedPartsInfo: Array<{ partId: string; originalStartTick: number; originalTrackId: string }>;
+  partDragStart: NonNullable<DragState['partDragStart']>;
+  partDragOffset: DragState['partDragOffset'];
+  draggedPartsInfo: DragState['draggedPartsInfo'];
   pixelsPerSecond: number;
   tracks: Array<{ id: string }>;
   trackHeights: Map<string, number>;
   isTrackMovingMode: boolean;
   isQuantizeEnabled: boolean;
-  bpm: number | null;
+  bpm: number;
   timeSignature: [number, number];
-  contentRef: React.RefObject<HTMLElement>;
   ppqn: number;
 }
 
@@ -84,4 +81,3 @@ export interface CalculateSplitPreviewParams {
   isQuantizeEnabled: boolean;
   bpm: number;
 }
-
