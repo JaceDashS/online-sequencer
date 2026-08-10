@@ -4,8 +4,8 @@ import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
 import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
-import { calculateMarqueeSelectedPartIds, calculatePartDropPosition, calculatePartResizePreview, calculateSelectionRectangle, rebasePartNotesToStartTick } from '../../src/components/EventDisplay/EventDisplayCalculations';
-import type { MidiNote, Project } from '../../src/types/project';
+import { calculateMarqueeSelectedPartIds, calculatePartDropPosition, calculatePartResizePreview, calculateSelectionRectangle, calculateSplitPreviewX, rebasePartNotesToStartTick } from '../../src/components/EventDisplay/EventDisplayCalculations';
+import type { MidiNote, MidiPart, Project } from '../../src/types/project';
 
 type TestFn = () => void | Promise<void>;
 
@@ -280,6 +280,43 @@ test('calculatePartResizePreview quantizes both resize edges to beats', () => {
     startTick: 960,
     durationTicks: 480,
   });
+});
+
+const splitPreviewPart: MidiPart = {
+  id: 'part-1',
+  trackId: 'track-1',
+  startTick: 480,
+  durationTicks: 960,
+  notes: [],
+};
+
+const baseSplitPreviewParams = {
+  mouseX: 113,
+  part: splitPreviewPart,
+  pixelsPerSecond: 100,
+  timeSignature: [4, 4] as [number, number],
+  ppqn: 480,
+  tempoMap: [{ tick: 0, mpqn: bpmToMpqn(120) }],
+  isQuantizeEnabled: false,
+  bpm: 120,
+};
+
+test('calculateSplitPreviewX returns mouse positions within part boundaries', () => {
+  assert.equal(calculateSplitPreviewX(baseSplitPreviewParams), 113);
+  assert.equal(calculateSplitPreviewX({ ...baseSplitPreviewParams, mouseX: 50 }), 50);
+  assert.equal(calculateSplitPreviewX({ ...baseSplitPreviewParams, mouseX: 150 }), 150);
+});
+
+test('calculateSplitPreviewX rejects mouse positions outside part boundaries', () => {
+  assert.equal(calculateSplitPreviewX({ ...baseSplitPreviewParams, mouseX: 49 }), null);
+  assert.equal(calculateSplitPreviewX({ ...baseSplitPreviewParams, mouseX: 151 }), null);
+});
+
+test('calculateSplitPreviewX snaps preview positions to beats when quantize is enabled', () => {
+  assert.equal(calculateSplitPreviewX({
+    ...baseSplitPreviewParams,
+    isQuantizeEnabled: true,
+  }), 100);
 });
 
 test('rebasePartNotesToStartTick preserves absolute note positions and fields', () => {
