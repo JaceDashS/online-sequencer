@@ -93,11 +93,15 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   const [splitPreviewX, setSplitPreviewX] = useState<number | null>(null); // ?? ?? ???? X ??
   const [splitPreviewPartId, setSplitPreviewPartId] = useState<string | null>(null); // ????? ???? ?? ID
 
+  const resetSplitPreview = useCallback(() => {
+    setSplitPreviewX(null);
+    setSplitPreviewPartId(null);
+  }, []);
+
   // ?? ?? ??? ???
   const { handleKey3, handleKey4, handleKey1, handleAltKey } = useCursorModeKeyboard({
     onSplitModeDeactivate: () => {
-      setSplitPreviewX(null);
-      setSplitPreviewPartId(null);
+      resetSplitPreview();
     },
     onAltKeyPress: () => {
       prevAltPressedRef.current = true;
@@ -192,8 +196,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       if (e.key === 'Alt') {
         if (isSplitByAltMode(ui.cursorMode)) {
           ui.setCursorMode(null);
-          setSplitPreviewX(null);
-          setSplitPreviewPartId(null);
+          resetSplitPreview();
         }
         prevAltPressedRef.current = false;
       }
@@ -219,21 +222,18 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
           ui.setCursorMode('splitByAlt');
         } else if (isSplitByAltMode(ui.cursorMode)) {
           ui.setCursorMode(null);
-          setSplitPreviewX(null);
-          setSplitPreviewPartId(null);
+          resetSplitPreview();
         }
       }
       // Alt ?? ??? ??? ??? ???? ??? ?? splitByAlt ?? ????
       if (isAltPressedNow && !hoveredPartId && isSplitByAltMode(ui.cursorMode)) {
         ui.setCursorMode(null);
-        setSplitPreviewX(null);
-        setSplitPreviewPartId(null);
+        resetSplitPreview();
       }
       // Alt ?? ??? ??? ??? ???? ?? splitByAlt ??? ?? ????
       if (!isAltPressedNow && isSplitByAltMode(ui.cursorMode)) {
         ui.setCursorMode(null);
-        setSplitPreviewX(null);
-        setSplitPreviewPartId(null);
+        resetSplitPreview();
       }
     };
     
@@ -246,13 +246,12 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [hoveredPartId, ui.cursorMode, ui, handleKey3, handleKey4, handleKey1, handleAltKey, isDraggingPart, isDragging, bpm, timeSignature, ppqn, pixelsPerSecond, contentRef]);
+  }, [hoveredPartId, ui.cursorMode, ui, handleKey3, handleKey4, handleKey1, handleAltKey, isDraggingPart, isDragging, bpm, timeSignature, ppqn, pixelsPerSecond, contentRef, resetSplitPreview]);
 
   // split ??? ? ?? ??? ?? ???? ???? ? ????
   useEffect(() => {
     if (!isSplitMode(ui.cursorMode)) {
-      setSplitPreviewX(null);
-      setSplitPreviewPartId(null);
+      resetSplitPreview();
       return;
     }
 
@@ -287,8 +286,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
         setSplitPreviewX(previewX);
         setSplitPreviewPartId(part.id);
       } else {
-        setSplitPreviewX(null);
-        setSplitPreviewPartId(null);
+        resetSplitPreview();
       }
     };
 
@@ -296,7 +294,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
     };
-  }, [hoveredPartId, bpm, timeSignature, ppqn, pixelsPerSecond, ui.cursorMode, ui.isQuantizeEnabled, ui]);
+  }, [hoveredPartId, bpm, timeSignature, ppqn, pixelsPerSecond, ui.cursorMode, ui.isQuantizeEnabled, ui, resetSplitPreview]);
 
   // Alt ?? ??? ??? ??? ? Split ???
   useEffect(() => {
@@ -1740,8 +1738,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
                     setSplitPreviewX(previewX);
                     setSplitPreviewPartId(partId);
                   } else {
-                    setSplitPreviewX(null);
-                    setSplitPreviewPartId(null);
+                    resetSplitPreview();
                   }
                 }
               }
@@ -1749,8 +1746,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
           }}
           onPartMouseLeave={() => {
             ui.setHoveredPartId(null);
-            setSplitPreviewX(null);
-            setSplitPreviewPartId(null);
+            resetSplitPreview();
           }}
           onPartMouseMove={(partId, e) => {
             if (isSplitMode(ui.cursorMode) && hoveredPartId === partId) {
@@ -1780,8 +1776,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
                     setSplitPreviewX(previewX);
                     setSplitPreviewPartId(partId);
                   } else {
-                    setSplitPreviewX(null);
-                    setSplitPreviewPartId(null);
+                    resetSplitPreview();
                   }
                 }
               }
