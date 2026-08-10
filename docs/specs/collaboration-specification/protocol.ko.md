@@ -111,7 +111,6 @@ interface RemoteChange {
     | 'channel-volume'
     | 'channel-pan'
     | 'channel-effect'
-    | 'master-volume'
     | 'master-pan'
     | 'master-effect'
     | 'midi-part'
@@ -139,6 +138,6 @@ interface TransportMessage extends P2PMessage {
 **참고:**
 - 게스트는 DataChannel이 열리면 `state-request`를 보내고, 호스트가 `initial-state`로 응답합니다.
 - 타이밍 동기화는 tempo/time signature 맵 전체가 아니라 tick 0의 첫 이벤트만 반영됩니다.
-- 마스터 동기화는 pan/effect만 적용되며, master volume은 정의되어 있으나 전송되지 않습니다.
+- 마스터 동기화는 pan/effect만 적용되며, master volume은 프로토콜에서 제외되어 각 클라이언트에 로컬로 유지됩니다.
 
 ---

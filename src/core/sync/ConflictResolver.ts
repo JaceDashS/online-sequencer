@@ -63,7 +63,6 @@ export class ConflictResolver {
       case 'channel-effect':
         return local.trackId === remote.trackId;
 
-      case 'master-volume':
       case 'master-pan':
       case 'master-effect':
         // 마스터는 하나뿐이므로 타입만 같으면 충돌
@@ -170,7 +169,6 @@ export class ConflictResolver {
       case 'channel-effect':
         return `${change.type}:${change.trackId}`;
 
-      case 'master-volume':
       case 'master-pan':
       case 'master-effect':
         return change.type;

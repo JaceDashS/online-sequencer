@@ -111,7 +111,6 @@ interface RemoteChange {
     | 'channel-volume'
     | 'channel-pan'
     | 'channel-effect'
-    | 'master-volume'
     | 'master-pan'
     | 'master-effect'
     | 'midi-part'
@@ -139,6 +138,6 @@ interface TransportMessage extends P2PMessage {
 **Notes:**
 - Initial state is requested by the guest after the DataChannel opens (`state-request`), then the host responds with `initial-state`.
 - Timing sync uses only the first tempo/time signature event (tick 0), not the entire map.
-- Master sync currently includes pan/effects; master volume is defined but not emitted.
+- Master sync includes pan/effects; master volume is excluded from the protocol and remains local to each client.
 
 ---

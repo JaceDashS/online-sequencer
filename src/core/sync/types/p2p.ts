@@ -40,7 +40,7 @@ export interface InitialStateMessage extends P2PMessage {
  * 원격 변경사항 타입
  */
 export interface RemoteChange {
-  type: 'channel-volume' | 'channel-pan' | 'channel-effect' | 'master-volume' | 'master-pan' | 'master-effect' | 'midi-part' | 'midi-note' | 'time-signature' | 'bpm';
+  type: 'channel-volume' | 'channel-pan' | 'channel-effect' | 'master-pan' | 'master-effect' | 'midi-part' | 'midi-note' | 'time-signature' | 'bpm';
   trackId?: string;
   partId?: string;
   noteId?: string;

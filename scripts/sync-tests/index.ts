@@ -13,6 +13,7 @@ import { CollaborationManager } from '../../src/core/sync/CollaborationManager';
 import { WebRTCManager } from '../../src/core/sync/WebRTCManager';
 import type { ChangeMessage, P2PMessage, RemoteChange } from '../../src/core/sync/types/p2p';
 import { getProject, setProject } from '../../src/store/projectState';
+import { updateMasterVolume } from '../../src/store/projectActions';
 import {
   notifyMidiNoteChange,
   notifyMidiPartChange,
@@ -128,6 +129,10 @@ console.log('Sync module verification tests\n');
 console.log('='.repeat(60));
 
 test('SyncManager: applyProjectState migrates legacy timing without echoing changes', () => {
+  const localProject = createTestProject();
+  localProject.masterVolume = 0.4;
+  setProject(localProject, true);
+
   const mock = createMockCollaborationManager({ clientId: 'guest-1', isHost: false });
   const manager = new SyncManager(mock.manager);
 
@@ -149,6 +154,7 @@ test('SyncManager: applyProjectState migrates legacy timing without echoing chan
   assert.equal(project.timing?.ppqn, 480);
   assert.deepEqual(project.timing?.timeSigMap[0], { tick: 0, num: 3, den: 4 });
   assert.equal(project.timing?.tempoMap[0].mpqn, Math.round(60000000 / 90));
+  assert.equal(project.masterVolume, 0.4);
   assert.equal(mock.sentToHost.length, 0);
 
   manager.disconnect();
@@ -185,6 +191,7 @@ test('SyncManager: onGuestConnected sends JSON-safe initial project state', () =
   assert.ok(message.id.length > 0);
   assert.equal('self' in projectState, false);
   assert.equal('transient' in projectState, false);
+  assert.equal('masterVolume' in projectState, false);
   assert.deepEqual(projectState.nested, { value: 'kept' });
   assert.doesNotThrow(() => JSON.stringify(projectState));
   assert.notEqual(projectState, project);
@@ -259,6 +266,20 @@ test('SyncManager: disconnect releases P2P and store subscriptions', () => {
 
   assert.equal(mock.sentToHost.length, sentCountAfterDisconnect);
   assert.doesNotThrow(() => manager.disconnect());
+});
+
+test('SyncManager: master volume changes remain local', () => {
+  setProject(createTestProject(), true);
+
+  const mock = createMockCollaborationManager({ clientId: 'guest-1', isHost: false });
+  const manager = new SyncManager(mock.manager);
+
+  updateMasterVolume(0.5);
+
+  assert.equal(getProject().masterVolume, 0.5);
+  assert.equal(mock.sentToHost.length, 0);
+
+  manager.disconnect();
 });
 
 test('CollaborationManager: disconnect disposes the active SyncManager', () => {

@@ -187,7 +187,6 @@ export class SyncManager {
     return change.type === 'channel-volume' || 
            change.type === 'channel-pan' || 
            change.type === 'channel-effect' ||
-           change.type === 'master-volume' ||
            change.type === 'master-pan' ||
            change.type === 'master-effect' ||
            change.type === 'midi-part' ||
@@ -326,7 +325,9 @@ export class SyncManager {
 
     try {
       this.suppressOutgoing = true;
+      const localMasterVolume = getProject().masterVolume;
       const project = this.deserializeProject(state);
+      project.masterVolume = localMasterVolume;
       setProject(project);
     } catch (error) {
       console.error('[SyncManager] Failed to apply project state:', error);
@@ -447,7 +448,6 @@ export class SyncManager {
       case 'channel-pan':
       case 'channel-effect':
         return `${change.type}:${change.trackId}`;
-      case 'master-volume':
       case 'master-pan':
       case 'master-effect':
         return change.type;
@@ -630,10 +630,6 @@ export class SyncManager {
           break;
         }
 
-        case 'master-volume': {
-          break;
-        }
-
         case 'master-pan': {
           // 마스터 패닝 변경
           project.masterPan = change.value as number;
@@ -809,7 +805,7 @@ export class SyncManager {
       }
 
       case 'master': {
-        // Master changes: sync pan/effects only (volume excluded).
+        // 마스터 볼륨은 클라이언트별 로컬 값으로 유지하고 패닝과 이펙트만 동기화한다.
         if (event.changes.pan !== undefined) {
           return {
             type: 'master-pan',
@@ -975,6 +971,7 @@ export class SyncManager {
       throw new Error('Project serialization failed');
     }
 
+    delete serialized.masterVolume;
     return serialized;
   }
 
@@ -1076,6 +1073,3 @@ export class SyncManager {
     this.debounceTimers.clear();
   }
 }
-
-
-
