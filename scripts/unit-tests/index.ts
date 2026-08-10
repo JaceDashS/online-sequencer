@@ -4,8 +4,8 @@ import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
 import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
-import { calculateMarqueeSelectedPartIds, calculatePartDropPosition, calculatePartResizePreview, calculateSelectionRectangle } from '../../src/components/EventDisplay/EventDisplayCalculations';
-import type { Project } from '../../src/types/project';
+import { calculateMarqueeSelectedPartIds, calculatePartDropPosition, calculatePartResizePreview, calculateSelectionRectangle, rebasePartNotesToStartTick } from '../../src/components/EventDisplay/EventDisplayCalculations';
+import type { MidiNote, Project } from '../../src/types/project';
 
 type TestFn = () => void | Promise<void>;
 
@@ -280,6 +280,40 @@ test('calculatePartResizePreview quantizes both resize edges to beats', () => {
     startTick: 960,
     durationTicks: 480,
   });
+});
+
+test('rebasePartNotesToStartTick preserves absolute note positions and fields', () => {
+  const notes: MidiNote[] = [
+    { note: 60, velocity: 100, channel: 2, releaseVelocity: 32, startTick: 0, durationTicks: 120 },
+    { note: 64, velocity: 90, startTick: 480, durationTicks: 240 },
+  ];
+  const rebasedNotes = rebasePartNotesToStartTick(notes, 480, 720);
+
+  assert.deepEqual(rebasedNotes, [
+    { note: 60, velocity: 100, channel: 2, releaseVelocity: 32, startTick: -240, durationTicks: 120 },
+    { note: 64, velocity: 90, startTick: 240, durationTicks: 240 },
+  ]);
+  rebasedNotes.forEach((note, index) => {
+    assert.equal(720 + note.startTick, 480 + notes[index].startTick);
+  });
+});
+
+test('rebasePartNotesToStartTick shifts notes when the part starts earlier', () => {
+  const notes: MidiNote[] = [
+    { note: 60, velocity: 100, startTick: 120, durationTicks: 240 },
+  ];
+
+  assert.deepEqual(rebasePartNotesToStartTick(notes, 480, 240), [
+    { note: 60, velocity: 100, startTick: 360, durationTicks: 240 },
+  ]);
+});
+
+test('rebasePartNotesToStartTick defaults missing legacy tick fields to zero', () => {
+  const legacyNotes = [{ note: 60, velocity: 100 }] as MidiNote[];
+
+  assert.deepEqual(rebasePartNotesToStartTick(legacyNotes, 480, 720), [
+    { note: 60, velocity: 100, startTick: -240, durationTicks: 0 },
+  ]);
 });
 
 const baseDropPositionParams = {

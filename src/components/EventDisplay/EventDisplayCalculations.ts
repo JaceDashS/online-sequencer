@@ -271,6 +271,27 @@ export function calculatePartResizePreview({
 }
 
 /**
+ * 파트 시작 tick 변경 후에도 노트의 절대 시작 위치가 유지되도록 상대 tick을 보정합니다.
+ */
+export function rebasePartNotesToStartTick(
+  notes: MidiPart['notes'],
+  currentPartStartTick: number,
+  newPartStartTick: number
+): MidiPart['notes'] {
+  return notes.map((note) => {
+    const noteStartTick = note.startTick ?? 0;
+    const noteDurationTicks = note.durationTicks ?? 0;
+    const absoluteNoteStartTick = currentPartStartTick + noteStartTick;
+
+    return {
+      ...note,
+      startTick: absoluteNoteStartTick - newPartStartTick,
+      durationTicks: noteDurationTicks,
+    };
+  });
+}
+
+/**
  * 파트의 시작 시간과 길이를 Tick에서 픽셀 위치로 변환합니다.
  * 
  * @param partStartTick - 파트 시작 Tick
