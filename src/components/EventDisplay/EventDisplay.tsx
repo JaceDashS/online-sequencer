@@ -98,6 +98,34 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     setSplitPreviewPartId(null);
   }, []);
 
+  const updateSplitPreview = useCallback((partId: string, clientX: number) => {
+    const rect = contentRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const part = findMidiPartById(partId);
+    if (!part) return;
+
+    const project = getProject();
+    const previewX = calculateSplitPreviewX({
+      mouseX: clientX - rect.left,
+      part,
+      pixelsPerSecond,
+      timeSignature: timeSignature || getTimeSignature(project),
+      ppqn: ppqn || getPpqn(project),
+      tempoMap: project.timing?.tempoMap ?? [],
+      isQuantizeEnabled: ui.isQuantizeEnabled,
+      bpm: bpm ?? getBpm(project)
+    });
+
+    if (previewX === null) {
+      resetSplitPreview();
+      return;
+    }
+
+    setSplitPreviewX(previewX);
+    setSplitPreviewPartId(partId);
+  }, [bpm, pixelsPerSecond, ppqn, resetSplitPreview, timeSignature, ui.isQuantizeEnabled]);
+
   // ?? ?? ??? ???
   const { handleKey3, handleKey4, handleKey1, handleAltKey } = useCursorModeKeyboard({
     onSplitModeDeactivate: () => {
@@ -256,45 +284,15 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     }
 
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (!contentRef.current || !hoveredPartId) return;
-
-      const rect = contentRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-
-      // ?? ??? ??? ?? ?? ?? ??? ??
-      const part = findMidiPartById(hoveredPartId);
-      if (!part) return;
-
-      // ??? ??? ???? ??? ???? ??
-      const project = getProject();
-      const projectTimeSignature = timeSignature || getTimeSignature(project);
-      const projectPpqn = ppqn || getPpqn(project);
-      const tempoMap = project.timing?.tempoMap ?? [];
-      
-      const previewX = calculateSplitPreviewX({
-        mouseX: x,
-        part,
-        pixelsPerSecond,
-        timeSignature: projectTimeSignature,
-        ppqn: projectPpqn,
-        tempoMap,
-        isQuantizeEnabled: ui.isQuantizeEnabled,
-        bpm: bpm ?? getBpm(project)
-      });
-      
-      if (previewX !== null) {
-        setSplitPreviewX(previewX);
-        setSplitPreviewPartId(part.id);
-      } else {
-        resetSplitPreview();
-      }
+      if (!hoveredPartId) return;
+      updateSplitPreview(hoveredPartId, e.clientX);
     };
 
     window.addEventListener('mousemove', handleGlobalMouseMove);
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
     };
-  }, [hoveredPartId, bpm, timeSignature, ppqn, pixelsPerSecond, ui.cursorMode, ui.isQuantizeEnabled, ui, resetSplitPreview]);
+  }, [hoveredPartId, ui.cursorMode, resetSplitPreview, updateSplitPreview]);
 
   // Alt ?? ??? ??? ??? ? Split ???
   useEffect(() => {
@@ -1712,36 +1710,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
             ui.setHoveredPartId(partId);
             // split ??? ? ?? ???? ? ??
             if (isSplitMode(ui.cursorMode)) {
-              const rect = contentRef.current?.getBoundingClientRect();
-              if (rect) {
-                const x = e.clientX - rect.left;
-                const part = findMidiPartById(partId);
-                if (part) {
-                  // ??? ??? ???? ??? ???? ??
-                  const project = getProject();
-                  const projectTimeSignature = timeSignature || getTimeSignature(project);
-                  const projectPpqn = ppqn || getPpqn(project);
-                  const tempoMap = project.timing?.tempoMap ?? [];
-                  
-                  const previewX = calculateSplitPreviewX({
-                    mouseX: x,
-                    part,
-                    pixelsPerSecond,
-                    timeSignature: projectTimeSignature,
-                    ppqn: projectPpqn,
-                    tempoMap,
-                    isQuantizeEnabled: ui.isQuantizeEnabled,
-                    bpm: bpm ?? getBpm(project)
-                  });
-                  
-                  if (previewX !== null) {
-                    setSplitPreviewX(previewX);
-                    setSplitPreviewPartId(partId);
-                  } else {
-                    resetSplitPreview();
-                  }
-                }
-              }
+              updateSplitPreview(partId, e.clientX);
             }
           }}
           onPartMouseLeave={() => {
@@ -1750,36 +1719,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
           }}
           onPartMouseMove={(partId, e) => {
             if (isSplitMode(ui.cursorMode) && hoveredPartId === partId) {
-              const rect = contentRef.current?.getBoundingClientRect();
-              if (rect) {
-                const x = e.clientX - rect.left;
-                const part = findMidiPartById(partId);
-                if (part) {
-                  // ??? ??? ???? ??? ???? ??
-                  const project = getProject();
-                  const projectTimeSignature = timeSignature || getTimeSignature(project);
-                  const projectPpqn = ppqn || getPpqn(project);
-                  const tempoMap = project.timing?.tempoMap ?? [];
-                  
-                  const previewX = calculateSplitPreviewX({
-                    mouseX: x,
-                    part,
-                    pixelsPerSecond,
-                    timeSignature: projectTimeSignature,
-                    ppqn: projectPpqn,
-                    tempoMap,
-                    isQuantizeEnabled: ui.isQuantizeEnabled,
-                    bpm: bpm ?? getBpm(project)
-                  });
-                  
-                  if (previewX !== null) {
-                    setSplitPreviewX(previewX);
-                    setSplitPreviewPartId(partId);
-                  } else {
-                    resetSplitPreview();
-                  }
-                }
-              }
+              updateSplitPreview(partId, e.clientX);
             }
           }}
           onSetHoveredPartId={ui.setHoveredPartId}
