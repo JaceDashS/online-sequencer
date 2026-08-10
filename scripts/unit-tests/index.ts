@@ -4,7 +4,7 @@ import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
 import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
-import { calculatePartDropPosition } from '../../src/components/EventDisplay/EventDisplayCalculations';
+import { calculatePartDropPosition, calculateSelectionRectangle } from '../../src/components/EventDisplay/EventDisplayCalculations';
 import type { Project } from '../../src/types/project';
 
 type TestFn = () => void | Promise<void>;
@@ -161,6 +161,20 @@ test('createPartDragResetState returns complete fresh defaults', () => {
   });
   assert.notEqual(firstResetState.draggedPartsInfo, secondResetState.draggedPartsInfo);
   assert.notEqual(firstResetState.partDragOffset, secondResetState.partDragOffset);
+});
+
+test('calculateSelectionRectangle normalizes every drag direction', () => {
+  const expectedRectangle = { left: 10, right: 30, top: 20, bottom: 50 };
+  const dragPoints = [
+    [{ x: 10, y: 20 }, { x: 30, y: 50 }],
+    [{ x: 30, y: 20 }, { x: 10, y: 50 }],
+    [{ x: 10, y: 50 }, { x: 30, y: 20 }],
+    [{ x: 30, y: 50 }, { x: 10, y: 20 }],
+  ] as const;
+
+  dragPoints.forEach(([start, end]) => {
+    assert.deepEqual(calculateSelectionRectangle(start, end), expectedRectangle);
+  });
 });
 
 const baseDropPositionParams = {

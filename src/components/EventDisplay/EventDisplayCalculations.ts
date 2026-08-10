@@ -130,6 +130,21 @@ export function snapTickToBeat(
 }
 
 /**
+ * 두 좌표를 드래그 방향과 무관한 선택 사각형으로 변환합니다.
+ */
+export function calculateSelectionRectangle(
+  start: { x: number; y: number },
+  end: { x: number; y: number }
+): { left: number; right: number; top: number; bottom: number } {
+  return {
+    left: Math.min(start.x, end.x),
+    right: Math.max(start.x, end.x),
+    top: Math.min(start.y, end.y),
+    bottom: Math.max(start.y, end.y),
+  };
+}
+
+/**
  * 드래그 오프셋을 기준으로 각 파트의 드롭 위치를 계산합니다.
  */
 export function calculatePartDropPosition({

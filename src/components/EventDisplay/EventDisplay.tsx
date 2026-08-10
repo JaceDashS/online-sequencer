@@ -20,6 +20,7 @@ import {
   calculateMeasureMarkersInRange,
   calculateTotalWidth,
   calculatePartDropPosition,
+  calculateSelectionRectangle,
   calculateSplitPreviewX,
   calculateSplitMeasure
 } from './EventDisplayCalculations';
@@ -1131,12 +1132,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
         setSelectionEnd({ x, y });
         
         // ?? ?? ?? ?? ??
-        const selectRect = {
-          left: Math.min(selectionStart.x, x),
-          right: Math.max(selectionStart.x, x),
-          top: Math.min(selectionStart.y, y),
-          bottom: Math.max(selectionStart.y, y),
-        };
+        const selectRect = calculateSelectionRectangle(selectionStart, { x, y });
         
         // ?? ???? ??? ????
         const project = selectProject();
@@ -1905,12 +1901,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
 
         {/* Step 9.5: ???? ?? - eventContent ???? ????? ?? ??? ?? ??? ?? ?? */}
         {isSelectingClips && selectionStart && selectionEnd && (() => {
-          const selectRect = {
-            left: Math.min(selectionStart.x, selectionEnd.x),
-            right: Math.max(selectionStart.x, selectionEnd.x),
-            top: Math.min(selectionStart.y, selectionEnd.y),
-            bottom: Math.max(selectionStart.y, selectionEnd.y),
-          };
+          const selectRect = calculateSelectionRectangle(selectionStart, selectionEnd);
           
           return (
             <div
