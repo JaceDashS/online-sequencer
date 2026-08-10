@@ -1,4 +1,17 @@
+import type { DragState } from './EventDisplayLogicTypes';
+
 export type PartClickSelectionMode = 'ignore' | 'toggle' | 'replace';
+
+export type PartDragResetState = Pick<
+  DragState,
+  | 'draggedPartId'
+  | 'draggedPartsInfo'
+  | 'partDragStart'
+  | 'partDragOffset'
+  | 'hasDraggedPart'
+  | 'isTrackMovingMode'
+  | 'isCtrlPressedDuringDrag'
+>;
 
 interface GetPartClickSelectionModeParams {
   hasDraggedPart: boolean;
@@ -12,6 +25,21 @@ interface CanOpenPartEditorParams {
   hasActiveCursorMode: boolean;
   hasDraggedPart: boolean;
   isDraggingPart: boolean;
+}
+
+/**
+ * 파트 드래그가 끝난 뒤 적용할 초기 상태를 생성합니다.
+ */
+export function createPartDragResetState(): PartDragResetState {
+  return {
+    draggedPartId: null,
+    draggedPartsInfo: [],
+    partDragStart: null,
+    partDragOffset: { x: 0, y: 0 },
+    hasDraggedPart: false,
+    isTrackMovingMode: false,
+    isCtrlPressedDuringDrag: false,
+  };
 }
 
 /**

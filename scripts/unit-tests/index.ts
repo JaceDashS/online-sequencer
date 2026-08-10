@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
-import { canOpenPartEditor, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
+import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
 import type { Project } from '../../src/types/project';
 
 type TestFn = () => void | Promise<void>;
@@ -143,6 +143,23 @@ test('canOpenPartEditor rejects active cursor and drag states', () => {
     hasDraggedPart: false,
     isDraggingPart: true,
   }), false);
+});
+
+test('createPartDragResetState returns complete fresh defaults', () => {
+  const firstResetState = createPartDragResetState();
+  const secondResetState = createPartDragResetState();
+
+  assert.deepEqual(firstResetState, {
+    draggedPartId: null,
+    draggedPartsInfo: [],
+    partDragStart: null,
+    partDragOffset: { x: 0, y: 0 },
+    hasDraggedPart: false,
+    isTrackMovingMode: false,
+    isCtrlPressedDuringDrag: false,
+  });
+  assert.notEqual(firstResetState.draggedPartsInfo, secondResetState.draggedPartsInfo);
+  assert.notEqual(firstResetState.partDragOffset, secondResetState.partDragOffset);
 });
 
 test('ticksToSeconds (tempoMap): startTick and duration are both correct (constant tempo)', () => {

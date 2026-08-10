@@ -22,7 +22,7 @@ import {
   calculateSplitPreviewX,
   calculateSplitMeasure
 } from './EventDisplayCalculations';
-import { canOpenPartEditor, getPartClickSelectionMode } from './EventDisplayLogic';
+import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from './EventDisplayLogic';
 
 const MidiEditor = React.lazy(() => import('../MidiEditor/MidiEditor'));
 
@@ -664,6 +664,22 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     setResizePreview(null);
   }, []);
 
+  const resetPartDragState = useCallback(() => {
+    const resetState = createPartDragResetState();
+
+    ui.setIsDraggingPart(false);
+    setDraggedPartId(resetState.draggedPartId);
+    setDraggedPartsInfo(resetState.draggedPartsInfo);
+    setPartDragStart(resetState.partDragStart);
+    partDragOffsetRef.current = resetState.partDragOffset;
+    setPartDragOffset(resetState.partDragOffset);
+    setIsTrackMovingMode(resetState.isTrackMovingMode);
+    setIsCtrlPressedDuringDrag(resetState.isCtrlPressedDuringDrag);
+    dragOriginRef.current = null;
+    ui.setDuplicateModeActive(false);
+    setHasDraggedPart(resetState.hasDraggedPart);
+  }, [ui]);
+
   // ???? ? ?? ??
   useEffect(() => {
     if (isResizingPart) {
@@ -1074,31 +1090,13 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
 
     // MidiEditor? ????? ??? ????? ???? ?? ??? ??? (MidiEditor? ?? ? ???? ???? ??? ? ??)
     if (editingPartId) {
-      ui.setIsDraggingPart(false);
-      setDraggedPartId(null);
-      setDraggedPartsInfo([]);
-      setPartDragStart(null);
-      partDragOffsetRef.current = { x: 0, y: 0 };
-      setPartDragOffset({ x: 0, y: 0 });
-      setIsTrackMovingMode(false);
-      setIsCtrlPressedDuringDrag(false);
-      ui.setDuplicateModeActive(false);
-      setHasDraggedPart(false);
+      resetPartDragState();
       return;
     }
     
     // ??? ???? ???? ???? ??? ????? ?????? ??
     if (!hasDraggedPart) {
-      ui.setIsDraggingPart(false);
-      setDraggedPartId(null);
-      setDraggedPartsInfo([]);
-      setPartDragStart(null);
-      partDragOffsetRef.current = { x: 0, y: 0 };
-      setPartDragOffset({ x: 0, y: 0 });
-      setIsTrackMovingMode(false);
-      setIsCtrlPressedDuringDrag(false);
-      ui.setDuplicateModeActive(false);
-      setHasDraggedPart(false);
+      resetPartDragState();
       return;
     }
     
@@ -1106,14 +1104,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     const dropPosition = calculateDropPosition();
     
     if (!dropPosition) {
-      ui.setIsDraggingPart(false);
-      setDraggedPartId(null);
-      setDraggedPartsInfo([]);
-      setPartDragStart(null);
-      partDragOffsetRef.current = { x: 0, y: 0 };
-      setPartDragOffset({ x: 0, y: 0 });
-      setIsCtrlPressedDuringDrag(false);
-      ui.setDuplicateModeActive(false);
+      resetPartDragState();
       return;
     }
 
@@ -1208,17 +1199,8 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     }
     
     // ?? ?? ??? (UI ??? ??)
-    ui.setIsDraggingPart(false);
-    setDraggedPartId(null);
-    setDraggedPartsInfo([]);
-    setPartDragStart(null);
-    setPartDragOffset({ x: 0, y: 0 });
-    setIsTrackMovingMode(false);
-    setIsCtrlPressedDuringDrag(false);
-    dragOriginRef.current = null;
-    ui.setDuplicateModeActive(false);
-    setHasDraggedPart(false);
-  }, [isDraggingPart, partDragStart, draggedPartId, draggedPartsInfo, hasDraggedPart, isCtrlPressedDuringDrag, ui, editingPartId, calculateDropPosition, ppqn, timeSignature]);
+    resetPartDragState();
+  }, [isDraggingPart, partDragStart, draggedPartId, draggedPartsInfo, hasDraggedPart, isCtrlPressedDuringDrag, ui, editingPartId, calculateDropPosition, ppqn, timeSignature, resetPartDragState]);
 
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
