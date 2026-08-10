@@ -637,6 +637,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<{ x: number; y: number } | null>(null);
   const justFinishedMarqueeSelectionRef = useRef(false); // ????? ?? ?????? ??
+  const marqueeClickResetTimerRef = useRef<number | null>(null);
   
   // ??? ?? ??? ??
     
@@ -681,6 +682,29 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     ui.setDuplicateModeActive(false);
     setHasDraggedPart(resetState.hasDraggedPart);
   }, [ui]);
+
+  const finishMarqueeSelection = useCallback(() => {
+    setIsSelectingClips(false);
+    setSelectionStart(null);
+    setSelectionEnd(null);
+    justFinishedMarqueeSelectionRef.current = true;
+
+    if (marqueeClickResetTimerRef.current !== null) {
+      window.clearTimeout(marqueeClickResetTimerRef.current);
+    }
+
+    marqueeClickResetTimerRef.current = window.setTimeout(() => {
+      justFinishedMarqueeSelectionRef.current = false;
+      marqueeClickResetTimerRef.current = null;
+    }, 100);
+  }, []);
+
+  useEffect(() => () => {
+    if (marqueeClickResetTimerRef.current !== null) {
+      window.clearTimeout(marqueeClickResetTimerRef.current);
+      marqueeClickResetTimerRef.current = null;
+    }
+  }, []);
 
   // ???? ? ?? ??
   useEffect(() => {
@@ -806,6 +830,10 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     // ????? ?? ?????? click ??? ??
     if (justFinishedMarqueeSelectionRef.current) {
       justFinishedMarqueeSelectionRef.current = false;
+      if (marqueeClickResetTimerRef.current !== null) {
+        window.clearTimeout(marqueeClickResetTimerRef.current);
+        marqueeClickResetTimerRef.current = null;
+      }
       e.preventDefault();
       e.stopPropagation();
       return;
@@ -952,14 +980,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       setDragStart(null);
       setDragCurrent(null);
     }
-    
-    // ???? ??
-    if (isSelectingClips) {
-      setIsSelectingClips(false);
-      setSelectionStart(null);
-      setSelectionEnd(null);
-    }
-  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, timeSignature, ppqn, isSelectingClips]);
+  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, timeSignature, ppqn]);
 
   // ?? ?? ?? ?? (????? ?? ?? ??? ?? ??)
   const calculateDropPosition = useCallback(() => {
@@ -1363,16 +1384,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
           }
         }
         
-        setIsSelectingClips(false);
-        setSelectionStart(null);
-        setSelectionEnd(null);
-        
-        // ????? ?? ?????? ?? (?? click ??? ???)
-        justFinishedMarqueeSelectionRef.current = true;
-        // ?? ????? ???? ?? (?? click ???? ???? ?? ??? ??)
-        setTimeout(() => {
-          justFinishedMarqueeSelectionRef.current = false;
-        }, 100);
+        finishMarqueeSelection();
       }
       // ???? ?? - ????? ?? ??
       // MidiEditor? ????? ???? ??? ???? ?? (MidiEditor? ?? ? ???? ???? ??? ? ??)
@@ -1441,7 +1453,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, isDraggingPart, partDragStart, draggedPartId, isTrackMovingMode, handleMouseUp, handlePartMouseUp, ui.isQuantizeEnabled, bpm, timeSignature, ppqn, isSelectingClips, selectionStart, selectionEnd, trackHeights, ui, startTime, isResizingPart, resizePartId, resizeStart, resizeSide, resizePreview, editingPartId, resetPartResizeState]);
+  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, isDraggingPart, partDragStart, draggedPartId, isTrackMovingMode, handleMouseUp, handlePartMouseUp, ui.isQuantizeEnabled, bpm, timeSignature, ppqn, isSelectingClips, selectionStart, selectionEnd, trackHeights, ui, startTime, isResizingPart, resizePartId, resizeStart, resizeSide, resizePreview, editingPartId, resetPartResizeState, finishMarqueeSelection]);
 
   // ???? ??? ?? ???
   const handlePartMouseDown = useCallback((partId: string, e: React.MouseEvent) => {
