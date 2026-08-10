@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
+import { canOpenPartEditor, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
 import type { Project } from '../../src/types/project';
 
 type TestFn = () => void | Promise<void>;
@@ -88,6 +89,61 @@ function makeSmfBinary(opts: { format: 0 | 1 | 2; tracks: number; timeDivision: 
 
 console.log('Unit tests (runtime-importing src/*)\n');
 console.log('='.repeat(60));
+
+test('getPartClickSelectionMode ignores clicks after dragging', () => {
+  assert.equal(getPartClickSelectionMode({
+    hasDraggedPart: true,
+    isDraggingPart: false,
+    ctrlKey: false,
+    metaKey: false,
+    shiftKey: false,
+  }), 'ignore');
+  assert.equal(getPartClickSelectionMode({
+    hasDraggedPart: false,
+    isDraggingPart: true,
+    ctrlKey: false,
+    metaKey: false,
+    shiftKey: false,
+  }), 'ignore');
+});
+
+test('getPartClickSelectionMode toggles selection with modifier keys', () => {
+  const baseParams = {
+    hasDraggedPart: false,
+    isDraggingPart: false,
+    ctrlKey: false,
+    metaKey: false,
+    shiftKey: false,
+  };
+
+  assert.equal(getPartClickSelectionMode({ ...baseParams, ctrlKey: true }), 'toggle');
+  assert.equal(getPartClickSelectionMode({ ...baseParams, metaKey: true }), 'toggle');
+  assert.equal(getPartClickSelectionMode({ ...baseParams, shiftKey: true }), 'toggle');
+  assert.equal(getPartClickSelectionMode(baseParams), 'replace');
+});
+
+test('canOpenPartEditor rejects active cursor and drag states', () => {
+  assert.equal(canOpenPartEditor({
+    hasActiveCursorMode: false,
+    hasDraggedPart: false,
+    isDraggingPart: false,
+  }), true);
+  assert.equal(canOpenPartEditor({
+    hasActiveCursorMode: true,
+    hasDraggedPart: false,
+    isDraggingPart: false,
+  }), false);
+  assert.equal(canOpenPartEditor({
+    hasActiveCursorMode: false,
+    hasDraggedPart: true,
+    isDraggingPart: false,
+  }), false);
+  assert.equal(canOpenPartEditor({
+    hasActiveCursorMode: false,
+    hasDraggedPart: false,
+    isDraggingPart: true,
+  }), false);
+});
 
 test('ticksToSeconds (tempoMap): startTick and duration are both correct (constant tempo)', () => {
   const tempoMap = [{ tick: 0, mpqn: bpmToMpqn(120) }];
@@ -441,4 +497,3 @@ test('ticksToMeasure respects beat unit (6/8)', () => {
 console.log('\n' + '='.repeat(60));
 console.log(`\nResult: ${passCount}/${testCount} passed`);
 if (failCount > 0) process.exit(1);
-

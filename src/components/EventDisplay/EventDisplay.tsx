@@ -22,6 +22,7 @@ import {
   calculateSplitPreviewX,
   calculateSplitMeasure
 } from './EventDisplayCalculations';
+import { canOpenPartEditor, getPartClickSelectionMode } from './EventDisplayLogic';
 
 const MidiEditor = React.lazy(() => import('../MidiEditor/MidiEditor'));
 
@@ -1717,18 +1718,21 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
 
   // ?? ?? ??? (?? ?? - ???)
   const handlePartClick = useCallback((partId: string, e: React.MouseEvent) => {
-    // ???? ????? ?? ??
-    if (hasDraggedPart || isDraggingPart) {
+    const selectionMode = getPartClickSelectionMode({
+      hasDraggedPart,
+      isDraggingPart,
+      ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey,
+      shiftKey: e.shiftKey,
+    });
+
+    if (selectionMode === 'ignore') {
       return;
     }
     
     e.stopPropagation();
     
-    // Ctrl/Cmd ?? ??? ??? ?? ?? (??)
-    if (e.ctrlKey || e.metaKey) {
-      ui.toggleSelectedClipId(partId);
-    } else if (e.shiftKey) {
-      // Shift ?? ??? ??? ?? ?? (?? ?? ?? ?)
+    if (selectionMode === 'toggle') {
       ui.toggleSelectedClipId(partId);
     } else {
       // ?? ??
@@ -1744,13 +1748,11 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   
   // ???? ???? ??? (??????? ?? ??)
   const handlePartDoubleClick = useCallback((partId: string, e: React.MouseEvent) => {
-    // ?? ??? null? ??? ?? ???? ?? ??
-    if (ui.cursorMode !== null) {
-      return;
-    }
-    
-    // ??? ???? ??? ???? ????? ???? ??
-    if (isDraggingPart || hasDraggedPart) {
+    if (!canOpenPartEditor({
+      hasActiveCursorMode: ui.cursorMode !== null,
+      hasDraggedPart,
+      isDraggingPart,
+    })) {
       return;
     }
 

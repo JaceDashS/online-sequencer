@@ -1,17 +1,47 @@
+export type PartClickSelectionMode = 'ignore' | 'toggle' | 'replace';
+
+interface GetPartClickSelectionModeParams {
+  hasDraggedPart: boolean;
+  isDraggingPart: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+}
+
+interface CanOpenPartEditorParams {
+  hasActiveCursorMode: boolean;
+  hasDraggedPart: boolean;
+  isDraggingPart: boolean;
+}
+
 /**
- * EventDisplay 이벤트 핸들러 로직
- * 
- * 이 파일은 EventDisplay.tsx의 이벤트 핸들러 로직을 분리하여 관리합니다.
- * 점진적으로 핸들러들을 이 파일로 이동할 예정입니다.
- * 
- * 현재 상태: 기본 구조 및 타입 정의만 완료. 실제 핸들러 추출은 다음 단계에서 진행.
+ * 클립 클릭 시 적용할 선택 방식을 결정합니다.
  */
+export function getPartClickSelectionMode({
+  hasDraggedPart,
+  isDraggingPart,
+  ctrlKey,
+  metaKey,
+  shiftKey,
+}: GetPartClickSelectionModeParams): PartClickSelectionMode {
+  if (hasDraggedPart || isDraggingPart) {
+    return 'ignore';
+  }
 
-// TODO: 다음 단계에서 실제 핸들러 함수들을 이 파일로 이동
-// - 드래그 관련 핸들러
-// - 리사이즈 관련 핸들러  
-// - 스플릿 관련 핸들러
-// - 기타 이벤트 핸들러 (클릭, 더블클릭 등)
+  if (ctrlKey || metaKey || shiftKey) {
+    return 'toggle';
+  }
 
-export {};
+  return 'replace';
+}
 
+/**
+ * 현재 상호작용 상태에서 MIDI 편집기를 열 수 있는지 확인합니다.
+ */
+export function canOpenPartEditor({
+  hasActiveCursorMode,
+  hasDraggedPart,
+  isDraggingPart,
+}: CanOpenPartEditorParams): boolean {
+  return !hasActiveCursorMode && !hasDraggedPart && !isDraggingPart;
+}
