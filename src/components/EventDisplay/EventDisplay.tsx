@@ -645,6 +645,25 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
   const [resizeStart, setResizeStart] = useState<{ x: number; originalDurationTicks: number; originalStartTick: number } | null>(null);
   const [resizePreview, setResizePreview] = useState<{ startTick: number; durationTicks: number } | null>(null);
 
+  const discardPendingPartUpdate = useCallback(() => {
+    if (pendingUpdateTimerRef.current === null) {
+      return;
+    }
+
+    window.clearTimeout(pendingUpdateTimerRef.current);
+    pendingUpdateTimerRef.current = null;
+    pendingHistoryEntriesRef.current = null;
+    isHistoryFlushedRef.current = false;
+  }, []);
+
+  const resetPartResizeState = useCallback(() => {
+    setIsResizingPart(false);
+    setResizePartId(null);
+    setResizeSide(null);
+    setResizeStart(null);
+    setResizePreview(null);
+  }, []);
+
   // ???? ? ?? ??
   useEffect(() => {
     if (isResizingPart) {
@@ -1519,18 +1538,10 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
           }
         }
         
-        setIsResizingPart(false);
-        setResizePartId(null);
-        setResizeSide(null);
-        setResizeStart(null);
-        setResizePreview(null);
+        resetPartResizeState();
       } else if (isResizingPart && editingPartId) {
         // MidiEditor? ???? ? ???? ??? ??? (????? ???? ??)
-        setIsResizingPart(false);
-        setResizePartId(null);
-        setResizeSide(null);
-        setResizeStart(null);
-        setResizePreview(null);
+        resetPartResizeState();
       }
     };
 
@@ -1543,7 +1554,7 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, isDraggingPart, partDragStart, draggedPartId, isTrackMovingMode, handleMouseUp, handlePartMouseUp, ui.isQuantizeEnabled, bpm, timeSignature, ppqn, isSelectingClips, selectionStart, selectionEnd, trackHeights, ui, startTime, isResizingPart, resizePartId, resizeStart, resizeSide, resizePreview, editingPartId]);
+  }, [isDragging, dragStart, dragCurrent, pixelsPerSecond, isDraggingPart, partDragStart, draggedPartId, isTrackMovingMode, handleMouseUp, handlePartMouseUp, ui.isQuantizeEnabled, bpm, timeSignature, ppqn, isSelectingClips, selectionStart, selectionEnd, trackHeights, ui, startTime, isResizingPart, resizePartId, resizeStart, resizeSide, resizePreview, editingPartId, resetPartResizeState]);
 
   // ???? ??? ?? ???
   const handlePartMouseDown = useCallback((partId: string, e: React.MouseEvent) => {
@@ -1759,39 +1770,16 @@ const EventDisplay: React.FC<EventDisplayProps> = ({
     e.stopPropagation();
     e.preventDefault();
     
-    // ??? ???? ?? ??? ?? (?????? MidiEditor? ? ? ? ?? ??? ????? ???? ???)
-    if (pendingUpdateTimerRef.current !== null) {
-      window.clearTimeout(pendingUpdateTimerRef.current);
-      pendingUpdateTimerRef.current = null;
-      pendingHistoryEntriesRef.current = null; // ???? ???? ???
-      isHistoryFlushedRef.current = false;
-    }
+    discardPendingPartUpdate();
 
     // MidiEditor? ? ? ?? ??? ? ???? ?? ?? ??? (???? ?? ??)
     if (isResizingPart) {
-      setIsResizingPart(false);
-      setResizePartId(null);
-      setResizeSide(null);
-      setResizeStart(null);
-      setResizePreview(null);
-    }
-
-    // ??? ??? ??? ???
-    if (isDraggingPart) {
-      ui.setIsDraggingPart(false);
-      setDraggedPartId(null);
-      setDraggedPartsInfo([]);
-      setPartDragStart(null);
-      partDragOffsetRef.current = { x: 0, y: 0 };
-      setPartDragOffset({ x: 0, y: 0 });
-      setIsTrackMovingMode(false);
-      setIsCtrlPressedDuringDrag(false);
-      setHasDraggedPart(false);
+      resetPartResizeState();
     }
 
     setEditingPartId(partId);
     ui.setEditingPartId(partId);
-  }, [isDraggingPart, hasDraggedPart, isResizingPart, ui]);
+  }, [discardPendingPartUpdate, isDraggingPart, hasDraggedPart, isResizingPart, resetPartResizeState, ui]);
 
   // ??? ????? ?? ???? ?? ?? (undo ?? ? ??)
   useEffect(() => {
