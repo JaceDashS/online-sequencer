@@ -12,19 +12,17 @@
     "electron:build:main": "tsc -p tsconfig.electron.json && tsc -p tsconfig.electron.preload.json",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "npm run test:case --",
-    "test:case": "node case-tests/index.cjs",
-    "test:case:list": "node case-tests/index.cjs --list",
-    "test:case:all": "node case-tests/index.cjs --all",
+    "test": "npm run test:integration",
+    "test:integration": "npm run test:unit && npm run test:store && npm run test:history && npm run test:sync && npm run test:midi-all",
     "test:unit": "tsx scripts/unit-tests/index.ts && tsx scripts/unit-tests/ppqn-tests.ts",
     "test:sync": "tsx scripts/sync-tests/index.ts",
     "test:history": "tsx scripts/history-tests/index.ts",
     "test:store": "tsx scripts/store-tests/index.ts",
-    "test:tracklist": "node scripts/tracklist-tests/index.cjs",
     "test:midi-tick": "tsx scripts/midi-tick-tests/index.ts",
     "test:midi-migration": "tsx scripts/midi-migration-tests/index.ts",
     "test:midi-edge": "tsx scripts/midi-edge-tests/index.ts",
-    "test:midi-all": "npm run test:midi-tick && npm run test:midi-migration && npm run test:midi-edge"
+    "test:midi-all": "npm run test:midi-tick && npm run test:midi-migration && npm run test:midi-edge",
+    "qa": "vite --open /qa"
   },
   "dependencies": {
     "dotenv": "^17.2.3",

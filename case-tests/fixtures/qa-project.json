@@ -1,0 +1,101 @@
+{
+  "version": 2,
+  "timing": {
+    "ppqn": 480,
+    "tempoMap": [
+      { "tick": 0, "mpqn": 500000 }
+    ],
+    "timeSigMap": [
+      { "tick": 0, "num": 4, "den": 4 }
+    ]
+  },
+  "tracks": [
+    {
+      "id": "qa-track-1",
+      "name": "QA Piano",
+      "instrument": "piano",
+      "volume": 0.8,
+      "pan": -0.25,
+      "effects": [],
+      "solo": false,
+      "mute": false,
+      "mutedBySolo": false
+    },
+    {
+      "id": "qa-track-2",
+      "name": "QA Long Part",
+      "instrument": "piano",
+      "volume": 0.7,
+      "pan": 0.25,
+      "effects": [],
+      "solo": false,
+      "mute": false,
+      "mutedBySolo": false
+    },
+    {
+      "id": "qa-track-3",
+      "name": "QA Empty Track",
+      "instrument": "drum",
+      "volume": 0.75,
+      "pan": 0,
+      "effects": [],
+      "solo": false,
+      "mute": false,
+      "mutedBySolo": false
+    }
+  ],
+  "midiParts": [
+    {
+      "id": "qa-short-1",
+      "trackId": "qa-track-1",
+      "startTick": 0,
+      "durationTicks": 960,
+      "notes": [
+        { "note": 60, "velocity": 96, "channel": 0, "startTick": 0, "durationTicks": 360 },
+        { "note": 64, "velocity": 88, "channel": 0, "startTick": 480, "durationTicks": 360 }
+      ]
+    },
+    {
+      "id": "qa-short-2",
+      "trackId": "qa-track-1",
+      "startTick": 1440,
+      "durationTicks": 960,
+      "notes": [
+        { "note": 62, "velocity": 90, "channel": 0, "startTick": 0, "durationTicks": 240 },
+        { "note": 65, "velocity": 84, "channel": 0, "startTick": 480, "durationTicks": 480 }
+      ]
+    },
+    {
+      "id": "qa-short-3",
+      "trackId": "qa-track-1",
+      "startTick": 2880,
+      "durationTicks": 960,
+      "notes": [
+        { "note": 67, "velocity": 92, "channel": 0, "startTick": 0, "durationTicks": 480 },
+        { "note": 71, "velocity": 86, "channel": 0, "startTick": 480, "durationTicks": 360 }
+      ]
+    },
+    {
+      "id": "qa-long-1",
+      "trackId": "qa-track-2",
+      "startTick": 480,
+      "durationTicks": 7200,
+      "notes": [
+        { "note": 48, "velocity": 78, "channel": 1, "startTick": 0, "durationTicks": 1440 },
+        { "note": 52, "velocity": 82, "channel": 1, "startTick": 1440, "durationTicks": 1440 },
+        { "note": 55, "velocity": 86, "channel": 1, "startTick": 2880, "durationTicks": 1920 },
+        { "note": 57, "velocity": 80, "channel": 1, "startTick": 5040, "durationTicks": 1440 }
+      ],
+      "controlChanges": [
+        { "tick": 0, "controller": 64, "value": 0, "channel": 1 },
+        { "tick": 1440, "controller": 64, "value": 127, "channel": 1 },
+        { "tick": 2880, "controller": 64, "value": 0, "channel": 1 }
+      ]
+    }
+  ],
+  "masterVolume": 0.8,
+  "masterPan": 0,
+  "masterEffects": [],
+  "exportRangeMeasureStart": 0,
+  "exportRangeMeasureEnd": 4
+}

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom';
 import DawPage from './pages/DawPage';
 import { UIProvider } from './store/uiStore';
@@ -6,6 +7,10 @@ import MobileNotSupported from './components/MobileNotSupported';
 import { useWindowWidth } from './hooks/useWindowWidth';
 import { BREAKPOINTS } from './constants/ui';
 import './App.css';
+
+const QaPage = import.meta.env.DEV
+  ? lazy(() => import('./pages/QaPage'))
+  : null;
 
 function App() {
   const windowWidth = useWindowWidth();
@@ -25,6 +30,16 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<DawPage />} />
+          {QaPage && (
+            <Route
+              path="/qa"
+              element={(
+                <Suspense fallback={<div>QA 화면을 불러오는 중입니다...</div>}>
+                  <QaPage />
+                </Suspense>
+              )}
+            />
+          )}
         </Routes>
       </Router>
       <ToastContainer />
