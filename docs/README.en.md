@@ -2,11 +2,13 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-28
 
 ---
 
 This folder contains all documentation for the Online DAW project.
+
+See [`testing.en.md`](testing.en.md) for the testing workflow.
 
 ## Folder Structure
 
@@ -84,19 +86,22 @@ Documents that explain system structure, design decisions, optimization techniqu
 
 ## Testing
 
-### Automated Tests
-- `npm run test:unit`: Core compliance tests including tempo map-based time conversion and SMF export same-tick event ordering
-- `npm run test:midi-all`: Existing MIDI-related regression tests
+### Script Integration Tests
+- `npm test`: Runs the unit, store, history, sync, and MIDI groups in sequence
+- `npm run test:unit`: Core compliance tests that import production source
+- `npm run test:midi-all`: Production MIDI conversion, migration, and edge regression tests
 - `npm run test:history`: History undo/redo regression tests
 - `npm run test:store`: Store module verification tests
+- `npm run test:sync`: Collaboration state synchronization module tests
 
-### Manual Case Tests
-- `npm run test:case:list`: Lists manual case test suites
-- `npm run test:case`: Opens the manual case test menu
-- `npm test`: Alias for `npm run test:case`
+### Browser and User Integration Tests
+- `npm run qa`: Starts the development server and opens the `/qa` integration console
+- Codex browser baseline: Chromium at 1280×720
+- Direct user scope: listening, devices, external networks, Electron, and Firefox
+- Detailed policy: [`testing.en.md`](testing.en.md)
 
 ---
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-28

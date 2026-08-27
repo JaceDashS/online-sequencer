@@ -2,11 +2,13 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-28
 
 ---
 
 이 폴더는 Online DAW 프로젝트의 모든 문서를 포함합니다.
+
+테스트 운영 기준은 [`testing.ko.md`](testing.ko.md)를 참고하십시오.
 
 ## 폴더 구조
 
@@ -136,19 +138,22 @@ mindmap
 
 ## 테스트
 
-### 자동 테스트
-- `npm run test:unit`: 템포맵 기반 시간 변환, SMF export 동일 tick 이벤트 정렬 등 핵심 정합성 테스트
-- `npm run test:midi-all`: 기존 MIDI 관련 회귀 테스트
+### 스크립트 통합 테스트
+- `npm test`: unit, store, history, sync, MIDI 묶음을 큰 단위로 순차 실행
+- `npm run test:unit`: 실제 소스를 불러오는 핵심 정합성 테스트
+- `npm run test:midi-all`: 실제 MIDI 변환·마이그레이션·경계값 회귀 테스트
 - `npm run test:history`: 히스토리 undo/redo 회귀 테스트
 - `npm run test:store`: store 모듈 검증 테스트
+- `npm run test:sync`: 협업 상태 동기화 모듈 검증 테스트
 
-### 수동 케이스 테스트
-- `npm run test:case:list`: 수동 케이스 테스트 suite 목록 출력
-- `npm run test:case`: 수동 케이스 테스트 메뉴 열기
-- `npm test`: `npm run test:case` 별칭
+### 브라우저 및 사용자 통합 테스트
+- `npm run qa`: 개발 서버를 시작하고 `/qa` 통합 테스트 화면 열기
+- Codex 브라우저 기준: Chromium 1280×720
+- 사용자 확인 범위: 실제 청취·장치·외부망·Electron·Firefox
+- 상세 정책: [`testing.ko.md`](testing.ko.md)
 
 ---
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-28

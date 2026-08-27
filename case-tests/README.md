@@ -1,157 +1,43 @@
-# 케이스 테스트
+# 통합 테스트 참고 자료
 
-## 실행
-- 목록 확인: `npm run test:case:list`
-- 메뉴 실행: `npm run test:case`
-- 전체 suite 순차 실행: `npm run test:case:all`
-- 기존 별칭: `npm test`는 `npm run test:case`와 동일
+현재 실행 진입점은 터미널 메뉴가 아니라 개발 전용 `/qa` 화면입니다.
 
-## 운영 방식
-- `case-tests/index.cjs`는 suite 메뉴를 표시하고 `scripts/*-tests` 러너를 실행한다.
-- 각 suite 러너는 대응하는 `.cases.json` 목록과 `.md` 절차 문서를 함께 사용한다.
-- 이 케이스 테스트는 브라우저 E2E 자동화가 아니라 수동 확인을 기록하기 위한 실행 보조 도구다.
-- 아래 `CT-*` 항목은 공통 개요 체크리스트이며, 실제 메뉴에 표시되는 실행 suite는 `실행 suite` 표를 따른다.
+## 실행 순서
 
-## 범위
-- UI 레이아웃, 트랙 리스트, 타임라인, 인스펙터, 믹서 패널
-- MIDI 클립 생성, 선택, 분할, 병합, 이동, 리사이즈
-- 단축키와 실행 취소/다시 실행 동작
-- 템포(BPM) 및 박자표 변경
+1. `npm test`로 스크립트 통합 테스트를 실행합니다.
+2. `npm run qa`로 개발 서버와 QA 화면을 엽니다.
+3. QA 화면에서 Codex 브라우저 시나리오를 큰 시나리오부터 실행합니다.
+4. 청취, 실제 장치, 외부 네트워크, Electron처럼 자동 조작할 수 없는 항목만 사용자가 직접 확인합니다.
+5. QA 화면의 `결과 JSON 내보내기`로 실행 기록을 보관합니다.
 
-## 환경
-- 브라우저: Chromium 계열, Firefox
-- OS: Windows
-- 앱: Vite 개발 서버
+## 판정
 
-## 테스트 데이터
-- 트랙 3개가 있는 프로젝트
-- 트랙 1: 짧은 MIDI 클립 여러 개
-- 트랙 2: 긴 MIDI 클립 1개
-- 트랙 3: 비어 있음
+- `PASS`: 기대 결과가 모두 확인됨
+- `FAIL`: 제품 동작이 기대 결과와 다름. 재현 조건과 실제 결과를 메모에 기록해야 함
+- `BLOCKED`: 서버, 장치, 권한 등 외부 조건 때문에 실행할 수 없음. 제품 실패로 집계하지 않음
+- `NOT RUN`: 아직 실행하지 않음
 
-## 공통 개요 체크리스트
+협업 서버가 응답하지 않거나 API URL이 설정되지 않으면 서버 의존 시나리오만 자동으로 `BLOCKED` 처리됩니다. 서버와 무관한 편집·UI·파일 시나리오는 계속 실행합니다.
 
-### CT-001 앱 로드 및 기본 패널 렌더링
-사전조건: 새로고침 후 최초 진입
-절차:
-1. 앱 루트 페이지를 연다
-2. 툴바, 트랙 리스트, 타임라인, 인스펙터, 믹서가 보이는지 확인한다
-기대결과:
-- 모든 패널이 오류 없이 렌더링된다
+## 기준 환경과 데이터
 
-### CT-003 인스펙터 리사이즈
-사전조건: 인스펙터 표시 상태
-절차:
-1. 인스펙터 리사이즈 핸들을 드래그해 너비를 늘린다
-2. 다시 드래그해 너비를 줄인다
-기대결과:
-- 최소/최대 범위 내에서 너비가 부드럽게 변경된다
+- Codex 브라우저 기준: Chromium, 1280×720, DPR 1.5
+- 사용자 확장 확인: Firefox, 실제 사용 창 크기와 확대율
+- 고정 프로젝트: [`fixtures/qa-project.json`](fixtures/qa-project.json)
+- 구성: 트랙 3개, 짧은 MIDI 파트 3개, 긴 MIDI 파트 1개, 빈 트랙 1개
 
-### CT-004 믹서 리사이즈
-사전조건: 믹서 표시 상태
-절차:
-1. 믹서 리사이즈 핸들을 드래그해 높이를 늘린다
-2. 다시 드래그해 높이를 줄인다
-기대결과:
-- 최소/최대 범위 내에서 높이가 부드럽게 변경된다
+## 상세 케이스 자료
 
-### CT-009 MIDI 클립 선택
-사전조건: 클립이 존재
-절차:
-1. 타임라인에서 MIDI 클립을 클릭한다
-기대결과:
-- 클립이 하이라이트된다
-- 클립의 트랙이 선택 상태가 된다
+아래 JSON과 Markdown의 기존 99개 케이스는 `/qa`의 큰 시나리오와 집중 시나리오로 통합했습니다. 별도 터미널 러너는 더 이상 사용하지 않습니다.
 
-### CT-010 다중 클립 선택
-사전조건: 다수의 클립 존재
-절차:
-1. 타임라인에서 드래그하여 영역 선택한다
-기대결과:
-- 선택 영역과 겹치는 클립이 모두 선택된다
-
-### CT-011 선택 클립 삭제
-사전조건: 선택된 클립이 1개 이상
-절차:
-1. Delete 또는 Backspace를 누른다
-기대결과:
-- 선택된 클립이 삭제된다
-- 선택 상태가 해제된다
-
-### CT-012 Alt로 클립 분할
-사전조건: 클립이 존재
-절차:
-1. 클립 위에 마우스를 올린다
-2. Alt를 누른 채 클립 위를 이동한다
-3. 클릭하여 분할한다
-기대결과:
-- 미리보기 라인 위치에서 클립이 두 개로 분할된다
-
-### CT-013 3번 키로 분할 모드 토글
-사전조건: 클립이 존재
-절차:
-1. 3번 키로 분할 모드를 활성화한다
-2. 클립을 분할한다
-3. 1번 키로 모드를 종료한다
-기대결과:
-- 분할 모드가 정상적으로 켜지고 꺼진다
-
-### CT-014 4번 키와 Enter로 클립 병합
-사전조건: 같은 트랙에 클립 2개 이상
-절차:
-1. 4번 키로 병합 모드를 활성화한다
-2. 같은 트랙의 클립 두 개를 선택한다
-3. Enter를 누른다
-기대결과:
-- 선택된 클립이 하나로 병합된다
-
-### CT-015 실행 취소/다시 실행
-사전조건: 분할 또는 병합 수행
-절차:
-1. Ctrl+Z 또는 Cmd+Z를 누른다
-2. Ctrl+Y 또는 Ctrl+Shift+Z를 누른다
-기대결과:
-- 실행 취소로 이전 상태로 돌아간다
-- 다시 실행으로 변경이 복원된다
-
-### CT-015-1 새로 생성한 MIDI 파트의 Undo/Redo 후 노트 소실
-사전조건: 새 MIDI 파트를 생성할 수 있는 상태
-절차:
-1. 새 MIDI 파트를 생성하고 노트를 입력한다
-2. Ctrl+Z 또는 Cmd+Z로 파트를 삭제 상태로 되돌린다
-3. Ctrl+Y 또는 Ctrl+Shift+Z로 다시 실행한다
-기대결과:
-- 다시 실행 후에도 MIDI 파트의 노트가 유지되어야 한다
-
-### CT-016 BPM 변경 전파
-사전조건: 프로젝트 로드 완료
-절차:
-1. 툴바에서 BPM을 변경한다
-기대결과:
-- 타임라인 스케일과 룰러가 새 BPM으로 갱신된다
-
-### CT-017 박자표 변경 전파
-사전조건: 프로젝트 로드 완료
-절차:
-1. 툴바에서 박자표를 변경한다
-기대결과:
-- 마디 룰러가 새 박자표로 갱신된다
-
-## 회귀 체크리스트
-- 앱 로드 후 콘솔 에러 없음 확인
-- 트랙 추가/삭제 정상 동작
-- 클립 선택, 분할, 병합, 실행 취소/다시 실행
-- BPM 및 박자표 변경 시 룰러 갱신
-
-## 실행 suite
-
-| 메뉴 | Suite | 케이스 목록 | 절차 문서 | 러너 |
-|------|-------|-------------|-----------|------|
-| 1 | Tracklist | [tracklist.cases.json](tracklist.cases.json) | [tracklist.md](tracklist.md) | [scripts/tracklist-tests](../scripts/tracklist-tests/index.cjs) |
-| 2 | EventDisplay | [eventdisplay.cases.json](eventdisplay.cases.json) | [eventdisplay.md](eventdisplay.md) | [scripts/eventdisplay-tests](../scripts/eventdisplay-tests/index.cjs) |
-| 3 | Shortcuts | [shortcuts.cases.json](shortcuts.cases.json) | [shortcuts.md](shortcuts.md) | [scripts/shortcuts-tests](../scripts/shortcuts-tests/index.cjs) |
-| 4 | Toolbar | [toolbar.cases.json](toolbar.cases.json) | [toolbar.md](toolbar.md) | [scripts/toolbar-tests](../scripts/toolbar-tests/index.cjs) |
-| 5 | Mixer | [mixer.cases.json](mixer.cases.json) | [mixer.md](mixer.md) | [scripts/mixer-tests](../scripts/mixer-tests/index.cjs) |
-| 6 | Inspector | [inspector.cases.json](inspector.cases.json) | [inspector.md](inspector.md) | [scripts/inspector-tests](../scripts/inspector-tests/index.cjs) |
-| 7 | Ruler | [ruler.cases.json](ruler.cases.json) | [ruler.md](ruler.md) | [scripts/ruler-tests](../scripts/ruler-tests/index.cjs) |
-| 8 | MidiEditor | [midieditor.cases.json](midieditor.cases.json) | [midieditor.md](midieditor.md) | [scripts/midieditor-tests](../scripts/midieditor-tests/index.cjs) |
+| 기존 영역 | 케이스 수 | 새 QA 시나리오 | 케이스 목록 | 상세 절차 |
+|---|---:|---|---|---|
+| Tracklist | 13 | `BR-LARGE-01`, `BR-UI-01`, `BR-TRACK-01` | [tracklist.cases.json](tracklist.cases.json) | [tracklist.md](tracklist.md) |
+| EventDisplay | 21 | `BR-LARGE-01`, `BR-PART-01`, `BR-EDIT-01` | [eventdisplay.cases.json](eventdisplay.cases.json) | [eventdisplay.md](eventdisplay.md) |
+| Shortcuts | 8 | `BR-SHORTCUT-01`, `BR-EDIT-01` | [shortcuts.cases.json](shortcuts.cases.json) | [shortcuts.md](shortcuts.md) |
+| Toolbar | 11 | `BR-LARGE-01`, `BR-UI-01`, `BR-RULER-01`, `BR-SHORTCUT-01`, `USER-LARGE-01`, `USER-PERF-01` | [toolbar.cases.json](toolbar.cases.json) | [toolbar.md](toolbar.md) |
+| Mixer | 13 | `BR-LARGE-01`, `BR-TRACK-01`, `BR-MIX-01`, `USER-LARGE-01` | [mixer.cases.json](mixer.cases.json) | [mixer.md](mixer.md) |
+| Inspector | 6 | `BR-LARGE-01`, `BR-UI-01`, `BR-MIX-01` | [inspector.cases.json](inspector.cases.json) | [inspector.md](inspector.md) |
+| Ruler | 9 | `BR-LARGE-01`, `BR-RULER-01` | [ruler.cases.json](ruler.cases.json) | [ruler.md](ruler.md) |
+| MidiEditor | 18 | `BR-LARGE-01`, `BR-EDIT-01` | [midieditor.cases.json](midieditor.cases.json) | [midieditor.md](midieditor.md) |
+| **합계** | **99** | **19개 큰·집중 시나리오에 통합** |  |  |

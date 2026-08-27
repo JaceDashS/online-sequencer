@@ -59,7 +59,7 @@ online-daw/
 ├── docs/             # Documentation (Architecture, Specs, Manuals)
 ├── electron/         # Electron main and preload processes
 ├── scripts/          # Test and verification scripts
-├── case-tests/       # Manual case test definitions and runner
+├── case-tests/       # QA fixtures and detailed case references
 └── public/           # Static assets (Samples, Icons)
 ```
 
@@ -96,34 +96,28 @@ npm run electron:build
 
 ## Testing
 
-### Automated tests
+### 1. Script integration tests
 
 ```bash
-# Run unit tests
-npm run test:unit
-
-# Run MIDI-related tests
-npm run test:midi-all
-
-# Run history regression tests
-npm run test:history
-
-# Run store module verification tests
-npm run test:store
-```
-
-### Manual case tests
-
-```bash
-# Show available case suites
-npm run test:case:list
-
-# Open the manual case test menu
-npm run test:case
-
-# Alias for the manual case test menu
+# Run the complete integration test suite
 npm test
+
+# Run an individual group when needed
+npm run test:unit
+npm run test:store
+npm run test:history
+npm run test:sync
+npm run test:midi-all
 ```
+
+### 2. Browser and user integration tests
+
+```bash
+# Start the development server and open the QA console
+npm run qa
+```
+
+The QA console is available only at `/qa` in development. Codex browser checks use a 1280×720 baseline. If the server is unavailable, only server-dependent collaboration scenarios become `BLOCKED`; offline scenarios continue. See the [integration testing strategy](docs/testing.en.md) for details.
 
 ## Documentation
 
