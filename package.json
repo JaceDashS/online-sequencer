@@ -16,14 +16,14 @@
     "test:case": "node case-tests/index.cjs",
     "test:case:list": "node case-tests/index.cjs --list",
     "test:case:all": "node case-tests/index.cjs --all",
-    "test:unit": "tsx scripts/unit-tests/index.ts",
+    "test:unit": "tsx scripts/unit-tests/index.ts && tsx scripts/unit-tests/ppqn-tests.ts",
     "test:sync": "tsx scripts/sync-tests/index.ts",
     "test:history": "tsx scripts/history-tests/index.ts",
     "test:store": "tsx scripts/store-tests/index.ts",
     "test:tracklist": "node scripts/tracklist-tests/index.cjs",
-    "test:midi-tick": "node scripts/midi-tick-tests/index.cjs",
-    "test:midi-migration": "node scripts/midi-migration-tests/index.cjs",
-    "test:midi-edge": "node scripts/midi-edge-tests/index.cjs",
+    "test:midi-tick": "tsx scripts/midi-tick-tests/index.ts",
+    "test:midi-migration": "tsx scripts/midi-migration-tests/index.ts",
+    "test:midi-edge": "tsx scripts/midi-edge-tests/index.ts",
     "test:midi-all": "npm run test:midi-tick && npm run test:midi-migration && npm run test:midi-edge"
   },
   "dependencies": {
