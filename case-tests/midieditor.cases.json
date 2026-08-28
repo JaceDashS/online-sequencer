@@ -13,10 +13,10 @@
     { "id": "ME-010", "title": "Double-click opens editor with default cursor" },
     { "id": "ME-011", "title": "Double-click only opens when cursor is null" },
     { "id": "ME-012", "title": "Split mode single click does not create note" },
-    { "id": "ME-013", "title": "Axis lock snap with Alt" },
-    { "id": "ME-014", "title": "Axis lock clone with Ctrl+Alt" },
-    { "id": "ME-015", "title": "Axis lock works while toggling Alt" },
-    { "id": "ME-016", "title": "Axis lock drag does not split other MIDI part" },
+    { "id": "ME-013", "title": "Move notes across time and pitch" },
+    { "id": "ME-014", "title": "Clone notes with Ctrl drag" },
+    { "id": "ME-015", "title": "Toggle clone mode during drag" },
+    { "id": "ME-016", "title": "Prevent split during normal drag" },
     { "id": "ME-017", "title": "Note duplicate (Ctrl + drag)" },
     { "id": "ME-018", "title": "Multi-note clone undo: all cloned notes removed at once" }
   ]
