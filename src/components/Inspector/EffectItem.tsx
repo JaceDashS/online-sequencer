@@ -329,6 +329,16 @@ const EffectItem: React.FC<EffectItemProps> = ({ effect, effectIndex, trackId, o
     setDragOverIndex(null);
   }, []);
 
+  const handleDragKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!isDraggable || !onReorder) return;
+
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const direction = e.key === 'ArrowUp' ? -1 : 1;
+      onReorder(trackId, effectIndex, effectIndex + direction);
+    }
+  }, [effectIndex, isDraggable, onReorder, trackId]);
+
   return (
     <div 
       ref={dragRef}
@@ -339,12 +349,17 @@ const EffectItem: React.FC<EffectItemProps> = ({ effect, effectIndex, trackId, o
         <div 
           className={styles.dragHandle}
           draggable={isDraggable}
+          role="button"
+          tabIndex={0}
+          aria-label={`Move ${effect.type} effect ${effectIndex + 1}`}
+          title="Move effect with Arrow Up or Arrow Down"
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
+          onKeyDown={handleDragKeyDown}
         />
       )}
         <div className={styles.effectHeader}>
