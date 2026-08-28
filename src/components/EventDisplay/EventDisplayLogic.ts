@@ -47,12 +47,11 @@ export function createPartDragResetState(): PartDragResetState {
  */
 export function getPartClickSelectionMode({
   hasDraggedPart,
-  isDraggingPart,
   ctrlKey,
   metaKey,
   shiftKey,
 }: GetPartClickSelectionModeParams): PartClickSelectionMode {
-  if (hasDraggedPart || isDraggingPart) {
+  if (hasDraggedPart) {
     return 'ignore';
   }
 

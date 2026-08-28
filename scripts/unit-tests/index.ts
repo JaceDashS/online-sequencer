@@ -91,7 +91,7 @@ function makeSmfBinary(opts: { format: 0 | 1 | 2; tracks: number; timeDivision: 
 console.log('Unit tests (runtime-importing src/*)\n');
 console.log('='.repeat(60));
 
-test('getPartClickSelectionMode ignores clicks after dragging', () => {
+test('getPartClickSelectionMode ignores clicks only after actual movement', () => {
   assert.equal(getPartClickSelectionMode({
     hasDraggedPart: true,
     isDraggingPart: false,
@@ -105,7 +105,14 @@ test('getPartClickSelectionMode ignores clicks after dragging', () => {
     ctrlKey: false,
     metaKey: false,
     shiftKey: false,
-  }), 'ignore');
+  }), 'replace');
+  assert.equal(getPartClickSelectionMode({
+    hasDraggedPart: false,
+    isDraggingPart: true,
+    ctrlKey: true,
+    metaKey: false,
+    shiftKey: false,
+  }), 'toggle');
 });
 
 test('getPartClickSelectionMode toggles selection with modifier keys', () => {
