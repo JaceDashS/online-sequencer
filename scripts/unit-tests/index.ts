@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
+import { buildPlaybackEvents } from '../../src/core/audio/buildPlaybackEvents';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
 import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
 import { calculateMarqueeSelectedPartIds, calculatePartDropPosition, calculatePartResizePreview, calculateSelectionRectangle, calculateSplitPreviewX, rebasePartNotesToStartTick } from '../../src/components/EventDisplay/EventDisplayCalculations';
@@ -785,6 +786,69 @@ test('ticksToMeasure respects beat unit (6/8)', () => {
   const { measureStart, measureDuration } = ticksToMeasure(1440, 1440, [6, 8], ppqn);
   approxEqual(measureStart, 1, 1e-9);
   approxEqual(measureDuration, 1, 1e-9);
+});
+
+test('buildPlaybackEvents isolates sustain by track and MIDI channel', () => {
+  const track = (id: string) => ({
+    id,
+    name: id,
+    instrument: 'piano',
+    volume: 1,
+    pan: 0,
+    effects: [],
+    solo: false,
+    mute: false,
+    mutedBySolo: false,
+  });
+  const project: Project = {
+    version: 2,
+    timing: {
+      ppqn: 480,
+      tempoMap: [{ tick: 0, mpqn: bpmToMpqn(120) }],
+      timeSigMap: [{ tick: 0, num: 4, den: 4 }],
+    },
+    bpm: 120,
+    timeSignature: [4, 4],
+    tracks: [track('pedal-track'), track('other-track')],
+    midiParts: [
+      {
+        id: 'pedal-part',
+        trackId: 'pedal-track',
+        startTick: 0,
+        durationTicks: 960,
+        notes: [
+          { note: 60, velocity: 100, channel: 0, startTick: 120, durationTicks: 120 },
+          { note: 62, velocity: 100, channel: 1, startTick: 120, durationTicks: 120 },
+        ],
+        controlChanges: [
+          { tick: 0, controller: 64, value: 127, channel: 0 },
+          { tick: 960, controller: 64, value: 0, channel: 0 },
+        ],
+      },
+      {
+        id: 'other-part',
+        trackId: 'other-track',
+        startTick: 0,
+        durationTicks: 480,
+        notes: [
+          { note: 64, velocity: 100, channel: 0, startTick: 120, durationTicks: 120 },
+        ],
+      },
+    ],
+    masterVolume: 1,
+    masterPan: 0,
+    masterEffects: [],
+  };
+
+  const events = buildPlaybackEvents(project);
+  const sustained = events.find((event) => event.track.id === 'pedal-track' && event.note.channel === 0);
+  const otherChannel = events.find((event) => event.track.id === 'pedal-track' && event.note.channel === 1);
+  const otherTrack = events.find((event) => event.track.id === 'other-track');
+
+  assert.ok(sustained && otherChannel && otherTrack);
+  approxEqual(sustained.duration, 0.875);
+  approxEqual(otherChannel.duration, 0.125);
+  approxEqual(otherTrack.duration, 0.125);
 });
 
 console.log('\n' + '='.repeat(60));

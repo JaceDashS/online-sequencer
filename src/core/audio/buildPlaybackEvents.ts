@@ -19,6 +19,12 @@ import type { Project, MidiNote, Track } from '../../types/project';
 
 const SUSTAIN_CONTROLLER = 64; // CC64 = Sustain Pedal
 
+type SustainEvent = { time: number; isOn: boolean };
+
+function getSustainKey(trackId: string, channel: number | undefined): string {
+  return `${trackId}:${channel ?? 0}`;
+}
+
 export type NoteEvent = {
   note: MidiNote;
   startTime: number;
@@ -56,8 +62,8 @@ export function buildPlaybackEvents(project: Project): NoteEvent[] {
   const ppqn = getPpqn(project);
   const tempoMap = project.timing?.tempoMap ?? [];
 
-  // Collect all sustain pedal events (CC64) from all parts
-  const sustainEvents: Array<{ time: number; isOn: boolean }> = [];
+  // 서스테인은 같은 트랙과 MIDI 채널의 노트에만 적용한다.
+  const sustainEventsByTrackChannel = new Map<string, SustainEvent[]>();
   for (const part of project.midiParts) {
     if (!part.controlChanges) {
       continue;
@@ -67,11 +73,16 @@ export function buildPlaybackEvents(project: Project): NoteEvent[] {
         const absoluteTick = part.startTick + cc.tick;
         const { startTime } = ticksToSecondsPure(absoluteTick, 0, tempoMap, timeSignature, ppqn);
         const isOn = cc.value >= 64; // CC64 >= 64 means sustain ON
+        const key = getSustainKey(part.trackId, cc.channel);
+        const sustainEvents = sustainEventsByTrackChannel.get(key) ?? [];
         sustainEvents.push({ time: startTime, isOn });
+        sustainEventsByTrackChannel.set(key, sustainEvents);
       }
     }
   }
-  sustainEvents.sort((a, b) => a.time - b.time);
+  for (const sustainEvents of sustainEventsByTrackChannel.values()) {
+    sustainEvents.sort((a, b) => a.time - b.time);
+  }
 
   for (const part of project.midiParts) {
     const track = trackById.get(part.trackId);
@@ -120,6 +131,9 @@ export function buildPlaybackEvents(project: Project): NoteEvent[] {
       // Calculate actual end time considering sustain pedal
       const noteEndTime = startTime + duration;
       let actualEndTime = noteEndTime;
+      const sustainEvents = sustainEventsByTrackChannel.get(
+        getSustainKey(part.trackId, note.channel)
+      ) ?? [];
 
       // If sustain is ON at note end, extend until sustain turns OFF
       const sustainAtNoteEnd = getSustainStateAt(sustainEvents, noteEndTime);
@@ -196,4 +210,3 @@ function findSustainOffTime(
   }
   return null; // Sustain never turns off (or file ends)
 }
-
