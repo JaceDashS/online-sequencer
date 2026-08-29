@@ -17,7 +17,7 @@ Run broad scenarios before focused scenarios for each executor. Use focused scen
 - Broad: complete editing flow, two-browser collaboration flow, listening-based playback flow
 - Focused: panels, track rules, part boundaries, split and merge, ruler, mixer, files, and server recovery
 
-The 99 detailed cases from the eight legacy UI suites are consolidated into 19 broad and focused scenarios. `case-tests/README.md` preserves the mapping from each legacy suite to its new scenarios.
+The 102 detailed cases from the eight legacy UI suites and added regressions are consolidated into 20 broad and focused scenarios. `case-tests/README.md` preserves the mapping from each legacy suite to its new scenarios.
 
 ## Running tests
 
