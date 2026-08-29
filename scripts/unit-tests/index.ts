@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
-import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
+import { importMidiFileToProject, parseSmfFromBinary } from '../../src/core/midi/MidiParser';
 import { buildPlaybackEvents } from '../../src/core/audio/buildPlaybackEvents';
 import { resolveSustainDrawEndTime } from '../../src/hooks/useSustainPedal';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
@@ -856,6 +857,33 @@ test('resolveSustainDrawEndTime preserves drag length and defaults clicks to one
   approxEqual(resolveSustainDrawEndTime(2, 4.5, 50, 0.5), 4.5);
   approxEqual(resolveSustainDrawEndTime(2, 2.02, 50, 0.5), 2.5);
   approxEqual(resolveSustainDrawEndTime(2, undefined, 50, 0.5), 2.5);
+});
+
+test('Glassy Snow applies independent sustain to every measure of both MIDI tracks', () => {
+  const midi = parseSmfFromBinary(
+    readFileSync('public/samples/midi-files/Jace - Glassy Snow.mid')
+  );
+  const measureTicks = midi.header.timeDivision * 4;
+  const endTick = measureTicks * 41;
+
+  for (const trackIndex of [1, 2]) {
+    let absoluteTick = 0;
+    const sustainEvents = midi.tracks[trackIndex].events.flatMap((event) => {
+      absoluteTick += event.deltaTime;
+      return event.type === 'ControlChange' && event.controller === 64
+        ? [{ tick: absoluteTick, value: event.value, channel: event.channel }]
+        : [];
+    });
+
+    const expected = [{ tick: 0, value: 127, channel: 0 }];
+    for (let tick = measureTicks; tick < endTick; tick += measureTicks) {
+      expected.push({ tick, value: 0, channel: 0 });
+      expected.push({ tick, value: 127, channel: 0 });
+    }
+    expected.push({ tick: endTick, value: 0, channel: 0 });
+
+    assert.deepEqual(sustainEvents, expected);
+  }
 });
 
 console.log('\n' + '='.repeat(60));
