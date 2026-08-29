@@ -18,6 +18,9 @@
     { "id": "ME-015", "title": "Toggle clone mode during drag" },
     { "id": "ME-016", "title": "Prevent split during normal drag" },
     { "id": "ME-017", "title": "Note duplicate (Ctrl + drag)" },
-    { "id": "ME-018", "title": "Multi-note clone undo: all cloned notes removed at once" }
+    { "id": "ME-018", "title": "Multi-note clone undo: all cloned notes removed at once" },
+    { "id": "ME-019", "title": "Create sustain range with Alt drag" },
+    { "id": "ME-020", "title": "Resize sustain range from both edges" },
+    { "id": "ME-021", "title": "Persist and redraw edited sustain range" }
   ]
 }

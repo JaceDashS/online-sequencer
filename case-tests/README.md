@@ -39,5 +39,5 @@
 | Mixer | 13 | `BR-LARGE-01`, `BR-TRACK-01`, `BR-MIX-01`, `USER-LARGE-01` | [mixer.cases.json](mixer.cases.json) | [mixer.md](mixer.md) |
 | Inspector | 6 | `BR-LARGE-01`, `BR-UI-01`, `BR-MIX-01` | [inspector.cases.json](inspector.cases.json) | [inspector.md](inspector.md) |
 | Ruler | 9 | `BR-LARGE-01`, `BR-RULER-01` | [ruler.cases.json](ruler.cases.json) | [ruler.md](ruler.md) |
-| MidiEditor | 18 | `BR-LARGE-01`, `BR-EDIT-01` | [midieditor.cases.json](midieditor.cases.json) | [midieditor.md](midieditor.md) |
-| **합계** | **99** | **19개 큰·집중 시나리오에 통합** |  |  |
+| MidiEditor | 21 | `BR-LARGE-01`, `BR-EDIT-01`, `BR-SUSTAIN-01` | [midieditor.cases.json](midieditor.cases.json) | [midieditor.md](midieditor.md) |
+| **합계** | **102** | **20개 큰·집중 시나리오에 통합** |  |  |
