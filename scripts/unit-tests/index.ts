@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { exportProjectToSmf } from '../../src/core/midi/MidiExporter';
 import { importMidiFileToProject } from '../../src/core/midi/MidiParser';
 import { buildPlaybackEvents } from '../../src/core/audio/buildPlaybackEvents';
+import { resolveSustainDrawEndTime } from '../../src/hooks/useSustainPedal';
 import { bpmToMpqn, measureToTicks, ticksToMeasure, ticksToSeconds } from '../../src/utils/midiTickUtils';
 import { canOpenPartEditor, createPartDragResetState, getPartClickSelectionMode } from '../../src/components/EventDisplay/EventDisplayLogic';
 import { calculateMarqueeSelectedPartIds, calculatePartDropPosition, calculatePartResizePreview, calculateSelectionRectangle, calculateSplitPreviewX, rebasePartNotesToStartTick } from '../../src/components/EventDisplay/EventDisplayCalculations';
@@ -849,6 +850,12 @@ test('buildPlaybackEvents isolates sustain by track and MIDI channel', () => {
   approxEqual(sustained.duration, 0.875);
   approxEqual(otherChannel.duration, 0.125);
   approxEqual(otherTrack.duration, 0.125);
+});
+
+test('resolveSustainDrawEndTime preserves drag length and defaults clicks to one beat', () => {
+  approxEqual(resolveSustainDrawEndTime(2, 4.5, 50, 0.5), 4.5);
+  approxEqual(resolveSustainDrawEndTime(2, 2.02, 50, 0.5), 2.5);
+  approxEqual(resolveSustainDrawEndTime(2, undefined, 50, 0.5), 2.5);
 });
 
 console.log('\n' + '='.repeat(60));

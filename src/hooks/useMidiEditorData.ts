@@ -88,6 +88,8 @@ export const useMidiEditorData = (
 
   // Sustain 범위 계산 (CC64 이벤트 기반)
   const sustainRanges = useMemo<SustainRange[]>(() => {
+    // 파트 객체가 제자리에서 갱신되므로 변경 카운터로 CC64 범위를 다시 계산한다.
+    void projectUpdateCounter;
     if (!part?.controlChanges || part.controlChanges.length === 0) return [];
     
     const cc64 = part.controlChanges
@@ -117,7 +119,7 @@ export const useMidiEditorData = (
     }
 
     return ranges;
-  }, [part]);
+  }, [part, projectUpdateCounter]);
 
   // 노트 타이밍 계산 (각 노트의 시작 시간과 지속 시간)
   const noteTimings = useMemo<NoteTiming[]>(() => {

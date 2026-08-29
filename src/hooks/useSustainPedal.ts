@@ -10,6 +10,17 @@ export type SustainRange = {
   endTick: number;
 };
 
+export function resolveSustainDrawEndTime(
+  startTime: number,
+  pointerEndTime: number | undefined,
+  pixelsPerSecond: number,
+  secondsPerBeat: number
+): number {
+  const hasDragged = pointerEndTime !== undefined
+    && Math.abs(pointerEndTime - startTime) * pixelsPerSecond > 2;
+  return hasDragged ? pointerEndTime : startTime + secondsPerBeat;
+}
+
 /**
  * useSustainPedal 훅 Props
  * Phase 7.9.4: 서스테인 페달 로직을 훅으로 추출
@@ -89,8 +100,6 @@ export const useSustainPedal = ({
   const isDrawingSustainRef = useRef(false);
   const [drawingSustain, setDrawingSustain] = useState<{ startTime: number; endTime?: number } | null>(null);
   const drawingSustainRef = useRef<{ startTime: number; endTime?: number } | null>(null);
-  const hasMouseMovedRef = useRef(false);
-  const startMouseXRef = useRef<number | null>(null);
   const [selectedSustainRange, setSelectedSustainRange] = useState<Set<number>>(new Set());
   const [isDraggingSustainRange, setIsDraggingSustainRange] = useState(false);
   const [sustainDragStart, setSustainDragStart] = useState<{ mouseX: number; startTick: number; endTick: number } | null>(null);
@@ -160,14 +169,6 @@ export const useSustainPedal = ({
     }
   }, [partId]);
 
-  // isDrawingSustain이 true가 될 때 마우스 위치 추적 초기화
-  useEffect(() => {
-    if (isDrawingSustain) {
-      hasMouseMovedRef.current = false;
-      startMouseXRef.current = null;
-    }
-  }, [isDrawingSustain]);
-
   useEffect(() => {
     if (!isDrawingSustain && !isDraggingSustainRange && !isResizingSustainRange) {
       return;
@@ -185,10 +186,6 @@ export const useSustainPedal = ({
 
       // ref를 사용하여 최신 값 확인
       if (isDrawingSustainRef.current && drawingSustainRef.current) {
-        // 마우스가 움직였는지 확인 (드래그 감지)
-        if (startMouseXRef.current !== null && Math.abs(x - startMouseXRef.current) > 2) {
-          hasMouseMovedRef.current = true;
-        }
         setDrawingSustain({
           ...drawingSustainRef.current,
           endTime: relativeTime,
@@ -347,9 +344,13 @@ export const useSustainPedal = ({
         
         // 마우스가 움직이지 않았으면 (단순 클릭) 한 박자 길이만큼 생성
         const currentDrawing = drawingSustainRef.current;
-        const endTime = hasMouseMovedRef.current && currentDrawing.endTime !== undefined
-          ? currentDrawing.endTime
-          : currentDrawing.startTime + secondsPerBeat;
+        const currentPixelsPerSecond = pixelsPerSecond || initialPixelsPerSecond;
+        const endTime = resolveSustainDrawEndTime(
+          currentDrawing.startTime,
+          currentDrawing.endTime,
+          currentPixelsPerSecond,
+          secondsPerBeat
+        );
         
         // 퀀타이즈 적용 (마디 기준)
         let rangeStart = currentDrawing.startTime;
@@ -386,8 +387,6 @@ export const useSustainPedal = ({
         setDrawingSustain(null);
         drawingSustainRef.current = null;
         isDrawingSustainRef.current = false;
-        hasMouseMovedRef.current = false;
-        startMouseXRef.current = null;
       }
 
       if (isDraggingSustainRange && sustainDragPreview && selectedSustainRange.size === 1) {
@@ -447,4 +446,3 @@ export const useSustainPedal = ({
     updateSustainControlChanges,
   };
 };
-
