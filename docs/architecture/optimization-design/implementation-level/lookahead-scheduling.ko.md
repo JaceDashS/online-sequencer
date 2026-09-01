@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-30
 
 **카테고리**: 구현 수준 - 오디오 재생 최적화
 
@@ -31,10 +31,10 @@
 ## 알고리즘
 
 ### Lookahead 윈도우
-0.5초 앞의 노트를 미리 스케줄링합니다.
+0.75초 앞의 노트를 미리 스케줄링합니다.
 
 ### 업데이트 간격
-100ms마다 lookahead 윈도우를 갱신합니다.
+50ms마다 lookahead 윈도우를 갱신합니다.
 
 ### 이진 검색
 현재 재생 시간 기준 이벤트 인덱스를 O(log n)으로 찾습니다.
@@ -60,12 +60,12 @@ gantt
 
 ```mermaid
 graph LR
-    A[현재 재생 시간] --> B[Lookahead 윈도우<br/>+0.5초]
+    A[현재 재생 시간] --> B[Lookahead 윈도우<br/>+0.75초]
     B --> C{이미<br/>스케줄링됨?}
     C -->|Yes| D[건너뛰기]
     C -->|No| E[이진 검색으로<br/>이벤트 찾기]
     E --> F[이벤트 스케줄링]
-    F --> G[100ms 후<br/>다시 확인]
+    F --> G[50ms 후<br/>다시 확인]
     G --> A
     
     style A fill:#e1f5ff
@@ -79,11 +79,11 @@ graph LR
 ## 코드 구조
 
 ```typescript
-const SCHEDULE_LOOKAHEAD_SECONDS = 0.5;
-const SCHEDULE_INTERVAL_MS = 100;
+const SCHEDULE_LOOKAHEAD_SECONDS = 0.75;
+const SCHEDULE_INTERVAL_MS = 50;
 
 private scheduleLookahead(): void {
-  const playbackTime = getPlaybackTime();
+  const playbackTime = getCurrentTimelineTime();
   const windowEnd = playbackTime + SCHEDULE_LOOKAHEAD_SECONDS;
   if (windowEnd <= this.scheduledUntil) {
     return;
@@ -101,14 +101,14 @@ private scheduleLookahead(): void {
 
 ```mermaid
 sequenceDiagram
-    participant Timer as 타이머<br/>(100ms)
+    participant Timer as 타이머<br/>(50ms)
     participant Controller as PlaybackController
     participant Search as 이진 검색
     participant Scheduler as 오디오 스케줄러
     
     Timer->>Controller: scheduleLookahead() 호출
     Controller->>Controller: 현재 재생 시간 확인
-    Controller->>Controller: 윈도우 범위 계산<br/>(+0.5초)
+    Controller->>Controller: 윈도우 범위 계산<br/>(+0.75초)
     Controller->>Controller: 이미 스케줄링됨 확인
     
     alt 이미 스케줄링됨
@@ -121,14 +121,14 @@ sequenceDiagram
         Controller->>Controller: scheduledUntil 업데이트
     end
     
-    Note over Timer,Scheduler: 100ms마다 반복
+    Note over Timer,Scheduler: 50ms마다 반복
 ```
 
-### 1. 현재 재생 시간 확인
-현재 재생 시간을 기준으로 lookahead 윈도우를 설정합니다.
+### 1. 오디오 앵커 기준 재생 시간 확인
+고정된 `AudioContext.currentTime` 앵커에서 계산한 타임라인 시간을 기준으로 lookahead 윈도우를 설정합니다.
 
 ### 2. 윈도우 범위 결정
-현재 시간부터 0.5초 앞까지의 범위를 스케줄링 대상으로 설정합니다.
+현재 시간부터 0.75초 앞까지의 범위를 스케줄링 대상으로 설정합니다.
 
 ### 3. 이미 스케줄링된 범위 건너뛰기
 이미 스케줄링된 범위는 다시 스케줄링하지 않습니다.
@@ -137,7 +137,7 @@ sequenceDiagram
 윈도우 범위 내의 이벤트를 이진 검색으로 찾아 스케줄링합니다.
 
 ### 5. 주기적 갱신
-100ms마다 위 과정을 반복하여 lookahead 윈도우를 유지합니다.
+50ms마다 위 과정을 반복하여 lookahead 윈도우를 유지합니다.
 
 ---
 
@@ -159,5 +159,4 @@ sequenceDiagram
 
 ---
 
-**Last Updated**: 2026-01-14
-
+**Last Updated**: 2026-08-30

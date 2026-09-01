@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-30
 
 **카테고리**: 구현 수준 - 오디오 재생 최적화
 
@@ -85,14 +85,17 @@ const overlappingNotes = activeNotes.filter(active =>
 
 ```typescript
 if (overlappingNotes.length > 0) {
-  const offsetSeconds = (overlappingNotes.length * this.pitchOffsetMaxMs) / 1000;
+  const offsetSeconds = Math.min(
+    overlappingNotes.length * this.pitchOffsetMaxMs,
+    this.pitchOffsetMaxMs
+  ) / 1000;
   audioStartTime = baseAudioStartTime + offsetSeconds;
 }
 ```
 
 **오프셋 계산 공식:**
 ```
-offsetSeconds = (overlappingNotes.length × pitchOffsetMaxMs) / 1000
+offsetSeconds = min(overlappingNotes.length × pitchOffsetMaxMs, pitchOffsetMaxMs) / 1000
 ```
 
 ### 5. 활성 노트 등록 및 정리
@@ -128,15 +131,15 @@ if (index !== -1) {
 4. `offsetSeconds = (1 × 3) / 1000 = 0.003초 = 3ms`
 5. **결과**: C5는 원래 시작 시간에서 3ms 지연되어 시작
 
-### 예시 2: 누적 오프셋 (pitchOffsetMaxMs = 3ms)
+### 예시 2: 최대 오프셋 제한 (pitchOffsetMaxMs = 3ms)
 
 **시나리오**: C4, C5 재생 중, C6 시작
 
 1. C4, C5가 재생 중 (둘 다 pitchClass = 0)
 2. C6 시작 시도 (pitchClass = 0)
 3. `overlappingNotes.length = 2`
-4. `offsetSeconds = (2 × 3) / 1000 = 0.006초 = 6ms`
-5. **결과**: C6는 원래 시작 시간에서 6ms 지연되어 시작
+4. `offsetSeconds = min(2 × 3, 3) / 1000 = 0.003초 = 3ms`
+5. **결과**: C6는 원래 시작 시간에서 최대 3ms만 지연되어 시작
 
 ### 예시 3: 다른 음계 (오프셋 없음)
 
@@ -174,7 +177,7 @@ sequenceDiagram
 
 1. **위상 간섭 완화**: 같은 샘플 소스에서 파생된 오디오의 위상 간섭을 시간적으로 분산
 2. **피치 변경 없음**: 음색을 변경하지 않고 자연스러운 사운드 유지
-3. **누적 오프셋**: 여러 노트가 동시에 재생될 때 자동으로 오프셋이 누적되어 더 강한 분산 효과
+3. **제한된 오프셋**: 여러 노트가 동시에 재생되어도 설정값을 넘지 않음
 4. **조절 가능**: 개발자 메뉴에서 최대 오프셋 값 조절 가능 (0-20ms)
 
 ### 제한사항
@@ -195,12 +198,12 @@ sequenceDiagram
 
 - **위치**: 개발자 메뉴 → PITCH OFFSET
 - **범위**: 0-20ms
-- **기본값**: 3ms
+- **기본값**: 0ms
 - **단위**: 밀리초 (ms)
 
 ### 권장 설정
 
-- **기본 사용**: 3ms (기본값)
+- **기본 사용**: 0ms (정확한 onset 유지)
 - **심한 간섭**: 5-10ms
 - **최대 분산**: 10-20ms (코드가 어색해 보일 수 있음)
 - **비활성화**: 0ms
@@ -214,7 +217,7 @@ sequenceDiagram
 #### 인스턴스 변수
 
 ```typescript
-private pitchOffsetMaxMs: number = 3; // 기본값: 3ms
+private pitchOffsetMaxMs: number = 0; // 기본값: 0ms
 
 // 같은 음계 감지를 위한 활성 노트 추적
 private activeNotesByPitchClass = new Map<number, Array<{
@@ -253,7 +256,10 @@ if (keySample.type === 'piano' && this.pitchOffsetMaxMs > 0) {
   
   // 겹치는 노트가 있으면 오프셋 적용
   if (overlappingNotes.length > 0) {
-    const offsetSeconds = (overlappingNotes.length * this.pitchOffsetMaxMs) / 1000;
+    const offsetSeconds = Math.min(
+      overlappingNotes.length * this.pitchOffsetMaxMs,
+      this.pitchOffsetMaxMs
+    ) / 1000;
     audioStartTime = baseAudioStartTime + offsetSeconds;
   }
 }
@@ -328,13 +334,13 @@ case 'SET_PITCH_OFFSET_MAX_MS': {
 
 1. C4를 재생
 2. C5를 동시에 재생
-3. **기대 결과**: C5가 3ms 지연되어 시작, 피크 없음
+3. **기대 결과**: 기본 설정에서는 오프셋 없이 동시에 시작
 
 ### 시나리오 2: 여러 옥타브 동시 연주
 
 1. C4, C5를 재생
 2. C6를 동시에 재생
-3. **기대 결과**: C6가 6ms 지연되어 시작, 피크 없음
+3. **기대 결과**: 기본 설정에서는 오프셋 없이 동시에 시작하고, 기능 활성화 시에도 총 오프셋은 설정값 이하
 
 ### 시나리오 3: 다른 음계 동시 연주
 
@@ -366,4 +372,4 @@ case 'SET_PITCH_OFFSET_MAX_MS': {
 
 ---
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-30

@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-30
 
 **Category**: Implementation Level - Audio Playback Optimization
 
@@ -85,14 +85,17 @@ If there are overlapping notes, applies offset proportional to the number of ove
 
 ```typescript
 if (overlappingNotes.length > 0) {
-  const offsetSeconds = (overlappingNotes.length * this.pitchOffsetMaxMs) / 1000;
+  const offsetSeconds = Math.min(
+    overlappingNotes.length * this.pitchOffsetMaxMs,
+    this.pitchOffsetMaxMs
+  ) / 1000;
   audioStartTime = baseAudioStartTime + offsetSeconds;
 }
 ```
 
 **Offset Calculation Formula:**
 ```
-offsetSeconds = (overlappingNotes.length × pitchOffsetMaxMs) / 1000
+offsetSeconds = min(overlappingNotes.length × pitchOffsetMaxMs, pitchOffsetMaxMs) / 1000
 ```
 
 ### 5. Active Note Registration and Cleanup
@@ -128,15 +131,15 @@ if (index !== -1) {
 4. `offsetSeconds = (1 × 3) / 1000 = 0.003s = 3ms`
 5. **Result**: C5 starts 3ms delayed from original start time
 
-### Example 2: Cumulative Offset (pitchOffsetMaxMs = 3ms)
+### Example 2: Maximum Offset Limit (pitchOffsetMaxMs = 3ms)
 
 **Scenario**: C4, C5 playing, C6 starts
 
 1. C4, C5 are playing (both pitchClass = 0)
 2. C6 start attempt (pitchClass = 0)
 3. `overlappingNotes.length = 2`
-4. `offsetSeconds = (2 × 3) / 1000 = 0.006s = 6ms`
-5. **Result**: C6 starts 6ms delayed from original start time
+4. `offsetSeconds = min(2 × 3, 3) / 1000 = 0.003s = 3ms`
+5. **Result**: C6 starts at most 3ms later than the original start time
 
 ### Example 3: Different Pitch Class (No Offset)
 
@@ -174,7 +177,7 @@ sequenceDiagram
 
 1. **Phase Interference Mitigation**: Temporally disperses phase interference from audio derived from the same sample source
 2. **No Pitch Change**: Maintains natural sound without changing timbre
-3. **Cumulative Offset**: Automatically accumulates offset when multiple notes play simultaneously for stronger dispersion effect
+3. **Bounded Offset**: Never exceeds the configured value when multiple notes play simultaneously
 4. **Adjustable**: Maximum offset value adjustable in developer menu (0-20ms)
 
 ### Limitations
@@ -195,12 +198,12 @@ Click the theme button 10 times to open the developer menu.
 
 - **Location**: Developer Menu → PITCH OFFSET
 - **Range**: 0-20ms
-- **Default**: 3ms
+- **Default**: 0ms
 - **Unit**: Milliseconds (ms)
 
 ### Recommended Settings
 
-- **Default Use**: 3ms (default)
+- **Default Use**: 0ms (preserves exact onset)
 - **Severe Interference**: 5-10ms
 - **Maximum Dispersion**: 10-20ms (chords may appear awkward)
 - **Disable**: 0ms
@@ -214,7 +217,7 @@ Click the theme button 10 times to open the developer menu.
 #### Instance Variables
 
 ```typescript
-private pitchOffsetMaxMs: number = 3; // Default: 3ms
+private pitchOffsetMaxMs: number = 0; // Default: 0ms
 
 // Active note tracking for same pitch class detection
 private activeNotesByPitchClass = new Map<number, Array<{
@@ -253,7 +256,10 @@ if (keySample.type === 'piano' && this.pitchOffsetMaxMs > 0) {
   
   // Apply offset if there are overlapping notes
   if (overlappingNotes.length > 0) {
-    const offsetSeconds = (overlappingNotes.length * this.pitchOffsetMaxMs) / 1000;
+    const offsetSeconds = Math.min(
+      overlappingNotes.length * this.pitchOffsetMaxMs,
+      this.pitchOffsetMaxMs
+    ) / 1000;
     audioStartTime = baseAudioStartTime + offsetSeconds;
   }
 }
@@ -328,13 +334,13 @@ Since the number of active notes of the same pitch class is generally small (usu
 
 1. Play C4
 2. Play C5 simultaneously
-3. **Expected Result**: C5 starts 3ms delayed, no peaking
+3. **Expected Result**: Notes start together with no offset under the default setting
 
 ### Scenario 2: Multiple Octaves Simultaneous Playback
 
 1. Play C4, C5
 2. Play C6 simultaneously
-3. **Expected Result**: C6 starts 6ms delayed, no peaking
+3. **Expected Result**: Notes start together by default; when enabled, total offset stays within the configured maximum
 
 ### Scenario 3: Different Pitch Class Simultaneous Playback
 
@@ -366,4 +372,4 @@ Since the number of active notes of the same pitch class is generally small (usu
 
 ---
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-30

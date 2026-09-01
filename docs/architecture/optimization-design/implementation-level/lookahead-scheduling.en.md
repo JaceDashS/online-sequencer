@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-08-30
 
 **Category**: Implementation Level - Audio Playback Optimization
 
@@ -31,10 +31,10 @@ An optimization technique that pre-schedules audio events to ensure playback sta
 ## Algorithm
 
 ### Lookahead Window
-Pre-schedules notes 0.5 seconds ahead.
+Pre-schedules notes 0.75 seconds ahead.
 
 ### Update Interval
-Refreshes lookahead window every 100ms.
+Refreshes lookahead window every 50ms.
 
 ### Binary Search
 Finds event index based on current playback time in O(log n).
@@ -60,12 +60,12 @@ gantt
 
 ```mermaid
 graph LR
-    A[Current Playback Time] --> B[Lookahead Window<br/>+0.5s]
+    A[Current Playback Time] --> B[Lookahead Window<br/>+0.75s]
     B --> C{Already<br/>Scheduled?}
     C -->|Yes| D[Skip]
     C -->|No| E[Find Events with<br/>Binary Search]
     E --> F[Schedule Events]
-    F --> G[Check Again<br/>After 100ms]
+    F --> G[Check Again<br/>After 50ms]
     G --> A
     
     style A fill:#e1f5ff
@@ -79,11 +79,11 @@ graph LR
 ## Code Structure
 
 ```typescript
-const SCHEDULE_LOOKAHEAD_SECONDS = 0.5;
-const SCHEDULE_INTERVAL_MS = 100;
+const SCHEDULE_LOOKAHEAD_SECONDS = 0.75;
+const SCHEDULE_INTERVAL_MS = 50;
 
 private scheduleLookahead(): void {
-  const playbackTime = getPlaybackTime();
+  const playbackTime = getCurrentTimelineTime();
   const windowEnd = playbackTime + SCHEDULE_LOOKAHEAD_SECONDS;
   if (windowEnd <= this.scheduledUntil) {
     return;
@@ -101,14 +101,14 @@ private scheduleLookahead(): void {
 
 ```mermaid
 sequenceDiagram
-    participant Timer as Timer<br/>(100ms)
+    participant Timer as Timer<br/>(50ms)
     participant Controller as PlaybackController
     participant Search as Binary Search
     participant Scheduler as Audio Scheduler
     
     Timer->>Controller: Call scheduleLookahead()
     Controller->>Controller: Check Current Playback Time
-    Controller->>Controller: Calculate Window Range<br/>(+0.5s)
+    Controller->>Controller: Calculate Window Range<br/>(+0.75s)
     Controller->>Controller: Check If Already Scheduled
     
     alt Already Scheduled
@@ -121,14 +121,14 @@ sequenceDiagram
         Controller->>Controller: Update scheduledUntil
     end
     
-    Note over Timer,Scheduler: Repeat Every 100ms
+    Note over Timer,Scheduler: Repeat Every 50ms
 ```
 
-### 1. Check Current Playback Time
-Sets lookahead window based on current playback time.
+### 1. Check Audio-Anchored Playback Time
+Sets the lookahead window using timeline time derived from the fixed `AudioContext.currentTime` anchor.
 
 ### 2. Determine Window Range
-Sets range from current time to 0.5 seconds ahead as scheduling target.
+Sets range from current time to 0.75 seconds ahead as scheduling target.
 
 ### 3. Skip Already Scheduled Range
 Does not re-schedule already scheduled ranges.
@@ -137,7 +137,7 @@ Does not re-schedule already scheduled ranges.
 Finds events within window range using binary search and schedules them.
 
 ### 5. Periodic Refresh
-Repeats the above process every 100ms to maintain lookahead window.
+Repeats the above process every 50ms to maintain lookahead window.
 
 ---
 
@@ -159,5 +159,4 @@ Repeats the above process every 100ms to maintain lookahead window.
 
 ---
 
-**Last Updated**: 2026-01-14
-
+**Last Updated**: 2026-08-30
