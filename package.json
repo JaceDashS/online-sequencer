@@ -14,7 +14,7 @@
     "preview": "vite preview",
     "test": "npm run test:integration",
     "test:integration": "npm run test:unit && npm run test:store && npm run test:history && npm run test:sync && npm run test:midi-all",
-    "test:unit": "tsx scripts/unit-tests/index.ts && tsx scripts/unit-tests/ppqn-tests.ts",
+    "test:unit": "tsx scripts/unit-tests/index.ts && tsx scripts/unit-tests/ppqn-tests.ts && tsx scripts/unit-tests/playback-timeline-tests.ts",
     "test:sync": "tsx scripts/sync-tests/index.ts",
     "test:history": "tsx scripts/history-tests/index.ts",
     "test:store": "tsx scripts/store-tests/index.ts",

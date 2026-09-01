@@ -337,8 +337,8 @@ const initialState: UIState = {
   playbackDriftLoggingEnabled: false,
   scheduleLogEnabled: false,
   longTaskLogEnabled: false,
-  pitchOffsetMaxMs: 3, // 기본값: 3ms
-  scheduleLookaheadSeconds: 0.5,
+  pitchOffsetMaxMs: 0, // 기본값: 0ms
+  scheduleLookaheadSeconds: 0.75,
   levelMeterEnabled: true,
   freezeTimelineRender: false,
   devModeEnabled: false,
@@ -891,7 +891,6 @@ export const useUIStateAndActions = (): UIContextType => {
 export const useUIState = (): UIContextType => {
   return useUIStateAndActions();
 };
-
 
 
 

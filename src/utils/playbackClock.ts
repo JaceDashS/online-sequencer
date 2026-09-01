@@ -2,10 +2,10 @@
  * 재생 클럭 명령 타입
  */
 type PlaybackCommand =
-  | { type: 'start'; time: number }
+  | { type: 'start'; time: number; delayMs?: number }
   | { type: 'pause' }
   | { type: 'stop'; time?: number }
-  | { type: 'seek'; time: number }
+  | { type: 'seek'; time: number; delayMs?: number }
   | { type: 'setInterval'; intervalMs: number };
 
 /**
@@ -91,9 +91,11 @@ export function subscribePlaybackClock(listener: PlaybackListener): () => void {
  * 재생 클럭을 시작합니다
  * 
  * @param time - 시작할 재생 시간 (초)
+ * @param delaySeconds - 클록 진행을 늦출 시간 (초)
  */
-export function startPlaybackClock(time: number): void {
-  postCommand({ type: 'start', time });
+export function startPlaybackClock(time: number, delaySeconds = 0): void {
+  const delayMs = Number.isFinite(delaySeconds) ? Math.max(0, delaySeconds * 1000) : 0;
+  postCommand({ type: 'start', time, delayMs });
 }
 
 /**
@@ -116,9 +118,11 @@ export function stopPlaybackClock(time = 0): void {
  * 재생 클럭의 위치를 이동합니다 (시킹)
  * 
  * @param time - 이동할 재생 시간 (초)
+ * @param delaySeconds - 이동 후 클록 진행을 늦출 시간 (초)
  */
-export function seekPlaybackClock(time: number): void {
-  postCommand({ type: 'seek', time });
+export function seekPlaybackClock(time: number, delaySeconds = 0): void {
+  const delayMs = Number.isFinite(delaySeconds) ? Math.max(0, delaySeconds * 1000) : 0;
+  postCommand({ type: 'seek', time, delayMs });
 }
 
 /**

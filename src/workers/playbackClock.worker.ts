@@ -1,8 +1,8 @@
 type PlaybackCommand =
-  | { type: 'start'; time: number }
+  | { type: 'start'; time: number; delayMs?: number }
   | { type: 'pause' }
   | { type: 'stop'; time?: number }
-  | { type: 'seek'; time: number }
+  | { type: 'seek'; time: number; delayMs?: number }
   | { type: 'setInterval'; intervalMs: number };
 
 type PlaybackTick = { type: 'tick'; time: number };
@@ -22,7 +22,7 @@ self.onmessage = (event: MessageEvent<PlaybackCommand>) => {
   switch (message.type) {
     case 'start':
       baseTime = Number.isFinite(message.time) ? message.time : baseTime;
-      startPerf = performance.now();
+      startPerf = performance.now() + getDelayMs(message.delayMs);
       isPlaying = true;
       startTimer();
       postTick();
@@ -44,7 +44,7 @@ self.onmessage = (event: MessageEvent<PlaybackCommand>) => {
     case 'seek':
       baseTime = Number.isFinite(message.time) ? message.time : baseTime;
       if (isPlaying) {
-        startPerf = performance.now();
+        startPerf = performance.now() + getDelayMs(message.delayMs);
       }
       postTick();
       break;
@@ -61,7 +61,11 @@ self.onmessage = (event: MessageEvent<PlaybackCommand>) => {
 
 function getCurrentTime(): number {
   if (!isPlaying) return baseTime;
-  return baseTime + (performance.now() - startPerf) / 1000;
+  return baseTime + Math.max(0, performance.now() - startPerf) / 1000;
+}
+
+function getDelayMs(delayMs: number | undefined): number {
+  return Number.isFinite(delayMs) ? Math.max(0, delayMs ?? 0) : 0;
 }
 
 function postTick(): void {

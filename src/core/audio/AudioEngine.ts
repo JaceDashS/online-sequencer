@@ -23,7 +23,7 @@ type ScheduledNote = {
   startTime: number;
   duration: number;
   playbackTime: number;
-  audioOffset: number;
+  audioStartTime: number;
   trackId: string;
   trackVolume: number;
   trackPan: number;
@@ -87,15 +87,31 @@ import type { Effect, Project } from '../../types/project';
 import { EffectChain } from '../effects/EffectChain';
 import { beginAudioLoading, endAudioLoading } from '../../utils/audioLoadingStore';
 import { buildPlaybackEvents, type NoteEvent } from './buildPlaybackEvents';
+import {
+  getBoundedPitchOffsetSeconds,
+  resolveScheduledPlaybackWindow,
+} from './playbackTimeline';
 
 type TrackAudioNodes = {
   gain: GainNode;
   panner: StereoPannerNode;
   leftAnalyser: AnalyserNode;
   rightAnalyser: AnalyserNode;
+  leftMeterData: Float32Array<ArrayBuffer>;
+  rightMeterData: Float32Array<ArrayBuffer>;
   splitter: ChannelSplitterNode;
   effectChain: EffectChain | null;
 };
+
+function readPeakDb(analyser: AnalyserNode, data: Float32Array<ArrayBuffer>): number {
+  analyser.getFloatTimeDomainData(data);
+  let peak = 0;
+  for (let index = 0; index < data.length; index += 1) {
+    peak = Math.max(peak, Math.abs(data[index]));
+  }
+  const clampedPeak = Math.min(peak, 1);
+  return clampedPeak > 0.0001 ? 20 * Math.log10(clampedPeak) : -Infinity;
+}
 
 export class AudioEngine {
   private context: AudioContext | null = null;
@@ -105,6 +121,8 @@ export class AudioEngine {
   private masterLeftAnalyser: AnalyserNode | null = null;
   private masterRightAnalyser: AnalyserNode | null = null;
   private masterSplitter: ChannelSplitterNode | null = null;
+  private masterLeftMeterData: Float32Array<ArrayBuffer> | null = null;
+  private masterRightMeterData: Float32Array<ArrayBuffer> | null = null;
   private trackNodes = new Map<string, TrackAudioNodes>();
   private sampleBuffers = new Map<string, AudioBuffer>();
   private pendingSampleBuffers = new Map<string, Promise<AudioBuffer | null>>();
@@ -119,7 +137,7 @@ export class AudioEngine {
   private masterVolume: number = 1;
   // 마스터 패닝은 현재 마스터 레벨에서 적용되지 않지만, 나중을 위해 저장
   // private masterPan: number = 0;
-  private pitchOffsetMaxMs: number = 3; // 같은 음계 간섭 방지를 위한 최대 시간 오프셋 (밀리초)
+  private pitchOffsetMaxMs: number = 0; // 같은 음계 간섭 방지를 위한 최대 시간 오프셋 (밀리초)
   private desiredLatencyHintSeconds: number | null = null;
   private appliedLatencyHintSeconds: number | null = null;
   
@@ -220,30 +238,10 @@ export class AudioEngine {
       return null;
     }
 
-    // Get left channel level (using time domain data for accurate level metering)
-    const leftDataArray = new Float32Array(trackNodes.leftAnalyser.fftSize);
-    trackNodes.leftAnalyser.getFloatTimeDomainData(leftDataArray);
-    let leftMax = 0;
-    for (let i = 0; i < leftDataArray.length; i++) {
-      const abs = Math.abs(leftDataArray[i]);
-      leftMax = Math.max(leftMax, abs);
-    }
-    // Use peak for more responsive metering, but clamp to avoid clipping
-    const leftPeak = Math.min(leftMax, 1.0);
-    const leftDb = leftPeak > 0.0001 ? 20 * Math.log10(leftPeak) : -Infinity;
-
-    // Get right channel level
-    const rightDataArray = new Float32Array(trackNodes.rightAnalyser.fftSize);
-    trackNodes.rightAnalyser.getFloatTimeDomainData(rightDataArray);
-    let rightMax = 0;
-    for (let i = 0; i < rightDataArray.length; i++) {
-      const abs = Math.abs(rightDataArray[i]);
-      rightMax = Math.max(rightMax, abs);
-    }
-    const rightPeak = Math.min(rightMax, 1.0);
-    const rightDb = rightPeak > 0.0001 ? 20 * Math.log10(rightPeak) : -Infinity;
-    
-    return { left: leftDb, right: rightDb };
+    return {
+      left: readPeakDb(trackNodes.leftAnalyser, trackNodes.leftMeterData),
+      right: readPeakDb(trackNodes.rightAnalyser, trackNodes.rightMeterData),
+    };
   }
 
   /**
@@ -254,29 +252,14 @@ export class AudioEngine {
       return null;
     }
 
-    // Get left channel level (using time domain data for accurate level metering)
-    const leftDataArray = new Float32Array(this.masterLeftAnalyser.fftSize);
-    this.masterLeftAnalyser.getFloatTimeDomainData(leftDataArray);
-    let leftMax = 0;
-    for (let i = 0; i < leftDataArray.length; i++) {
-      const abs = Math.abs(leftDataArray[i]);
-      leftMax = Math.max(leftMax, abs);
+    if (!this.masterLeftMeterData || !this.masterRightMeterData) {
+      return null;
     }
-    const leftPeak = Math.min(leftMax, 1.0);
-    const leftDb = leftPeak > 0.0001 ? 20 * Math.log10(leftPeak) : -Infinity;
 
-    // Get right channel level
-    const rightDataArray = new Float32Array(this.masterRightAnalyser.fftSize);
-    this.masterRightAnalyser.getFloatTimeDomainData(rightDataArray);
-    let rightMax = 0;
-    for (let i = 0; i < rightDataArray.length; i++) {
-      const abs = Math.abs(rightDataArray[i]);
-      rightMax = Math.max(rightMax, abs);
-    }
-    const rightPeak = Math.min(rightMax, 1.0);
-    const rightDb = rightPeak > 0.0001 ? 20 * Math.log10(rightPeak) : -Infinity;
-    
-    return { left: leftDb, right: rightDb };
+    return {
+      left: readPeakDb(this.masterLeftAnalyser, this.masterLeftMeterData),
+      right: readPeakDb(this.masterRightAnalyser, this.masterRightMeterData),
+    };
   }
 
   async ensureReady(): Promise<void> {
@@ -322,10 +305,12 @@ export class AudioEngine {
           this.masterLeftAnalyser = this.context.createAnalyser();
           this.masterLeftAnalyser.fftSize = 2048;
           this.masterLeftAnalyser.smoothingTimeConstant = 0.8;
+          this.masterLeftMeterData = new Float32Array(this.masterLeftAnalyser.fftSize);
           
           this.masterRightAnalyser = this.context.createAnalyser();
           this.masterRightAnalyser.fftSize = 2048;
           this.masterRightAnalyser.smoothingTimeConstant = 0.8;
+          this.masterRightMeterData = new Float32Array(this.masterRightAnalyser.fftSize);
           
           // Create splitter to separate left/right channels for metering
           // masterGain은 여러 트랙의 effectChain 출력을 합산하므로 스테레오 출력입니다
@@ -368,6 +353,13 @@ export class AudioEngine {
     return this.readyPromise;
   }
 
+  async ensureRunning(): Promise<void> {
+    await this.ensureReady();
+    if (this.context?.state === 'suspended') {
+      await this.context.resume();
+    }
+  }
+
   private getOrCreateTrackNodes(trackId: string, trackVolume: number = 1, trackPan: number = 0): TrackAudioNodes | null {
     if (!this.context || !this.masterGain || !this.masterEffectChain) {
       return null;
@@ -396,10 +388,12 @@ export class AudioEngine {
     const leftAnalyser = this.context.createAnalyser();
     leftAnalyser.fftSize = 2048;
     leftAnalyser.smoothingTimeConstant = 0.8;
+    const leftMeterData = new Float32Array(leftAnalyser.fftSize);
 
     const rightAnalyser = this.context.createAnalyser();
     rightAnalyser.fftSize = 2048;
     rightAnalyser.smoothingTimeConstant = 0.8;
+    const rightMeterData = new Float32Array(rightAnalyser.fftSize);
 
     // Create splitter to separate left/right channels for metering
     const splitter = this.context.createChannelSplitter(2);
@@ -424,6 +418,8 @@ export class AudioEngine {
       panner: trackPanner,
       leftAnalyser, 
       rightAnalyser, 
+      leftMeterData,
+      rightMeterData,
       splitter,
       effectChain 
     };
@@ -573,24 +569,22 @@ export class AudioEngine {
     const playbackRate = keySample.type === 'piano'
       ? Math.pow(2, (note.midi - keySample.root) / 12)
       : 1.0;
-    const noteEndTime = note.startTime + note.duration;
-    if (noteEndTime <= note.playbackTime) {
+    const playbackWindow = resolveScheduledPlaybackWindow(
+      note.startTime,
+      note.duration,
+      note.playbackTime
+    );
+    if (!playbackWindow) {
       return;
     }
 
-    const scheduledStartTime = Math.max(note.startTime, note.playbackTime);
-    const outputDuration = noteEndTime - scheduledStartTime;
-    if (outputDuration <= 0) {
-      return;
-    }
-
-    const skipTime = Math.max(0, scheduledStartTime - note.startTime);
-    const bufferOffset = skipTime * playbackRate;
+    const outputDuration = playbackWindow.duration;
+    const bufferOffset = playbackWindow.skipTime * playbackRate;
     if (bufferOffset >= buffer.duration) {
       return;
     }
 
-    const baseAudioStartTime = note.audioOffset + scheduledStartTime;
+    const baseAudioStartTime = note.audioStartTime + playbackWindow.skipTime;
     const velocityGain = clamp(note.velocity / 127, 0, 1);
 
     // Get or create track nodes (트랙 볼륨/패닝으로 초기화)
@@ -617,7 +611,10 @@ export class AudioEngine {
       
       // 겹치는 노트가 있으면 오프셋 적용
       if (overlappingNotes.length > 0) {
-        const offsetSeconds = (overlappingNotes.length * this.pitchOffsetMaxMs) / 1000;
+        const offsetSeconds = getBoundedPitchOffsetSeconds(
+          overlappingNotes.length,
+          this.pitchOffsetMaxMs
+        );
         audioStartTime = baseAudioStartTime + offsetSeconds;
       }
     }
@@ -1131,6 +1128,8 @@ export class AudioEngine {
     this.masterLeftAnalyser = null;
     this.masterRightAnalyser = null;
     this.masterSplitter = null;
+    this.masterLeftMeterData = null;
+    this.masterRightMeterData = null;
     this.pianoKeyMap = null;
     this.drumSampleMap = null;
     this.sampleBuffers.clear();

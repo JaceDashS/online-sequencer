@@ -15,6 +15,8 @@ type AudioLevel = {
  */
 type AudioLevelCallback = (level: AudioLevel | null) => void;
 
+const METER_UPDATE_INTERVAL_MS = 1000 / 30;
+
 /**
  * 오디오 레벨 스토어
  * 트랙별 또는 마스터 오디오 레벨을 구독하고 업데이트합니다
@@ -24,6 +26,7 @@ class AudioLevelStore {
   private animationFrameId: number | null = null;
   private levels = new Map<string, AudioLevel | null>();
   private enabled = true;
+  private lastUpdateAt = 0;
 
   setEnabled(enabled: boolean): void {
     if (this.enabled === enabled) return;
@@ -88,27 +91,30 @@ class AudioLevelStore {
    * requestAnimationFrame을 사용하여 주기적으로 오디오 레벨을 업데이트합니다
    */
   private startAnimationLoop(): void {
-    const update = () => {
+    const update = (now: number) => {
       if (!this.enabled) {
         this.animationFrameId = null;
         return;
       }
-      // 구독 중인 모든 트랙의 레벨 업데이트
-      for (const trackId of this.subscribers.keys()) {
-        let level: AudioLevel | null = null;
-        
-        if (trackId === 'master') {
-          level = playbackController.getMasterLevel();
-        } else {
-          level = playbackController.getTrackLevel(trackId);
-        }
 
-        this.levels.set(trackId, level);
+      if (now - this.lastUpdateAt >= METER_UPDATE_INTERVAL_MS) {
+        this.lastUpdateAt = now;
+        // 구독 중인 모든 트랙의 레벨을 한 번에 업데이트합니다.
+        for (const trackId of this.subscribers.keys()) {
+          let level: AudioLevel | null = null;
 
-        // Notify subscribers
-        const callbacks = this.subscribers.get(trackId);
-        if (callbacks) {
-          callbacks.forEach(callback => callback(level));
+          if (trackId === 'master') {
+            level = playbackController.getMasterLevel();
+          } else {
+            level = playbackController.getTrackLevel(trackId);
+          }
+
+          this.levels.set(trackId, level);
+
+          const callbacks = this.subscribers.get(trackId);
+          if (callbacks) {
+            callbacks.forEach(callback => callback(level));
+          }
         }
       }
 
@@ -130,4 +136,3 @@ class AudioLevelStore {
 }
 
 export const audioLevelStore = new AudioLevelStore();
-

@@ -13,8 +13,7 @@ const LevelMeter: React.FC<LevelMeterProps> = ({ trackId, channel = 'left' }) =>
   const ui = useUIStateOnly();
   const [level, setLevel] = useState<number>(-Infinity);
   const smoothedLevelRef = useRef<number>(-Infinity);
-  const animationFrameRef = useRef<number | null>(null);
-  const targetLevelRef = useRef<number>(-Infinity);
+  const lastLevelUpdateRef = useRef<number>(0);
   const [isPartyTimeMode, setIsPartyTimeMode] = useState(() => isPartyTimeEnabled());
 
   useEffect(() => {
@@ -22,87 +21,53 @@ const LevelMeter: React.FC<LevelMeterProps> = ({ trackId, channel = 'left' }) =>
       return;
     }
 
-    // 파티타임 모드 구독
     const unsubscribePartyTime = subscribePartyTime((isActive) => {
       setIsPartyTimeMode(isActive);
     });
-    
-    const unsubscribe = audioLevelStore.subscribe(trackId, (audioLevel) => {
-      // 파티타임 모드일 때는 실제 오디오 레벨 무시
-      if (isPartyTimeEnabled()) {
-        const fakeLevel = getPartyTimeFakeLevel(trackId, channel);
-        if (fakeLevel) {
-          const db = channel === 'left' ? fakeLevel.left : fakeLevel.right;
-          targetLevelRef.current = db;
-        } else {
-          targetLevelRef.current = -Infinity;
-        }
-      } else if (audioLevel) {
-        const db = channel === 'left' ? audioLevel.left : audioLevel.right;
-        targetLevelRef.current = db;
-      } else {
-        targetLevelRef.current = -Infinity;
-      }
-    });
 
-    // 스무딩 애니메이션 루프
-    const smoothUpdate = () => {
-      // 파티타임 모드일 때는 가짜 레벨 사용
-      if (isPartyTimeEnabled()) {
-        const fakeLevel = getPartyTimeFakeLevel(trackId, channel);
-        if (fakeLevel) {
-          const db = channel === 'left' ? fakeLevel.left : fakeLevel.right;
-          targetLevelRef.current = db;
-        } else {
-          targetLevelRef.current = -Infinity;
-        }
-      }
-      
-      const target = targetLevelRef.current;
+    const updateSmoothedLevel = (target: number) => {
+      const now = performance.now();
+      const elapsedMs = lastLevelUpdateRef.current > 0
+        ? now - lastLevelUpdateRef.current
+        : 1000 / 30;
+      lastLevelUpdateRef.current = now;
       const current = smoothedLevelRef.current;
+      let nextLevel = target;
 
-      if (target === -Infinity || isNaN(target)) {
-        // 레벨이 없으면 천천히 감소
-        if (current > -Infinity) {
-          const newLevel = current - 3; // 3dB씩 빠르게 감소
-          smoothedLevelRef.current = Math.max(newLevel, -Infinity);
-          setLevel(smoothedLevelRef.current);
-        } else {
-          smoothedLevelRef.current = -Infinity;
-          setLevel(-Infinity);
+      if (!Number.isFinite(target)) {
+        nextLevel = Number.isFinite(current)
+          ? current - Math.max(3, elapsedMs * 0.09)
+          : -Infinity;
+        if (nextLevel <= -60) {
+          nextLevel = -Infinity;
         }
-      } else {
-        // 파티타임 모드일 때는 즉시 반영 (애니메이션 없이)
-        if (isPartyTimeEnabled()) {
-          smoothedLevelRef.current = target;
-          setLevel(target);
-        } else {
-          // 레벨이 올라갈 때는 빠르게, 내려갈 때는 천천히
-          if (target > current) {
-            // Attack: 빠르게 올라감 (즉시 반영)
-            smoothedLevelRef.current = target;
-            setLevel(target);
-          } else {
-            // Release: 천천히 내려감 (exponential decay)
-            const decayRate = 0.15; // 15% 감소 per frame (약 60fps 기준)
-            const newLevel = target + (current - target) * (1 - decayRate);
-            smoothedLevelRef.current = newLevel;
-            setLevel(newLevel);
-          }
-        }
+      } else if (Number.isFinite(current) && target < current) {
+        const frameCount = Math.max(1, elapsedMs / (1000 / 60));
+        const decay = Math.pow(0.85, frameCount);
+        nextLevel = target + (current - target) * decay;
       }
 
-      animationFrameRef.current = requestAnimationFrame(smoothUpdate);
+      smoothedLevelRef.current = nextLevel;
+      setLevel(nextLevel);
     };
 
-    animationFrameRef.current = requestAnimationFrame(smoothUpdate);
+    const unsubscribe = audioLevelStore.subscribe(trackId, (audioLevel) => {
+      if (isPartyTimeEnabled()) {
+        const fakeLevel = getPartyTimeFakeLevel(trackId, channel);
+        updateSmoothedLevel(
+          fakeLevel ? (channel === 'left' ? fakeLevel.left : fakeLevel.right) : -Infinity
+        );
+      } else if (audioLevel) {
+        updateSmoothedLevel(channel === 'left' ? audioLevel.left : audioLevel.right);
+      } else {
+        updateSmoothedLevel(-Infinity);
+      }
+    });
 
     return () => {
       unsubscribe();
       unsubscribePartyTime();
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      lastLevelUpdateRef.current = 0;
     };
   }, [trackId, channel, isPartyTimeMode, ui.levelMeterEnabled]);
 

@@ -8,14 +8,22 @@ import { buildPlaybackEvents, type NoteEvent } from './buildPlaybackEvents';
 import { getScheduleLogEnabled } from '../../utils/debugLogToggles';
 import { enqueueDebugLog } from '../../utils/debugLogger';
 import { Metronome } from './Metronome';
+import {
+  createPlaybackAnchor,
+  getAudioTimeForTimelineTime,
+  getTimelineTimeAtAudioTime,
+  type PlaybackAnchor,
+} from './playbackTimeline';
 
-const DEFAULT_SCHEDULE_LOOKAHEAD_SECONDS = 0.5;
-const SCHEDULE_INTERVAL_MS = 100;
+const DEFAULT_SCHEDULE_LOOKAHEAD_SECONDS = 0.75;
+const SCHEDULE_INTERVAL_MS = 50;
+const STARTUP_LEAD_SECONDS = 0.075;
 const SCHEDULE_SPIKE_MS = 8;
 const SCHEDULE_LAG_FACTOR = 2.2;
 const LOOKAHEAD_DEPLETION_SECONDS = 0.05;
 const LARGE_BATCH_COUNT = 1000;
 const LOG_THROTTLE_MS = 1000;
+const LATE_SCHEDULE_LOG_THRESHOLD_MS = 10;
 
 export class PlaybackController {
   private engine = playbackAudioEngine;
@@ -27,6 +35,26 @@ export class PlaybackController {
    */
   getEngine(): AudioEngine {
     return this.engine;
+  }
+
+  private getCurrentTimelineTime(): number {
+    if (!this.playbackAnchor) {
+      return getPlaybackTime();
+    }
+    return getTimelineTimeAtAudioTime(
+      this.playbackAnchor,
+      this.engine.getCurrentTime()
+    );
+  }
+
+  private createAnchor(playbackTime: number): PlaybackAnchor {
+    const anchor = createPlaybackAnchor(
+      playbackTime,
+      this.engine.getCurrentTime(),
+      STARTUP_LEAD_SECONDS
+    );
+    this.playbackAnchor = anchor;
+    return anchor;
   }
   
   /**
@@ -51,12 +79,14 @@ export class PlaybackController {
   private events: NoteEvent[] = [];
   private eventIndex = 0;
   private projectSnapshot: Project | null = null;
+  private playbackAnchor: PlaybackAnchor | null = null;
   private lastScheduleTickPerf = 0;
   private lastSpikeLogAt = 0;
   private lastLagLogAt = 0;
   private lastUnderrunLogAt = 0;
   private lastLargeBatchLogAt = 0;
   private lastWindowLogAt = 0;
+  private lastLateScheduleLogAt = 0;
 
   constructor() {
     // 프로젝트 변경을 구독하여 BPM/time signature 변경 시 타이밍 업데이트
@@ -156,7 +186,7 @@ export class PlaybackController {
     
     // 재생 중이면 즉시 재스케줄링
     if (this.isPlaying) {
-      const playbackTime = getPlaybackTime();
+      const playbackTime = this.getCurrentTimelineTime();
       if (Number.isFinite(playbackTime)) {
         this.resetSchedule(playbackTime);
       }
@@ -175,7 +205,7 @@ export class PlaybackController {
     this.engine.stopAll();
     
     // 현재 재생 시간에서 다시 스케줄링
-    const playbackTime = getPlaybackTime();
+    const playbackTime = this.getCurrentTimelineTime();
     if (Number.isFinite(playbackTime)) {
       this.resetSchedule(playbackTime);
     }
@@ -206,19 +236,19 @@ export class PlaybackController {
    * @param playbackTime - 시작할 재생 시간 (초)
    * @param project - 프로젝트 스냅샷
    */
-  async start(playbackTime: number, project: Project): Promise<void> {
+  async start(playbackTime: number, project: Project): Promise<PlaybackAnchor | null> {
     this.projectSnapshot = project;
     this.isPlaying = true;
     const token = ++this.startToken;
 
-    await this.engine.ensureReady();
+    await this.engine.ensureRunning();
     if (!this.isPlaying || token !== this.startToken) {
-      return;
+      return null;
     }
 
     await this.engine.prefetchSamplesForProject(project);
     if (!this.isPlaying || token !== this.startToken) {
-      return;
+      return null;
     }
 
     // BPM과 time signature 설정
@@ -250,7 +280,9 @@ export class PlaybackController {
     }
 
     const currentPlaybackTime = Number.isFinite(playbackTime) ? playbackTime : getPlaybackTime();
+    const anchor = this.createAnchor(currentPlaybackTime);
     this.resetSchedule(currentPlaybackTime);
+    return anchor;
   }
 
   /**
@@ -262,6 +294,7 @@ export class PlaybackController {
     this.clearScheduleTimer();
     this.engine.stopAll();
     this.metronome.clearScheduledTicks();
+    this.playbackAnchor = null;
   }
 
   /**
@@ -273,6 +306,7 @@ export class PlaybackController {
     this.clearScheduleTimer();
     this.engine.stopAll();
     this.metronome.clearScheduledTicks();
+    this.playbackAnchor = null;
   }
 
   /**
@@ -281,19 +315,22 @@ export class PlaybackController {
    * @param playbackTime - 이동할 재생 시간 (초)
    * @param project - 프로젝트 스냅샷
    */
-  async seek(playbackTime: number, project: Project): Promise<void> {
+  async seek(playbackTime: number, project: Project): Promise<PlaybackAnchor | null> {
     if (!this.isPlaying) {
-      return;
+      return null;
     }
 
     this.projectSnapshot = project;
-    await this.engine.ensureReady();
-    if (!this.isPlaying) {
-      return;
+    const token = ++this.startToken;
+    await this.engine.ensureRunning();
+    if (!this.isPlaying || token !== this.startToken) {
+      return null;
     }
 
     this.engine.stopAll();
+    const anchor = this.createAnchor(playbackTime);
     this.resetSchedule(playbackTime);
+    return anchor;
   }
 
   /**
@@ -302,7 +339,7 @@ export class PlaybackController {
    * @param playbackTime - 현재 재생 시간 (초)
    */
   private resetSchedule(playbackTime: number): void {
-    if (!this.projectSnapshot) {
+    if (!this.projectSnapshot || !this.playbackAnchor) {
       return;
     }
     this.events = buildPlaybackEvents(this.projectSnapshot);
@@ -355,8 +392,8 @@ export class PlaybackController {
       }
     }
     this.lastScheduleTickPerf = nowPerf;
-    const playbackTime = getPlaybackTime();
-    if (!Number.isFinite(playbackTime)) {
+    const playbackTime = this.getCurrentTimelineTime();
+    if (!Number.isFinite(playbackTime) || !this.playbackAnchor) {
       return;
     }
     const remaining = this.scheduledUntil - playbackTime;
@@ -411,14 +448,14 @@ export class PlaybackController {
    * @param windowEnd - 스케줄링할 윈도우 종료 시간 (초)
    */
   private scheduleWindow(playbackTime: number, windowStart: number, windowEnd: number): void {
-    if (windowEnd <= windowStart || !this.projectSnapshot) {
+    if (windowEnd <= windowStart || !this.projectSnapshot || !this.playbackAnchor) {
       return;
     }
 
     const windowStartPerf = getPerfNow();
     let scannedCount = 0;
     let scheduledCount = 0;
-    const audioOffset = this.engine.getCurrentTime() - playbackTime;
+    const audioOffset = this.playbackAnchor.audioTime - this.playbackAnchor.timelineTime;
 
     // 메트로놈 틱 스케줄링
     if (this.isMetronomeEnabled) {
@@ -438,13 +475,33 @@ export class PlaybackController {
         this.engine.updateTrackVolume(event.track.id, trackVolume);
         this.engine.updateTrackPan(event.track.id, trackPan);
         
+        const audioStartTime = getAudioTimeForTimelineTime(
+          this.playbackAnchor,
+          event.startTime
+        );
+        const latenessMs = Math.max(
+          0,
+          (this.engine.getCurrentTime() - audioStartTime) * 1000
+        );
+        if (
+          latenessMs >= LATE_SCHEDULE_LOG_THRESHOLD_MS &&
+          getPerfNow() - this.lastLateScheduleLogAt > LOG_THROTTLE_MS
+        ) {
+          this.lastLateScheduleLogAt = getPerfNow();
+          logScheduleDebug('schedule_note_late', {
+            latenessMs: Math.round(latenessMs),
+            eventStartTime: Number(event.startTime.toFixed(3)),
+            playbackTime: Number(playbackTime.toFixed(3)),
+          });
+        }
+
         this.engine.scheduleNote({
           midi: event.note.note,
           velocity: event.note.velocity ?? 100,
           startTime: event.startTime,
           duration: event.duration,
           playbackTime,
-          audioOffset,
+          audioStartTime,
           trackId: event.track.id,
           trackVolume,
           trackPan,
@@ -521,6 +578,7 @@ export class PlaybackController {
     this.events = [];
     this.eventIndex = 0;
     this.projectSnapshot = null;
+    this.playbackAnchor = null;
   }
 }
 

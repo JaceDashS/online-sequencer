@@ -11,6 +11,7 @@ import type { P2PMessage, TransportMessage } from '../../core/sync/types/p2p';
 import { subscribeCollaborationManager } from '../../core/sync/collaborationSession';
 import { isPartyTimeEnabled, subscribePartyTime } from '../../utils/partyTime';
 import { generateUUID } from '../../core/sync/utils/uuid';
+import { getAnchorStartDelaySeconds } from '../../core/audio/playbackTimeline';
 
 /**
  * TransportControls가 받는 props입니다.
@@ -50,11 +51,6 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   const collaborationManagerRef = useRef<CollaborationManager | null>(null);
   const pendingLatencyHintRef = useRef<number | null>(null);
   
-  // 실제 시간을 기준으로 재생 드리프트를 확인하기 위한 디버그 타이머입니다.
-  const realTimeStartRef = useRef<number | null>(null);
-  const playbackTimeStartRef = useRef<number | null>(null);
-  const debugTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   // 현재 재생 시간을 ref에 보관해 불필요한 effect 재실행을 피합니다.
   useEffect(() => {
     currentTimeRef.current = getPlaybackTime();
@@ -248,9 +244,17 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
         lastWorkerTimeRef.current = effectiveTime;
         lastRemoteSeekRef.current = effectiveTime;
         if (isPlayingRef.current) {
-          seekPlaybackClock(effectiveTime);
           const project = selectProject();
-          void playbackController.seek(effectiveTime, project);
+          void playbackController.seek(effectiveTime, project).then((anchor) => {
+            if (!anchor || !isPlayingRef.current) return;
+            const delaySeconds = getAnchorStartDelaySeconds(
+              anchor,
+              playbackController.getEngine().getCurrentTime()
+            );
+            seekPlaybackClock(effectiveTime, delaySeconds);
+          }).catch((error) => {
+            console.error('[TransportControls] Failed to apply remote seek', error);
+          });
         }
         break;
     }
@@ -291,39 +295,37 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
   }, [handleTransportMessage]);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (isPlaying) {
       clearScheduledPause();
-      setPlaybackRunning(true);
-      // 재생 시작 시점의 실제 시간과 재생 시간을 함께 기록합니다.
+      setPlaybackRunning(false);
       const playbackStartTime = currentTimeRef.current;
-      const realStartTime = performance.now();
-      realTimeStartRef.current = realStartTime;
-      playbackTimeStartRef.current = playbackStartTime;
-      
-      // 1초마다 드리프트 확인용 타이머를 실행합니다.
-      debugTimerRef.current = setInterval(() => {
-        if (realTimeStartRef.current === null || playbackTimeStartRef.current === null) return;
-        
-        // 현재는 드리프트 값을 계산하지 않습니다.
-      }, 1000); // 1초마다 확인합니다.
-      
-      startPlaybackClock(playbackStartTime);
       const project = selectProject();
-      void playbackController.start(playbackStartTime, project);
+
+      void playbackController.start(playbackStartTime, project).then((anchor) => {
+        if (cancelled || !anchor || !isPlayingRef.current) {
+          return;
+        }
+
+        const delaySeconds = getAnchorStartDelaySeconds(
+          anchor,
+          playbackController.getEngine().getCurrentTime()
+        );
+        startPlaybackClock(playbackStartTime, delaySeconds);
+        setPlaybackRunning(true);
+      }).catch((error) => {
+        console.error('[TransportControls] Failed to start playback', error);
+        if (!cancelled && isPlayingRef.current) {
+          setIsPlaying(false);
+        }
+      });
     } else {
       clearScheduledPause();
       // 일시정지 직전에 최신 재생 시간을 가져옵니다.
       const useRemoteTime = skipLocalPauseRef.current;
       const currentPlaybackTime = useRemoteTime ? currentTimeRef.current : getPlaybackTime();
       setPlaybackRunning(false);
-      // 재생이 멈추면 디버그 타이머를 정리합니다.
-      if (debugTimerRef.current !== null) {
-        clearInterval(debugTimerRef.current);
-        debugTimerRef.current = null;
-      }
-      realTimeStartRef.current = null;
-      playbackTimeStartRef.current = null;
-      
       pausePlaybackClock();
       playbackController.pause();
       // 최신 재생 시간을 UI 상태에 반영합니다.
@@ -336,11 +338,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     }
     
     return () => {
-      // 컴포넌트가 언마운트되면 타이머를 정리합니다.
-      if (debugTimerRef.current !== null) {
-        clearInterval(debugTimerRef.current);
-        debugTimerRef.current = null;
-      }
+      cancelled = true;
     };
   }, [isPlaying, clearScheduledPause, setCurrentPlaybackTime]);
 
@@ -365,15 +363,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
     setPlaybackRunning(false);
     currentTimeRef.current = 0;
     lastWorkerTimeRef.current = 0;
-    
-    // 정지 시 디버그 타이머를 정리합니다.
-    if (debugTimerRef.current !== null) {
-      clearInterval(debugTimerRef.current);
-      debugTimerRef.current = null;
-    }
-    realTimeStartRef.current = null;
-    playbackTimeStartRef.current = null;
-    
+
     stopPlaybackClock(0);
     playbackController.stop();
     ui.setCurrentPlaybackTime(0);
@@ -388,9 +378,18 @@ const TransportControls: React.FC<TransportControlsProps> = ({ onRecordingChange
 
     const diff = Math.abs(ui.currentPlaybackTime - lastWorkerTimeRef.current);
     if (diff > 0.02) {
-      seekPlaybackClock(ui.currentPlaybackTime);
       const project = selectProject();
-      void playbackController.seek(ui.currentPlaybackTime, project);
+      const seekTime = ui.currentPlaybackTime;
+      void playbackController.seek(seekTime, project).then((anchor) => {
+        if (!anchor || !isPlayingRef.current) return;
+        const delaySeconds = getAnchorStartDelaySeconds(
+          anchor,
+          playbackController.getEngine().getCurrentTime()
+        );
+        seekPlaybackClock(seekTime, delaySeconds);
+      }).catch((error) => {
+        console.error('[TransportControls] Failed to seek playback', error);
+      });
       lastWorkerTimeRef.current = ui.currentPlaybackTime;
       sendTransport('seek', ui.currentPlaybackTime);
     }
