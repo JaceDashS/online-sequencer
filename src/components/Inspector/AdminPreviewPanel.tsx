@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styles from './AdminPreviewPanel.module.css';
-import { getJaceSession, hasAdminAccess, subscribeJaceSession, type JaceSessionState } from '../../core/auth/jaceSession';
+import { describeApprovalFailure, getJaceSession, hasAdminAccess, requestAdminApproval, subscribeJaceSession, type JaceSessionState } from '../../core/auth/jaceSession';
 import { PREVIEW_PERMISSIONS } from '../../utils/adminPreviewPermissions';
 import { OUTAGE_MESSAGE } from '../../core/notices/serviceNotices';
 import { createRoomApiError } from '../../core/sync/roomApiErrors';
@@ -32,6 +32,10 @@ const ROOM_ERRORS: Array<{ code: string; status: number }> = [
 const MINUTE = 60_000;
 
 
+function hostRoom(minutesLeft: number, sessionStatus: 'signed-in' | 'signed-out', guests: string[] = ['Guest A', 'Guest B']): void {
+  setHostingPreview({ expiresAt: Date.now() + minutesLeft * MINUTE, sessionStatus, guests, allowing: false });
+}
+
 /**
  * 어드민 UI 미리보기 패널
  *
@@ -56,8 +60,15 @@ const AdminPreviewPanel: React.FC = () => {
     return null;
   }
 
-  const hostRoom = (minutesLeft: number, sessionStatus: 'signed-in' | 'signed-out', guests: string[] = ['Guest A', 'Guest B']) => {
-    setHostingPreview({ expiresAt: Date.now() + minutesLeft * MINUTE, sessionStatus, guests, allowing: false });
+  // 모든 미리보기 동작은 적용 직전에 서버에서 그 영역의 권한을 다시 확인한다
+  const guarded = (area: keyof typeof PREVIEW_PERMISSIONS, action: () => void) => async () => {
+    const { menu, level } = PREVIEW_PERMISSIONS[area];
+    const result = await requestAdminApproval(menu, level);
+    if (result.approved) {
+      action();
+    } else {
+      showError(describeApprovalFailure(result.reason));
+    }
   };
 
   return (
@@ -74,13 +85,13 @@ const AdminPreviewPanel: React.FC = () => {
       <section className={styles.group}>
         <div className={styles.label}>Notice toasts</div>
         <div className={styles.buttons}>
-          <button type="button" onClick={() => previewServiceNotices({ connected: true, announcements: SAMPLE_NOTICES.slice(0, 1) })}>
+          <button type="button" onClick={guarded('notices', () => previewServiceNotices({ connected: true, announcements: SAMPLE_NOTICES.slice(0, 1) }))}>
             Online notice (8s)
           </button>
-          <button type="button" onClick={() => previewServiceNotices({ connected: false, announcements: SAMPLE_NOTICES })}>
+          <button type="button" onClick={guarded('notices', () => previewServiceNotices({ connected: false, announcements: SAMPLE_NOTICES }))}>
             Offline notices
           </button>
-          <button type="button" onClick={() => previewServiceNotices({ connected: false, announcements: [] })} title={OUTAGE_MESSAGE}>
+          <button type="button" onClick={guarded('notices', () => previewServiceNotices({ connected: false, announcements: [] }))} title={OUTAGE_MESSAGE}>
             Outage
           </button>
         </div>
@@ -101,7 +112,7 @@ const AdminPreviewPanel: React.FC = () => {
               key={label}
               type="button"
               className={preview.account === value ? styles.active : ''}
-              onClick={() => setAccountPreview(value)}
+              onClick={guarded('account', () => setAccountPreview(value))}
             >
               {label}
             </button>
@@ -114,11 +125,11 @@ const AdminPreviewPanel: React.FC = () => {
       <section className={styles.group}>
         <div className={styles.label}>Hosting dropdown (room 0000)</div>
         <div className={styles.buttons}>
-          <button type="button" onClick={() => hostRoom(60, 'signed-out')}>Guest 1h + hint</button>
-          <button type="button" onClick={() => hostRoom(360, 'signed-in')}>Signed-in 6h</button>
-          <button type="button" onClick={() => hostRoom(2, 'signed-out', ['Guest A'])}>Expiring 2m</button>
-          <button type="button" onClick={() => hostRoom(-1, 'signed-in', [])}>Expired</button>
-          <button type="button" className={preview.hosting ? '' : styles.active} onClick={() => setHostingPreview(null)}>off</button>
+          <button type="button" onClick={guarded('rooms', () => hostRoom(60, 'signed-out'))}>Guest 1h + hint</button>
+          <button type="button" onClick={guarded('rooms', () => hostRoom(360, 'signed-in'))}>Signed-in 6h</button>
+          <button type="button" onClick={guarded('rooms', () => hostRoom(2, 'signed-out', ['Guest A']))}>Expiring 2m</button>
+          <button type="button" onClick={guarded('rooms', () => hostRoom(-1, 'signed-in', []))}>Expired</button>
+          <button type="button" className={preview.hosting ? '' : styles.active} onClick={guarded('rooms', () => setHostingPreview(null))}>off</button>
         </div>
         <div className={styles.hint}>Shown only while not actually hosting or joining.</div>
       </section>
@@ -132,7 +143,7 @@ const AdminPreviewPanel: React.FC = () => {
             <button
               key={code}
               type="button"
-              onClick={() => showError(createRoomApiError(status, { error: code }, 'Request failed').message)}
+              onClick={guarded('rooms', () => showError(createRoomApiError(status, { error: code }, 'Request failed').message))}
             >
               {code}
             </button>

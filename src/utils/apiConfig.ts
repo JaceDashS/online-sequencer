@@ -135,3 +135,11 @@ export function isLoginAvailable(location: Pick<Location, 'protocol' | 'hostname
   if (typeof window !== 'undefined' && window.__ELECTRON__) return false;
   return getLoginHosts().includes(location.hostname.toLowerCase());
 }
+
+/**
+ * Vite 개발 서버(npm run dev) 빌드인지 확인합니다. 테스트(Node)에서는 false입니다.
+ */
+export function isDevBuild(): boolean {
+  const viteEnv = import.meta.env as unknown as { DEV?: boolean } | undefined;
+  return viteEnv?.DEV === true;
+}

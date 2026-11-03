@@ -16,7 +16,7 @@
 
 import type { IHttpRequestOptions } from '../../transport/types';
 import { getTransport } from '../../transport';
-import { getApiUrl, getSiteUrl, isLoginAvailable } from '../../utils/apiConfig';
+import { getApiUrl, getSiteUrl, isDevBuild, isLoginAvailable } from '../../utils/apiConfig';
 
 export type JaceSessionStatus = 'unavailable' | 'unknown' | 'checking' | 'signed-in' | 'signed-out';
 
@@ -239,4 +239,42 @@ export function withJaceAuth<T extends Pick<IHttpRequestOptions, 'method' | 'hea
     headers['x-csrf-token'] = state.csrfToken;
   }
   return { ...options, credentials: 'include', headers };
+}
+
+export type AdminApprovalResult =
+  | { approved: true; via: 'server' | 'local-dev' }
+  | { approved: false; reason: 'signed-out' | 'forbidden' | 'unreachable' };
+
+/**
+ * 관리 동작 직전에 서버에 세션을 다시 확인해 권한을 승인받습니다.
+ *
+ * - GET {API}/auth/session을 매번 다시 불러 adminAccess를 확인합니다(권한 회수·세션 만료 즉시 반영).
+ * - 로컬 개발 서버(npm run dev)이고 로그인을 쓸 수 없는 주소(localhost 등)에서는 서버 확인 없이 승인합니다.
+ * - 이 승인은 화면 동작용입니다. 브라우저 내부 설정을 바꾸는 동작은 클라이언트를 조작하면 우회할 수 있습니다.
+ */
+export async function requestAdminApproval(
+  menu: AdminMenu,
+  needed: 'read' | 'write' = 'read'
+): Promise<AdminApprovalResult> {
+  if (isDevBuild() && !isLoginAvailable()) {
+    return { approved: true, via: 'local-dev' };
+  }
+  const session = await refreshJaceSession();
+  if (hasAdminAccess(session, menu, needed)) {
+    return { approved: true, via: 'server' };
+  }
+  if (session.status === 'signed-in') return { approved: false, reason: 'forbidden' };
+  if (session.status === 'signed-out' || session.status === 'unavailable') return { approved: false, reason: 'signed-out' };
+  return { approved: false, reason: 'unreachable' };
+}
+
+export function describeApprovalFailure(reason: 'signed-out' | 'forbidden' | 'unreachable'): string {
+  switch (reason) {
+    case 'signed-out':
+      return 'Sign in with an account that has permission to use this panel.';
+    case 'forbidden':
+      return 'Your account does not have permission for this action.';
+    default:
+      return 'Could not verify your permission with the server. Please try again.';
+  }
 }

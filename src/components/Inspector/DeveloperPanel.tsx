@@ -3,9 +3,45 @@ import styles from './DeveloperPanel.module.css';
 import { useUIState } from '../../store/uiStore';
 import { playbackController } from '../../core/audio/PlaybackController';
 import { AUDIO_BUFFER_CONSTANTS } from '../../constants/ui';
+import {
+  describeApprovalFailure,
+  getJaceSession,
+  hasAdminAccess,
+  requestAdminApproval,
+  subscribeJaceSession,
+  type JaceSessionState,
+} from '../../core/auth/jaceSession';
+import { DEVELOPER_PANEL_PERMISSION } from '../../utils/adminPreviewPermissions';
+import { isDevBuild } from '../../utils/apiConfig';
+import { showError } from '../../utils/toastStore';
+
+/**
+ * 개발자 패널 표시 조건
+ * - 운영: jace-s 세션의 adminAccess가 DEVELOPER_PANEL_PERMISSION(monitor read) 이상이면 숨김 없이 표시
+ * - 로컬 개발 서버: 기존처럼 테마 버튼 10번 클릭(devModeEnabled)으로도 표시
+ */
+function canShowDeveloperPanel(session: JaceSessionState, devModeEnabled: boolean): boolean {
+  if (hasAdminAccess(session, DEVELOPER_PANEL_PERMISSION.menu, DEVELOPER_PANEL_PERMISSION.level)) return true;
+  return isDevBuild() && devModeEnabled;
+}
+
+/**
+ * 모든 패널 동작은 적용 직전에 서버에서 권한을 다시 확인한다.
+ */
+async function approveDeveloperAction(): Promise<boolean> {
+  const result = await requestAdminApproval(DEVELOPER_PANEL_PERMISSION.menu, DEVELOPER_PANEL_PERMISSION.level);
+  if (!result.approved) {
+    showError(describeApprovalFailure(result.reason));
+  }
+  return result.approved;
+}
 
 const DeveloperPanel: React.FC = () => {
   const ui = useUIState();
+  const [session, setSession] = useState<JaceSessionState>(() => getJaceSession());
+  const [pendingAction, setPendingAction] = useState(false);
+  useEffect(() => subscribeJaceSession(setSession), []);
+  const visible = canShowDeveloperPanel(session, ui.devModeEnabled);
   const [driftInput, setDriftInput] = useState(String(ui.playbackDriftMs));
   const [pitchOffsetInput, setPitchOffsetInput] = useState(String(ui.pitchOffsetMaxMs));
   const [lookaheadInput, setLookaheadInput] = useState(String(ui.scheduleLookaheadSeconds));
@@ -20,22 +56,39 @@ const DeveloperPanel: React.FC = () => {
   
   // 초기값 설정 및 값 변경 시 AudioEngine에 반영
   useEffect(() => {
-    if (!ui.devModeEnabled) return;
+    if (!visible) return;
     playbackController.getEngine().setPitchOffsetMaxMs(ui.pitchOffsetMaxMs);
-  }, [ui.devModeEnabled, ui.pitchOffsetMaxMs]);
+  }, [visible, ui.pitchOffsetMaxMs]);
   
   useEffect(() => {
-    if (!ui.devModeEnabled) return;
+    if (!visible) return;
     playbackController.setScheduleLookaheadSeconds(ui.scheduleLookaheadSeconds);
-  }, [ui.devModeEnabled, ui.scheduleLookaheadSeconds]);
+  }, [visible, ui.scheduleLookaheadSeconds]);
 
-  if (!ui.devModeEnabled) return null;
+  if (!visible) return null;
+
+  /**
+   * 서버 승인 후에만 action을 실행한다. 거절되면 onDenied로 입력값을 되돌린다.
+   */
+  const runApproved = async (action: () => void, onDenied?: () => void) => {
+    setPendingAction(true);
+    try {
+      if (await approveDeveloperAction()) {
+        action();
+      } else {
+        onDenied?.();
+      }
+    } finally {
+      setPendingAction(false);
+    }
+  };
 
   const commitNumberInput = (
     rawValue: string,
     fallbackValue: number,
     onCommit: (value: number) => void,
-    clamp?: (value: number) => number
+    clamp?: (value: number) => number,
+    revertInput?: () => void
   ) => {
     if (rawValue.trim() === '') {
       return;
@@ -46,7 +99,10 @@ const DeveloperPanel: React.FC = () => {
       return;
     }
     const nextValue = clamp ? clamp(parsed) : parsed;
-    onCommit(nextValue);
+    if (nextValue === fallbackValue) {
+      return;
+    }
+    void runApproved(() => onCommit(nextValue), revertInput);
   };
 
   const handleDriftCommit = () => {
@@ -54,7 +110,8 @@ const DeveloperPanel: React.FC = () => {
       driftInput,
       ui.playbackDriftMs,
       (value) => ui.setPlaybackDriftMs(Math.round(value)),
-      (value) => Math.max(0, Math.min(500, value))
+      (value) => Math.max(0, Math.min(500, value)),
+      () => setDriftInput(String(ui.playbackDriftMs))
     );
   };
 
@@ -67,7 +124,8 @@ const DeveloperPanel: React.FC = () => {
         ui.setPitchOffsetMaxMs(nextValue);
         playbackController.getEngine().setPitchOffsetMaxMs(nextValue);
       },
-      (value) => Math.max(0, Math.min(20, value))
+      (value) => Math.max(0, Math.min(20, value)),
+      () => setPitchOffsetInput(String(ui.pitchOffsetMaxMs))
     );
   };
 
@@ -80,23 +138,24 @@ const DeveloperPanel: React.FC = () => {
         ui.setScheduleLookaheadSeconds(nextValue);
         playbackController.setScheduleLookaheadSeconds(nextValue);
       },
-      (value) => Math.max(0, Math.min(5, value))
+      (value) => Math.max(0, Math.min(5, value)),
+      () => setLookaheadInput(String(ui.scheduleLookaheadSeconds))
     );
   };
 
   const handleDriftLogToggle = () => {
     const nextValue = !isDriftLogEnabled;
-    ui.setPlaybackDriftLoggingEnabled(nextValue);
+    void runApproved(() => ui.setPlaybackDriftLoggingEnabled(nextValue));
   };
 
   const handleScheduleLogToggle = () => {
     const nextValue = !isScheduleLogEnabled;
-    ui.setScheduleLogEnabled(nextValue);
+    void runApproved(() => ui.setScheduleLogEnabled(nextValue));
   };
 
   const handleLongTaskLogToggle = () => {
     const nextValue = !isLongTaskLogEnabled;
-    ui.setLongTaskLogEnabled(nextValue);
+    void runApproved(() => ui.setLongTaskLogEnabled(nextValue));
   };
 
   const handleOverscanCommit = () => {
@@ -107,29 +166,32 @@ const DeveloperPanel: React.FC = () => {
         const nextValue = Math.round(value * 100) / 100;
         ui.setTimelineOverscanMultiplier(nextValue);
       },
-      (value) => Math.max(0, Math.min(2, value))
+      (value) => Math.max(0, Math.min(2, value)),
+      () => setOverscanInput(String(ui.timelineOverscanMultiplier))
     );
   };
 
   const handleLevelMeterToggle = () => {
-    ui.setLevelMeterEnabled(!ui.levelMeterEnabled);
+    const nextValue = !ui.levelMeterEnabled;
+    void runApproved(() => ui.setLevelMeterEnabled(nextValue));
   };
 
   const handleProjectSubscriptionToggle = () => {
-    ui.setTimelineProjectSubscriptionEnabled(!ui.timelineProjectSubscriptionEnabled);
+    const nextValue = !ui.timelineProjectSubscriptionEnabled;
+    void runApproved(() => ui.setTimelineProjectSubscriptionEnabled(nextValue));
   };
 
   const handleBufferChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextValue = Number.parseInt(event.target.value, 10);
     if (Number.isFinite(nextValue)) {
-      ui.setAudioBufferSize(nextValue);
+      void runApproved(() => ui.setAudioBufferSize(nextValue));
     }
   };
 
   const handleLogChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextValue = Number.parseInt(event.target.value, 10);
     if (Number.isFinite(nextValue)) {
-      ui.setDebugLogBufferSize(nextValue);
+      void runApproved(() => ui.setDebugLogBufferSize(nextValue));
     }
   };
 
@@ -150,6 +212,7 @@ const DeveloperPanel: React.FC = () => {
     <div className={styles.devPanel}>
       <div className={styles.headerContainer}>
         <div className={styles.header}>DEV</div>
+        {pendingAction && <span className={styles.pending}>checking permission…</span>}
       </div>
       <div className={styles.controls}>
         <div className={styles.row}>

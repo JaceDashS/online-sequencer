@@ -9,7 +9,7 @@ import {
   parseNoticesPayload,
   resolveServiceNoticeToasts,
 } from '../../src/core/notices/serviceNotices';
-import { getJaceSession, hasAdminAccess, parseAdminAccess, parseSessionPayload, refreshJaceSession, withJaceAuth } from '../../src/core/auth/jaceSession';
+import { getJaceSession, hasAdminAccess, parseAdminAccess, parseSessionPayload, refreshJaceSession, requestAdminApproval, withJaceAuth } from '../../src/core/auth/jaceSession';
 import { SignalingClient } from '../../src/core/sync/SignalingClient';
 import { createRoomApiError } from '../../src/core/sync/roomApiErrors';
 import { formatRoomExpiry } from '../../src/core/sync/roomExpiry';
@@ -594,6 +594,29 @@ test('signaling client exposes expiresAt from creation and keeps it on re-regist
   } finally {
     resetTransport();
   }
+});
+
+test('admin approval re-checks the server session before every action', async () => {
+  await withSignedInWindow(async () => {
+    const transport = createScriptedTransport([
+      { match: '/auth/session', status: 200, body: { user: {}, isAdmin: true, adminAccess: { monitor: 'read' }, csrfToken: 'c' } },
+      { match: '/auth/session', status: 200, body: { user: {}, isAdmin: true, adminAccess: { users: 'write' }, csrfToken: 'c' } },
+      { match: '/auth/session', status: 401, body: {} },
+      { match: '/auth/session', status: 500, body: {} },
+    ]);
+    setTransport(transport);
+    assert.deepEqual(await requestAdminApproval('monitor', 'read'), { approved: true, via: 'server' });
+    // 권한 회수 즉시 반영
+    assert.deepEqual(await requestAdminApproval('monitor', 'read'), { approved: false, reason: 'forbidden' });
+    assert.deepEqual(await requestAdminApproval('monitor', 'read'), { approved: false, reason: 'signed-out' });
+    assert.deepEqual(await requestAdminApproval('monitor', 'read'), { approved: false, reason: 'unreachable' });
+    assert.equal(transport.calls.filter((call) => call.url.endsWith('/auth/session')).length, 4);
+  });
+});
+
+test('admin approval is denied where login is unavailable outside the local dev server', async () => {
+  const result = await requestAdminApproval('monitor', 'read');
+  assert.deepEqual(result, { approved: false, reason: 'signed-out' });
 });
 
 (async () => {
