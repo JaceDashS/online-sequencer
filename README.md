@@ -128,7 +128,7 @@ See the [integration test strategy](docs/testing.md) (Korean) for order, verdict
 
 ## Documentation
 
-Project documentation is written in Korean. Start from [`docs/README.md`](docs/README.md).
+Project documentation is primarily written in Korean. Start from the [documentation index](docs/00-index.md).
 
 - [MIDI standard compliance](docs/specs/midi-standard-compliance.md)
 - [Project save/load format](docs/specs/project-save-load-specification.md)

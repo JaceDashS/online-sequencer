@@ -120,14 +120,14 @@
 서버 항목은 `jace-s` 별도 저장소에 속한다. (2026-11-03 갱신) 클라이언트는 jace-s 계약 `9416e01` 기준으로 호스트 토큰·로그인 세션을 사용한다. 이번 검토는 운영 배포 상태를 확인한 것이 아니다.
 
 - [x] **C-01 · P1 · 호스트 토큰 계약을 클라이언트에 연결** — **완료**
-  - 해결: `b133f62`(REST Bearer, 재등록 null 토큰 보존), `5798d04`(WS `register`의 `data.hostToken`, 로그 마스킹), `1d04f2a`(같은 탭 `sessionStorage` 보관). stash는 복원하지 않고 jace-s 계약(`9416e01`) 기준으로 새로 구현.
+  - 해결: `6cd48bd`(REST Bearer, 재등록 null 토큰 보존), `7a0ed3b`(WS `register`의 `data.hostToken`, 로그 마스킹), `2708da7`(같은 탭 `sessionStorage` 보관). stash는 복원하지 않고 jace-s 계약(`9416e01`) 기준으로 새로 구현.
   - 검증: 단위 테스트와 모의 서버 브라우저 확인. 실서버·Electron 확인은 미실시.
   - 근거: [SignalingClient.ts](../../src/core/sync/SignalingClient.ts):382,400 및 REST 호스트 요청, `jace-s/app/services/collaboration/signalingService.ts`(구 서버 경로):335.
   - 판정: 서버는 hostToken을 검증하나 클라이언트는 생성 응답에서 토큰을 보관하지 않고 WS/REST에 전달하지 않는다. 현재 WS 등록 메시지로 모의 인증 거부 확인.
   - 완료 조건: stash 내용을 검토하여 중복 구현을 피하고 생성→등록→재연결→참가 허용→강퇴→삭제를 양 플랫폼에서 검증한다. 재등록의 null 토큰으로 유효한 기존 토큰을 지우지 않는다. 토큰을 로그·문서에 출력하지 않는다.
 
 - **C-02 · P1 · 관리자 로그인·룸 API 계약 전환** — **무효**
-  - 이유: jace-s API 이전(`9416e01`)으로 방 목록 경로가 없어졌고, 개발자 패널 관리자 기능(비밀번호 확인·방 목록·강제 삭제)을 `b133f62`에서 제거했다. 관리자 판단은 `/auth/session`의 `isAdmin`·`adminAccess`로 대체(`6e73589`, `54b7c7c`, `21de635`).
+  - 이유: jace-s API 이전(`9416e01`)으로 방 목록 경로가 없어졌고, 개발자 패널 관리자 기능(비밀번호 확인·방 목록·강제 삭제)을 `6cd48bd`에서 제거했다. 관리자 판단은 `/auth/session`의 `isAdmin`·`adminAccess`로 대체(`9b8721e`, `603dca3`, `f7ecf11`).
   - 근거: `PasswordModal.tsx`(2026-11-03 삭제):31~51은 trim과 `{valid:true}` JSON을 기대한다. `jace-s/app/api/auth/verify-password/route.ts`(구 서버 경로):30은 새 로그인(204 + 쿠키)으로 위임한다. `RoomsListModal.tsx`(2026-11-03 삭제):58은 410을 반환하는 일반 목록 경로를 호출한다.
   - 판정: 코드상 요청/응답 계약 불일치. 현재 운영 서버 상태는 미확인.
   - 완료 조건: 로그인·세션 확인·로그아웃·관리자 목록/상세/삭제를 새 경로에 연결한다. 쿠키/CSRF/401 처리와 비밀번호 원문 전송을 검증한다. 기존 서버 인증을 다시 만드는 작업이 아니라 클라이언트 전환 작업으로 진행한다.
