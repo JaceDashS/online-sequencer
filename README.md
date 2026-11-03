@@ -1,124 +1,142 @@
 # Online DAW
 
+[![Download Windows installer](https://img.shields.io/badge/Windows-Download%20Installer-blue?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online.Sequencer.Setup.0.1.0.exe)
+[![Download Windows portable](https://img.shields.io/badge/Windows-Download%20Portable-green?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online-Sequencer-0.1.0-Windows-Portable.zip)
 
-[![Windows 설치 파일 다운로드](https://img.shields.io/badge/Windows-설치%20파일%20다운로드-blue?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online.Sequencer.Setup.0.1.0.exe)
-[![Windows 포터블 버전 다운로드](https://img.shields.io/badge/Windows-포터블%20버전%20다운로드-green?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online-Sequencer-0.1.0-Windows-Portable.zip)
+Online DAW is a **web-based digital audio workstation (DAW)** built with React, TypeScript and Vite.
+It provides MIDI editing and client-side real-time collaboration.
 
-Online DAW는 React, TypeScript, Vite 기반으로 구현된 **웹 기반 디지털 오디오 워크스테이션(DAW)**입니다.  
-MIDI 편집 기능과 클라이언트 측 실시간 협업 기능을 제공합니다.
+## Features
 
-## 주요 기능
+- **MIDI editing**: create and edit MIDI notes in a piano-roll UI
+- **Standard MIDI File (SMF) support**: import and export MIDI files following the MIDI 1.0 specification
+- **Real-time collaboration**: WebSocket signaling and WebRTC peer-to-peer collaboration
+- **Multi-track**: per-track volume, pan and effects
+- **Audio engine**: sample-based playback (SFZ: piano, GM drums) with a custom effect chain
+- **Audio effects**: EQ, delay, compressor, reverb and more on tracks and the master channel
+- **Project files**: save and load projects as JSON and MIDI
+- **History**: undo / redo for notes and parts
+- **Service notices and sign-in**: jace-s service notice toasts and optional jace-s sign-in on `online-sequencer.jace-s.com`
+- **Desktop-first UI**: timeline zoom and resizable tracks; screens 1120px wide or narrower show a not-supported notice
 
-- **MIDI 편집**: 피아노 롤 기반 UI를 통한 MIDI 노트 생성 및 편집
-- **표준 MIDI 파일(SMF) 지원**: MIDI 1.0 규격을 준수하는 MIDI 파일 불러오기 및 내보내기
-- **실시간 협업**: WebSocket 시그널링 연동과 WebRTC P2P 기반 클라이언트 협업
-- **멀티 트랙 지원**: 각 트랙별 볼륨, 패닝, 이펙트 개별 제어
-- **오디오 엔진**: 샘플 기반 재생 구조 (SFZ 지원: 피아노, GM 드럼), 커스텀 이펙트 체인 아키텍처
-- **오디오 이펙트**: EQ, 딜레이, 컴프레서, 리버브 등 트랙/마스터 채널 이펙트 적용
-- **프로젝트 관리**: JSON 및 MIDI 형식으로 프로젝트 저장 및 불러오기
-- **히스토리 시스템**: Undo / Redo 지원 (노트 단위 및 파트 단위)
-- **반응형 UI**: 타임라인 줌, 트랙 크기 조절, 모바일 환경 대응 여부 검증
+## Tech Stack
 
-## 기술 스택
+### Frontend
+- **Framework**: React 19, TypeScript, Vite
+- **State**: React Context + custom store pattern
+- **Audio**: Web Audio API (lookahead scheduling with a fixed `AudioContext` anchor), SFZ parser
+- **Styling**: CSS Modules
 
-### 프론트엔드
-- **프레임워크**: React 19, TypeScript, Vite
-- **상태 관리**: React Context + Custom Store 패턴
-- **오디오 처리**: Web Audio API (Schedule Lookahead), SFZ 파서
-- **스타일링**: CSS Modules
+### Desktop (Electron)
+- **Runtime**: Electron 39+ (Chromium + Node.js)
+- **IPC**: context isolation, preload script
+- **Packaging**: electron-builder (Windows NSIS / Portable, macOS DMG, Linux AppImage)
 
-### 데스크톱 (Electron)
-- **엔진**: Electron 39+ (Chromium + Node.js)
-- **IPC**: Context Isolation, Preload Script
-- **빌드**: electron-builder (Windows NSIS / Portable, macOS DMG, Linux AppImage)
+### Collaboration and jace-s integration
+- **Signaling**: REST at `https://api.jace-s.com/online-sequencer` and WebSocket at `wss://api.jace-s.com/online-sequencer/signaling`
+- **P2P transport**: WebRTC DataChannel, host-centered star topology
+- **Host authorization**: per-room `hostToken` (Bearer for REST, `data.hostToken` for WebSocket `register`)
+- **Service status**: `GET /health` and `GET /notices?app=41` once on app entry
 
-### 협업 네트워킹
-- **시그널링 클라이언트**: `https://api.jace-s.com/online-sequencer` REST와 `wss://api.jace-s.com/online-sequencer/signaling` WebSocket 연동 (`VITE_API_URL`, [API 설정](docs/architecture/api-configuration.md))
-- **P2P 전송**: WebRTC DataChannel
-- **토폴로지**: 호스트 중심 Star Topology
-- **jace-s 연동**: 서비스 공지 토스트(`/health`, `/notices?app=41`), `online-sequencer.jace-s.com`에서 jace-s 로그인 ([명세](docs/specs/service-notices-and-login.md))
-
-## 프로젝트 구조
+## Project Structure
 
 ```
 online-daw/
 ├── src/
-│   ├── components/   # React UI 컴포넌트 (EventDisplay, MidiEditor, Mixer 등)
-│   ├── constants/    # 애플리케이션 상수 (MIDI, UI 설정)
-│   ├── core/         # 핵심 비즈니스 로직
-│   │   ├── audio/    # 오디오 엔진, 재생 컨트롤러
-│   │   ├── effects/  # 오디오 이펙트 구현 (EQ, Reverb 등)
-│   │   ├── midi/     # MIDI 파서/익스포터, SMF 타입
-│   │   └── sync/     # 협업 로직 (WebRTC, 충돌 해결)
-│   ├── domain/       # 도메인 로직 (timing 변환·캐시)
-│   ├── hooks/        # UI 로직용 커스텀 React 훅
-│   ├── pages/        # 라우트 페이지 (DAW, 개발 전용 QA)
-│   ├── qa/           # QA 시나리오 정의
-│   ├── store/        # 상태 관리 (Actions, History, Stores)
-│   ├── transport/    # 플랫폼 추상화 계층 (Web/Electron I/O 어댑터)
-│   ├── types/        # 프로젝트·Electron 타입 정의
-│   ├── utils/        # 유틸리티 (Logger, 수학, 시간 계산)
-│   └── workers/      # Web Worker (재생 클럭, 디버그 로거)
-├── docs/             # 문서 (명세, 아키텍처, 매뉴얼, 작업 기록)
-├── electron/         # Electron main/preload 프로세스
-├── scripts/          # 테스트 및 검증 스크립트
-├── case-tests/       # QA 테스트 데이터와 상세 케이스 참고 자료
-└── public/           # 정적 에셋 (샘플, 아이콘)
+│   ├── components/   # React UI components (EventDisplay, MidiEditor, Mixer, ...)
+│   ├── constants/    # App constants (MIDI, UI)
+│   ├── core/
+│   │   ├── audio/    # Audio engine and playback controller
+│   │   ├── auth/     # jace-s sign-in session and admin approval
+│   │   ├── effects/  # Audio effects (EQ, reverb, ...)
+│   │   ├── midi/     # MIDI parser/exporter, SMF types
+│   │   ├── notices/  # jace-s health and notice checks
+│   │   └── sync/     # Collaboration (signaling, WebRTC, sync)
+│   ├── domain/       # Domain logic (timing conversion and cache)
+│   ├── hooks/        # Custom React hooks
+│   ├── pages/        # Routes (DAW, dev-only QA)
+│   ├── qa/           # QA scenario definitions
+│   ├── store/        # State (actions, history, stores)
+│   ├── transport/    # Platform I/O adapters (web / Electron)
+│   ├── types/        # Project and Electron types
+│   ├── utils/        # Utilities (config, logger, timing, theme, ...)
+│   └── workers/      # Web Workers (playback clock, debug logger)
+├── docs/             # Documentation in Korean (specs, architecture, manual, work log)
+├── electron/         # Electron main / preload
+├── scripts/          # Test and verification scripts
+├── case-tests/       # QA fixtures and detailed case references
+└── public/           # Static assets (samples, icons)
 ```
 
-## 사전 요구 사항
+## Requirements
 
-- Node.js 20.19 이상 또는 22.12 이상
-- npm 또는 yarn
+- Node.js 20.19+ or 22.12+
+- npm or yarn
 
-## 설치
+## Installation
 
 ```bash
 npm install
 ```
 
-## 개발
+## Configuration
+
+There are no built-in defaults for the jace-s settings. Copy `.env.example` and set every value.
+
+| Variable | Production value | When missing |
+|---|---|---|
+| `VITE_API_URL` | `https://api.jace-s.com` (no `/api` path) | Collaboration, notices and sign-in are disabled |
+| `VITE_SITE_URL` | `https://jace-s.com` | Sign-in is disabled |
+| `VITE_NOTICE_APP_ID` | `41` | Notices are not fetched (health check only) |
+| `VITE_LOGIN_HOSTS` | `online-sequencer.jace-s.com` | Sign-in UI and the production developer panel are hidden |
+| `VITE_TURN_SERVER_URL`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL` | Optional | Public STUN servers only |
+
+- `VITE_` values are embedded in the client bundle at build time. Do not put secrets in them, and redeploy after changing them.
+- Production builds print a warning for missing required values. Details (in Korean): [API configuration](docs/architecture/api-configuration.md).
+
+## Development
 
 ```bash
-# 개발 서버 실행
+# Start the dev server
 npm run dev
 
-# Electron 환경 실행
+# Run in Electron
 npm run electron:dev
 ```
 
-## 빌드
+## Build
 
 ```bash
-# 프로덕션 빌드
+# Production web build
 npm run build
 
-# Electron 앱 빌드
+# Electron app
 npm run electron:build
 ```
 
-## 테스트
+## Testing
 
 ```bash
-# 스크립트 통합 테스트
+# Script integration tests
 npm test
 
-# 개발 서버를 시작하고 QA 화면(/qa, 개발 전용) 열기
+# Start the dev server and open the QA page (/qa, dev only)
 npm run qa
 ```
 
-실행 순서, 판정 기준, 서버 장애 정책은 [통합 테스트 전략](docs/testing.md)을 참고하십시오.
+See the [integration test strategy](docs/testing.md) (Korean) for order, verdicts and the server outage policy.
 
-## 문서
+## Documentation
 
-문서 목록과 분류 기준은 [`docs/README.md`](docs/README.md)를 참고하십시오.
+Project documentation is written in Korean. Start from [`docs/README.md`](docs/README.md).
 
-- [MIDI 표준 준수 사양](docs/specs/midi-standard-compliance.md)
-- [프로젝트 저장/불러오기 포맷](docs/specs/project-save-load-specification.md)
-- [실시간 협업 명세](docs/specs/collaboration-specification/README.md)
-- [아키텍처 문서](docs/architecture/README.md)
-- [사용자 매뉴얼](docs/manual/README.md)
+- [MIDI standard compliance](docs/specs/midi-standard-compliance.md)
+- [Project save/load format](docs/specs/project-save-load-specification.md)
+- [Real-time collaboration spec](docs/specs/collaboration-specification/README.md)
+- [jace-s notices and sign-in](docs/specs/service-notices-and-login.md)
+- [Architecture](docs/architecture/README.md)
+- [User manual](docs/manual/README.md)
 
-## 라이선스
+## License
 
-자세한 내용은 [LICENSE](LICENSE) 파일을 참고하십시오.
+See [LICENSE](LICENSE).
