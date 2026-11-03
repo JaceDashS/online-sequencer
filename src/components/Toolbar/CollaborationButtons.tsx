@@ -8,6 +8,8 @@ import type { ConnectionState } from '../../core/sync/types/p2p';
 import { showError } from '../../utils/toastStore';
 import { useWindowWidth } from '../../hooks/useWindowWidth';
 import { BREAKPOINTS } from '../../constants/ui';
+import { formatRoomExpiry } from '../../core/sync/roomExpiry';
+import { getJaceSession, openJaceLoginWindow, subscribeJaceSession, type JaceSessionState } from '../../core/auth/jaceSession';
 
 interface Participant {
   id: string;
@@ -26,6 +28,9 @@ const CollaborationButtons: React.FC = () => {
   const [isHost, setIsHost] = useState(false);
   const [allowCountdown, setAllowCountdown] = useState<number | null>(null);
   const [hostCooldown, setHostCooldown] = useState<number | null>(null);
+  const [roomExpiresAt, setRoomExpiresAt] = useState<number | null>(null);
+  const [expiryNow, setExpiryNow] = useState(() => Date.now());
+  const [session, setSession] = useState<JaceSessionState>(() => getJaceSession());
   const windowWidth = useWindowWidth();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const joinInputRef = useRef<HTMLInputElement>(null);
@@ -33,6 +38,16 @@ const CollaborationButtons: React.FC = () => {
   const clientId = getOrCreateClientId();
   
   const isNarrowScreen = windowWidth <= BREAKPOINTS.ICON_ONLY;
+
+  // 로그인 상태 구독 (비로그인 호스트에게 6시간 안내 표시용)
+  useEffect(() => subscribeJaceSession(setSession), []);
+
+  // 호스팅 중 만료까지 남은 시간 갱신 (30초 간격, 서버 요청 없음)
+  useEffect(() => {
+    if (mode !== 'hosting' || roomExpiresAt === null) return;
+    const timer = window.setInterval(() => setExpiryNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [mode, roomExpiresAt]);
 
   // CollaborationManager 초기화
   useEffect(() => {
@@ -169,6 +184,8 @@ const CollaborationButtons: React.FC = () => {
       const newRoomCode = await collaborationManagerRef.current.startHosting();
       
       setRoomCode(newRoomCode);
+      setRoomExpiresAt(collaborationManagerRef.current.getRoomExpiresAt());
+      setExpiryNow(Date.now());
       setMode('hosting');
       setIsHost(true);
       
@@ -560,7 +577,10 @@ const CollaborationButtons: React.FC = () => {
         <div ref={dropdownRef} className={styles.hostDropdownContainer}>
           <button
             className={styles.dropdownTrigger}
-            onClick={() => setShowParticipantsDropdown(!showParticipantsDropdown)}
+            onClick={() => {
+              setExpiryNow(Date.now());
+              setShowParticipantsDropdown(!showParticipantsDropdown);
+            }}
             title="Room participants"
           >
             <span className={styles.roomCodeDisplay}>{roomCode}</span>
@@ -583,6 +603,26 @@ const CollaborationButtons: React.FC = () => {
                 <div className={styles.participantsTitle}>
                   Participants ({participants.length}/4)
                 </div>
+                {isHost && (() => {
+                  const expiry = formatRoomExpiry(roomExpiresAt, expiryNow);
+                  if (!expiry) return null;
+                  return (
+                    <div className={styles.roomExpiry} title="Room lifetime is set by the server when the room is created">
+                      <span>{expiry.label}</span>
+                      <span className={expiry.expired ? styles.roomExpiryExpired : styles.roomExpiryRemaining}>
+                        {expiry.remaining}
+                      </span>
+                    </div>
+                  );
+                })()}
+                {isHost && session.status === 'signed-out' && (
+                  <div className={styles.roomExpiryHint}>
+                    Rooms created while signed in last 6 hours (1 hour otherwise).{' '}
+                    <button type="button" className={styles.roomExpiryLogin} onClick={openJaceLoginWindow}>
+                      Log in
+                    </button>
+                  </div>
+                )}
                 {participants.map((participant) => {
                   const getConnectionStateIcon = (state?: ConnectionState) => {
                     switch (state) {

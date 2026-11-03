@@ -205,6 +205,46 @@
   padding: 0 4px;
 }
 
+.roomExpiry {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.roomExpiryRemaining {
+  color: var(--text-secondary);
+}
+
+.roomExpiryExpired {
+  color: var(--color-warning);
+}
+
+.roomExpiryHint {
+  padding: 0 4px;
+  margin-bottom: 8px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
+.roomExpiryLogin {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.roomExpiryLogin:hover {
+  color: var(--text-primary);
+}
+
 .participantItem {
   display: flex;
   align-items: center;

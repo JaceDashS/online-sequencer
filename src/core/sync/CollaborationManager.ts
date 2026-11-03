@@ -494,7 +494,14 @@ export class CollaborationManager {
   /**
    * 호스트 ID 반환
    */
-  getHostId(): string | null {
+  /**
+   * 호스트 방 만료 시각 (epoch ms, 서버 응답 기준). 호스트가 아니거나 알 수 없으면 null
+   */
+  getRoomExpiresAt(): number | null {
+    return this.isHost ? this.signalingClient.getRoomExpiresAt() : null;
+  }
+
+    getHostId(): string | null {
     return this.hostId;
   }
 

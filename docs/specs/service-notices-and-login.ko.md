@@ -74,6 +74,8 @@ Online Sequencer는 jace-s에 앱 ID **41**로 등록되어 있습니다. 이 �
 
 - 적용 대상: `SignalingClient`의 방 생성·조회·조인 허용·강퇴·삭제
 - 로그인 상태로 만든 방은 6시간, 비로그인은 1시간 유지됩니다 (서버 정책).
+- 호스트의 참가자 드롭다운에 응답 `expiresAt` 기준 만료 시각과 남은 시간을 표시합니다(`src/core/sync/roomExpiry.ts`). 30초마다 화면만 갱신하며 서버에 다시 묻지 않습니다. 재등록은 만료 시각을 연장하지 않습니다.
+- 허용 호스트에서 비로그인 상태로 호스팅 중이면 "Rooms created while signed in last 6 hours (1 hour otherwise). Log in" 안내를 함께 표시합니다. 이미 만든 방의 만료 시각은 로그인해도 바뀌지 않습니다.
 - 방 요청의 호스트 인증은 로그인과 별개로 `hostToken`(Bearer)을 씁니다. [서버 API](./collaboration-specification/server-api.ko.md) 참고.
 - WebSocket(`wss://api.jace-s.com/online-sequencer/signaling`)은 브라우저가 같은 사이트 쿠키를 자동으로 보냅니다.
 

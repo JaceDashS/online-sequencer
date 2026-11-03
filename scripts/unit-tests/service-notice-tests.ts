@@ -12,6 +12,7 @@ import {
 import { getJaceSession, parseSessionPayload, refreshJaceSession, withJaceAuth } from '../../src/core/auth/jaceSession';
 import { SignalingClient } from '../../src/core/sync/SignalingClient';
 import { createRoomApiError } from '../../src/core/sync/roomApiErrors';
+import { formatRoomExpiry } from '../../src/core/sync/roomExpiry';
 import { clearHostRoomIfMatches, loadHostRoom, saveHostRoom } from '../../src/core/sync/hostTokenStore';
 import { resetTransport, setTransport } from '../../src/transport';
 import { buildApiUrl, buildWebSocketUrl, getApiUrl, getNoticeAppId, getSiteUrl, isLoginAvailable } from '../../src/utils/apiConfig';
@@ -539,6 +540,34 @@ test('CSRF retry happens only once', async () => {
     await assert.rejects(() => client.registerRoom('host-uuid'), /sign-in session could not be verified/);
     assert.equal(transport.calls.filter((call) => call.method === 'POST').length, 2);
   });
+});
+
+test('room expiry is formatted from the server expiresAt', () => {
+  const now = new Date(2026, 10, 3, 13, 37, 0).getTime();
+  const oneHour = formatRoomExpiry(now + 58 * 60_000 + 10_000, now);
+  assert.equal(oneHour?.label, 'Expires at 14:35');
+  assert.equal(oneHour?.remaining, '59 min left');
+  assert.equal(formatRoomExpiry(now + 6 * 3600_000, now)?.remaining, '6 h left');
+  assert.equal(formatRoomExpiry(now + 65 * 60_000, now)?.remaining, '1 h 5 min left');
+  assert.equal(formatRoomExpiry(now + 1000, now)?.remaining, '1 min left');
+  assert.deepEqual(formatRoomExpiry(now - 1, now)?.expired, true);
+  assert.equal(formatRoomExpiry(null, now), null);
+});
+
+test('signaling client exposes expiresAt from creation and keeps it on re-registration without one', async () => {
+  const transport = createRoomTransport([
+    { status: 200, body: { success: true, roomCode: '0909', hostToken: 't', expiresAt: 1_900_000_000_000 } },
+  ]);
+  setTransport(transport);
+  try {
+    const client = new SignalingClient();
+    await client.registerRoom('host-uuid');
+    assert.equal(client.getRoomExpiresAt(), 1_900_000_000_000);
+    await client.deleteRoom('0909');
+    assert.equal(client.getRoomExpiresAt(), null);
+  } finally {
+    resetTransport();
+  }
 });
 
 (async () => {

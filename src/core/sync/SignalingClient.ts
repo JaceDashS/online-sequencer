@@ -117,6 +117,8 @@ export class SignalingClient {
    * 같은 탭의 새로고침에 대비해 sessionStorage에도 보관한다(hostTokenStore). URL이나 로그에 넣지 않는다.
    */
   private hostToken: string | null = null;
+  /** 호스트 방 만료 시각 (epoch ms). 서버 응답의 expiresAt을 그대로 쓴다. 알 수 없으면 null */
+  private roomExpiresAt: number | null = null;
   private isConnected: boolean = false;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
@@ -302,6 +304,7 @@ export class SignalingClient {
       clearHostRoomIfMatches(message.roomCode);
       if (message.roomCode && message.roomCode === this.roomCode) {
         this.hostToken = null;
+        this.roomExpiresAt = null;
       }
     }
     
@@ -495,11 +498,12 @@ export class SignalingClient {
       if (typeof data.hostToken === 'string' && data.hostToken) {
         this.hostToken = data.hostToken;
       }
+      const previous = loadHostRoom(hostId);
+      const expiresAt = typeof data.expiresAt === 'number' && Number.isFinite(data.expiresAt)
+        ? data.expiresAt
+        : previous?.roomCode === data.roomCode ? previous.expiresAt : null;
+      this.roomExpiresAt = expiresAt;
       if (this.hostToken) {
-        const previous = loadHostRoom(hostId);
-        const expiresAt = typeof data.expiresAt === 'number' && Number.isFinite(data.expiresAt)
-          ? data.expiresAt
-          : previous?.roomCode === data.roomCode ? previous.expiresAt : null;
         saveHostRoom({ hostId, roomCode: data.roomCode, hostToken: this.hostToken, expiresAt });
       }
       return data.roomCode;
@@ -510,6 +514,13 @@ export class SignalingClient {
       }
       throw err;
     }
+  }
+
+  /**
+   * 호스트로 등록한 방의 만료 시각 (epoch ms). 알 수 없으면 null
+   */
+  getRoomExpiresAt(): number | null {
+    return this.roomExpiresAt;
   }
 
   /**
@@ -656,6 +667,7 @@ export class SignalingClient {
     // 룸 코드·호스트 토큰 초기화
     this.roomCode = null;
     this.hostToken = null;
+    this.roomExpiresAt = null;
     clearHostRoom();
   }
 
@@ -763,6 +775,7 @@ export class SignalingClient {
     this.isConnected = false;
     this.roomCode = null;
     this.hostToken = null;
+    this.roomExpiresAt = null;
     clearHostRoom();
   }
 
