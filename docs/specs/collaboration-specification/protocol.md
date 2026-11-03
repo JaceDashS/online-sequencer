@@ -1,8 +1,8 @@
 # 프로토콜 정의
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-11-03
 
 ---
 
@@ -11,46 +11,39 @@
 ### 1. 룸 등록 (호스트 → 서버)
 
 ```typescript
+// POST /online-sequencer/rooms  (재등록은 Authorization: Bearer {hostToken})
 interface RegisterRoomRequest {
-  hostId: string;          // 호스트 고유 ID (UUID)
-  metadata?: {
-    hostName?: string;
-    maxParticipants?: number;  // 기본값: 4
-  };
+  hostId: string;          // 호스트 고유 ID (UUID, 클라이언트 생성)
 }
 
 interface RegisterRoomResponse {
-  success: boolean;
-  roomCode: string;        // 서버가 생성한 4자리 숫자 (0000-9999)
+  success: true;
+  roomCode: string;        // 서버가 생성한 4자리 문자열 (0000-9999)
   hostId: string;
-  expiresAt: number;       // 룸 만료 시간 (밀리초, 6시간 후)
-  allowJoin: boolean;      // 조인 허용 여부 (초기값: false)
+  hostToken: string | null; // 새 방에서만 원문, 재등록이면 null
+  expiresAt: number;       // 방 만료 시각 (epoch ms, 로그인 6시간·비로그인 1시간)
+  allowJoin: boolean;      // 초기값 false
+  createdAt: number;
 }
 ```
 
-**참고:** 룸 코드는 서버에서 생성하여 반환합니다. 클라이언트는 룸 코드를 생성하지 않습니다.
+**참고:** 룸 코드는 서버에서 생성하여 반환합니다. 클라이언트는 룸 코드를 생성하지 않습니다. 오류 형식과 코드는 [서버 API](./server-api.md#http-에러)를 따릅니다.
 
 ### 2. 룸 조회 (참가자 → 서버)
 
 ```typescript
-interface GetRoomRequest {
+// GET /online-sequencer/rooms/{roomCode}  (선택 헤더 x-client-id)
+interface RoomInfo {
+  success: true;
   roomCode: string;
-}
-
-interface GetRoomResponse {
-  success: boolean;
-  room?: {
-    roomCode: string;
-    hostId: string;
-    status: 'active' | 'inactive' | 'full';
-    allowJoin: boolean;           // 조인 허용 여부
-    allowJoinExpiresAt?: number;  // 조인 허용 만료 시간
-    participantCount: number;
-    maxParticipants: number;
-    createdAt: number;
-    expiresAt: number;            // 룸 만료 시간 (6시간 후)
-  };
-  error?: string;
+  hostId: string;
+  status: 'active' | 'expired';
+  allowJoin: boolean;
+  allowJoinExpiresAt: number | null;
+  participantCount: number;
+  maxParticipants: number;  // 4
+  createdAt: number;
+  expiresAt: number;        // 방 만료 시각 (epoch ms)
 }
 ```
 

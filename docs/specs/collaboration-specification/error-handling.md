@@ -1,8 +1,17 @@
 # 예외 상황 및 핸들링
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-11-03
+
+> **문서 성격**: 예외 상황별 설계 시나리오 모음입니다. 예시 코드는 설명용이며 실제 구현 코드가 아닙니다. 실제 메시지·API는 [서버 API](./server-api.md)와 [프로토콜 정의](./protocol.md), 그리고 `src/core/sync`가 우선합니다.
+>
+> **확인된 차이 (2026-11-03)**
+> - P2P 메시지는 `midi-event`·`project-state`가 아니라 `change`·`initial-state`·`state-request`를 씁니다. 버전 번호 기반 `ProjectStateMessage`(11.2)는 구현되어 있지 않습니다.
+> - 방 유지 시간은 고정 6시간이 아니라 로그인 6시간·비로그인 1시간이며, 클라이언트는 응답의 `expiresAt`을 씁니다.
+> - 클라이언트에 만료 경고 타이머(9장 예시)는 없습니다. 서버 `room-expiring` 이벤트를 표시하는 UI도 아직 없습니다.
+> - `room-session-expired` 수신 시 클라이언트는 보관한 호스트 토큰만 지우며, 호스팅 화면을 자동으로 닫지 않습니다.
+> - 강퇴 REST 경로는 WebSocket `kicked`를 직접 보내지 않습니다(서버 계약).
 
 ---
 
@@ -303,8 +312,8 @@ webRTCManager.onIceConnectionStateChange((state) => {
 
 ```mermaid
 flowchart TD
-    A[게스트1: 노트 편집] --> B[게스트1 → 호스트<br/>midi-event 전송]
-    C[게스트2: 같은 노트 편집] --> D[게스트2 → 호스트<br/>midi-event 전송]
+    A[게스트1: 노트 편집] --> B[게스트1 → 호스트<br/>change 전송]
+    C[게스트2: 같은 노트 편집] --> D[게스트2 → 호스트<br/>change 전송]
     
     B --> E[호스트: 충돌 감지]
     D --> E
@@ -318,7 +327,7 @@ flowchart TD
     H --> J
     I --> J
     
-    J --> K[호스트 → 다른 게스트들<br/>project-state 브로드캐스트]
+    J --> K[호스트 → 다른 게스트들<br/>change 중계]
     K --> L[게스트1: 상태 동기화]
     K --> M[게스트2: 상태 동기화]
     
@@ -820,7 +829,7 @@ interface RoomPersistence {
 - "Allow Join" 클릭 후 60초 경과
 - 서버에서 룸의 allowJoin 상태를 false로 변경
 - 새로운 참가자 조인 불가
-- 하지만 기존 P2P 연결은 계속 유지 (6시간 제한 전까지)
+- 하지만 기존 P2P 연결은 계속 유지 (방 만료 전까지)
 
 #### 핸들링
 
@@ -845,8 +854,8 @@ async function joinRoom(roomCode: string) {
 }
 ```
 
-#### 시나리오 2: 세션 만료 경고 및 만료 (6시간 후)
-- 룸 생성 후 6시간 경과
+#### 시나리오 2: 세션 만료 경고 및 만료 (방 만료 시각)
+- 룸 생성 후 만료 시간(로그인 6시간·비로그인 1시간) 경과
 - 서버에서 30분 전, 5분 전, 1분 전에 경고 메시지 전송
 - 서버에서 룸 정보 삭제
 - P2P 연결도 자동 종료 (리소스 절약)
@@ -888,11 +897,11 @@ signalingClient.on('room-session-expired', () => {
   // 호스트가 새 룸을 만들면 재연결 가능
 });
 
-// 호스트 측: 6시간 후 세션 자동 종료
-// 서버에서 자동으로 처리
+// (설계 예시, 미구현) 호스트 측: 방 만료 경고
+// 실제로는 서버가 room-expiring(30·5·1분 전)을 보낸다. 클라이언트 표시 UI는 아직 없다.
 if (isHost) {
-  // 6시간 경고 타이머 설정
-  const sessionDuration = 6 * 60 * 60 * 1000; // 6시간
+  // 응답의 expiresAt 기준 (고정 6시간 아님)
+  const sessionDuration = roomExpiresAt - Date.now();
   setTimeout(() => {
     showWarning("Room session will expire soon. Please save your work.");
   }, sessionDuration - 30 * 60 * 1000); // 30분 전

@@ -1,6 +1,6 @@
 # 서버 API 스펙
 
-**Document Version**: 2.0  
+**Document Version**: 3.0  
 **Software Version**: 0.1.0  
 **Last Updated**: 2026-11-03
 
@@ -39,208 +39,55 @@
 
 **예전 주소**: `https://jace-s.com/api/online-sequencer/...`, `https://api.jace-s.com/api/online-sequencer/...`, `wss://jace-s.com/api/online-sequencer/signaling`은 전환 기간에만 동작하며 이후 404가 된다. 클라이언트는 사용하지 않는다.
 
-아래 상세는 기존 명세를 유지한 것이다. 위 표와 다르면 위 표가 우선한다.
+## RoomInfo
 
-## REST API 엔드포인트
+`GET /rooms/{roomCode}` 성공 응답:
 
-### 1. 룸 등록 (호스트가 "Host" 클릭 시)
-
-```
-POST /rooms
-Content-Type: application/json
-Headers (재등록 시에만): { "Authorization": "Bearer {hostToken}" }
-
-Request Body:
-{
-  "hostId": "uuid-here"
-}
-
-Response 200:
+```json
 {
   "success": true,
-  "roomCode": "1234",  // 서버가 생성한 비어있는 4자리 숫자
-  "hostId": "uuid-here",
-  "hostToken": "...",  // 새 방일 때 한 번만 반환
-  "expiresAt": 1234567890123,  // 로그인 6시간, 비로그인 1시간 후
-  "allowJoin": false,  // 초기값: 조인 불가
-  "createdAt": 1234567890000
-}
-
-Response 400:
-{
-  "success": false,
-  "error": "No available room codes"  // 모든 룸 코드가 사용 중인 경우 (매우 드묾)
-}
-
-Response 200: (호스트가 이미 룸이 있는 경우)
-{
-  "success": true,
-  "roomCode": "1234",  // 기존 룸 코드 반환
-  "hostId": "uuid",
+  "roomCode": "0042",
+  "hostId": "host-uuid",
   "status": "active",
   "allowJoin": false,
-  "createdAt": 1234567890
-}
-```
-
-**중요:**
-- 룸 코드는 서버에서 생성하여 반환합니다
-- 서버는 사용 가능한 4자리 숫자(0000-9999) 중 하나를 선택합니다
-- 이미 사용 중인 룸 코드는 제외하고 할당합니다
-- 룸 유지 시간: 로그인 상태 6시간, 비로그인 1시간
-- 클라이언트는 재연결 시 보관한 hostToken으로 재등록을 시도하고, 401/403/404로 거절되면 토큰 없이 새 방을 만든다
-- 초기 상태는 allowJoin: false (조인 불가)
-
-### 2. 룸 조회 (참가자가 조인 시)
-
-```
-GET /rooms/:roomCode
-Headers: { "x-client-id": "client-uuid" }  // 선택사항, 강퇴 확인용
-
-Response 200:
-{
-  "success": true,
-  "roomCode": "1234",
-  "hostId": "uuid-here",
-  "status": "active",
-  "allowJoin": true,  // 조인 허용 여부
-  "allowJoinExpiresAt": 1234567950123,  // 조인 허용 만료 시간 (60초 후)
+  "allowJoinExpiresAt": null,
   "participantCount": 1,
   "maxParticipants": 4,
-  "createdAt": 1234567890123,  // 룸 생성 시간 (강퇴 확인용)
-  "expiresAt": 1234567890123  // 룸 만료 시간 (6시간 후)
-}
-
-Response 404:
-{
-  "success": false,
-  "error": "Room not found"
-}
-
-Response 403:
-{
-  "success": false,
-  "error": "Join not allowed",  // allowJoin이 false이거나 강퇴된 경우
-  "message": "Host has not allowed joining." or "You have been kicked from this room."
+  "createdAt": 1793700000000,
+  "expiresAt": 1793703600000
 }
 ```
 
-**강퇴 확인:**
-- 클라이언트 ID가 제공되면 서버가 강퇴 여부 확인
-- 같은 룸 인스턴스에서 강퇴된 경우: 403 Forbidden
-- 새 룸 인스턴스인 경우: 200 OK (룸 생성 시간으로 판단)
+- `status`: `active` 또는 `expired`
+- GET은 참가자 등록을 하지 않는다. 참가는 WebSocket `join`으로 한다.
+- `x-client-id`를 보내면 서버가 강퇴 기록을 확인해 403 `KICKED`를 반환할 수 있다.
+- 조인 가능 여부는 응답의 `allowJoin`으로 판단한다. 클라이언트는 `allowJoin`이 false이면 "Room is not accepting new participants"를 표시한다(`SignalingClient.joinRoom`).
 
-### 2-1. 조인 허용 활성화 (호스트가 "Allow Join" 클릭 시)
+## 요청별 규칙
 
-**중요:** 호스트는 언제든지 이 API를 호출하여 조인 허용 상태로 만들 수 있습니다.
-- 조인 허용이 만료된 후에도 다시 호출 가능
-- 이미 조인 허용 상태인 경우 타이머가 재시작됨 (60초 연장)
+| 요청 | 규칙 |
+|---|---|
+| `POST /rooms` (새 방) | 로그인 불필요. 로그인 상태면 쿠키와 `x-csrf-token`을 함께 보내 6시간 방을 받는다. 생성 제한 대상 |
+| `POST /rooms` (재등록) | `Authorization: Bearer {hostToken}` 필요. 생성 제한 제외, 만료 시각 유지, 응답 `hostToken`은 `null` |
+| `POST /rooms/{roomCode}/allow-join` | `duration`은 초 단위 정수 1~3600. 생략·falsy이면 서버가 60으로 처리. 응답의 만료 시각은 방이 아니라 조인 허용의 만료 |
+| `POST /rooms/{roomCode}/kick` | 강퇴 기록과 참가자 목록을 바꾼다. 현재 서버는 이 REST 경로에서 WebSocket `kicked`를 직접 보내지 않으므로 이벤트가 온다고 가정하지 않는다 |
+| `DELETE /rooms/{roomCode}` | 호스트 토큰으로 방을 삭제한다. 활성 방 슬롯은 비워지지만 시간당 생성 횟수는 돌아오지 않는다 |
 
-```
-POST /rooms/:roomCode/allow-join
-Headers: { "Authorization": "Bearer {hostToken}" }
-Content-Type: application/json
+## HTTP 에러
 
-Request Body:
-{
-  "duration": 60  // 조인 허용 시간 (초)
-}
+형식: `{ "success": false, "error": string, "code"?: string, "details"?: unknown }`. 프록시·인프라 오류는 JSON이 아닐 수 있다.
 
-Response 200:
-{
-  "success": true,
-  "allowJoin": true,
-  "allowJoinExpiresAt": 1234567950123  // 현재 시간 + 60초
-}
+| 상태 | 코드와 의미 | 클라이언트 표시 (`roomApiErrors.ts`) |
+|---|---|---|
+| 400 | `INVALID_INPUT`, `INVALID_ROOM_CODE`, `INVALID_HOST_ID`, `INVALID_PARTICIPANT_ID`, `INVALID_DURATION` | 코드별 문구 또는 서버 문구 |
+| 401 | `UNAUTHORIZED` 호스트 토큰 없음 | Host authorization failed |
+| 403 | `UNAUTHORIZED` 토큰 불일치, `KICKED`, 로그인 세션 새 방 생성 시 `CSRF_VALIDATION_FAILED` | CSRF는 세션 재확인 후 1회 재시도 |
+| 404 | `ROOM_NOT_FOUND`, `PARTICIPANT_NOT_FOUND` | Room not found / Participant not found |
+| 409 | `NO_AVAILABLE_ROOM_CODES`, `ACTIVE_ROOM_LIMIT` | 활성 방 있음 안내 등 |
+| 429 | `RATE_LIMITED` (`Retry-After` 초) | 잠시 후 다시 시도 안내. 다른 Origin에서는 `Retry-After`를 읽을 수 없다(CORS Expose 미설정) |
+| 500 | `INTERNAL_ERROR` | `Failed to … (HTTP 500)` |
 
-Response 403:
-{
-  "success": false,
-  "error": "Unauthorized"  // 호스트가 아닌 경우
-}
-```
-
-**동작:**
-- 조인 허용이 만료된 상태에서 호출: 즉시 조인 허용 상태로 전환 (60초 타이머 시작)
-- 이미 조인 허용 상태인 경우: 타이머가 재시작되어 60초 연장
-- 호스트는 언제든지 이 API를 호출할 수 있음
-
-### 3. 룸 삭제 (호스트가 "Stop Hosting" 클릭 시, 또는 만료 시 자동)
-
-```
-DELETE /rooms/:roomCode
-Headers: { "Authorization": "Bearer {hostToken}" }
-
-Response 200:
-{
-  "success": true,
-  "roomCode": "1234"
-}
-
-Response 403:
-{
-  "success": false,
-  "error": "Unauthorized"
-}
-```
-
-**참고:** 만료 시간(로그인 6시간, 비로그인 1시간)이 지나면 서버 룸은 만료되며 만료 이벤트가 전송됩니다. P2P 종료는 클라이언트 처리에 따라 달라집니다.
-
-### 4. 참가자 강퇴 (호스트가 강퇴 버튼 클릭 시)
-
-```
-POST /rooms/:roomCode/kick
-Headers: { "Authorization": "Bearer {hostToken}" }
-Content-Type: application/json
-
-Request Body:
-{
-  "participantId": "guest-uuid"
-}
-
-Response 200:
-{
-  "success": true,
-  "message": "Participant kicked"
-}
-
-Response 403:
-{
-  "success": false,
-  "error": "Unauthorized"
-}
-
-Response 404:
-{
-  "success": false,
-  "error": "Participant not found"
-}
-```
-
-**참고:** 
-- 강퇴된 참가자는 현재 룸 인스턴스에서만 재조인이 거부됩니다
-- 같은 호스트가 같은 룸 코드로 새 룸을 만들면 참가 가능합니다
-- 다른 호스트가 같은 룸 코드를 사용해도 참가 가능합니다
-- 강퇴는 룸 인스턴스 기준이지, 룸 코드나 호스트 기준이 아닙니다
-
-### 5. 룸 만료 경고 (서버에서 자동 전송)
-
-서버는 룸 만료 전에 WebSocket을 통해 경고 메시지를 전송합니다:
-
-```
-WebSocket 메시지 (서버 → 모든 클라이언트)
-{
-  "action": "room-expiring",
-  "roomCode": "1234",
-  "data": {
-    "minutesLeft": 30  // 또는 5, 1
-  }
-}
-```
-
-**경고 시점:**
-- 만료 30분 전, 5분 전, 1분 전 (6시간 방 기준 5시간 30분·55분·59분 경과)
-- 비로그인 1시간 방의 경고 시점은 계약 원문(`30-app-contract.md`)을 확인하지 못했다
+중복 요청 방지 키(Idempotency Key)가 없으므로, 방 생성은 timeout 뒤 무조건 반복하지 않는다. 예외는 403 `CSRF_VALIDATION_FAILED` 1회 재시도뿐이다(이 경우 방이 만들어지지 않음).
 
 ## WebSocket API
 
@@ -250,134 +97,74 @@ WebSocket 메시지 (서버 → 모든 클라이언트)
 wss://api.jace-s.com/online-sequencer/signaling?clientId=<client-uuid>
 ```
 
-### 메시지 형식
+- `clientId`가 없거나 Origin이 허용되지 않으면 close code 1008로 끊긴다.
+- 첫 메시지는 `{action:"connected", clientId, timestamp}`.
+- 모든 메시지는 JSON 텍스트다. 잘못된 JSON에는 `{action:"error", error:"Invalid message format"}`.
+- 연결은 사용자 세션으로 인증하지 않는다. 호스트 `register`에서 `hostToken`을 검증한다.
+- 서버는 메시지의 `clientId`보다 연결 URL의 `clientId`를 발신자로 쓴다.
+- TURN/STUN 자격 증명 API는 없다. ICE 서버는 클라이언트 설정(`src/core/sync/config/iceServers.ts`)을 쓴다.
 
-```typescript
-// 클라이언트 → 서버
-interface ClientToServerMessage {
-  action: 'register' | 'join' | 'signaling' | 'leave';
-  roomCode: string;
-  clientId: string;
-  data?: any;
-}
+### 클라이언트 → 서버
 
-// 서버 → 클라이언트
-interface ServerToClientMessage {
-  action: 'connected' | 'registered' | 'joined' | 'signaling' | 'error' | 'room-closed' | 'kicked' | 'allow-join-expired' | 'room-expiring' | 'room-session-expired' | 'participant-joined' | 'participant-left';
-  roomCode: string;
-  data?: {
-    minutesLeft?: number;  // 룸 만료까지 남은 시간 (분)
-    roomCreatedAt?: number;  // 룸 생성 시간 (강퇴 확인용)
-    participantId?: string;
-    participantCount?: number;
-    [key: string]: any;
-  };
-  error?: string;
-}
-```
+공통: `{action, roomCode, clientId, data?}`
 
-### 메시지 플로우
+| action | data | 성공 응답 |
+|---|---|---|
+| `register` | `{role:"host", hostToken}` (토큰 필수) | `registered` `{roomCode, data:{status:"active"}}` |
+| `join` | `{role:"participant"}` (생략 시 participant). `allowJoin`이 true여야 하고 정원·강퇴 검사를 통과해야 함. 호스트 자신은 참가 불가 | `joined` `{roomCode, data:{hostId, status, roomCreatedAt}}` |
+| `signaling` | `{type:"offer"|"answer"|"ice-candidate", to, sdp?, candidate?}` | 수신자에게 `data.to` 대신 `data.from`이 들어간 `signaling` |
+| `leave` | 없음 | 참가자: `participant-left` 방송. 호스트: `room-closed` 알림 후 방 삭제 |
+
+잘못된 방·역할·토큰 등은 `{action:"error", error:string}`로 온다. HTTP 코드 체계와 같다고 가정하지 않는다.
+
+### 서버 → 클라이언트 이벤트
+
+| action | 내용과 클라이언트 처리 |
+|---|---|
+| `connected` | 연결 확인. 이후 register 또는 join |
+| `registered` | 호스트 등록 완료 |
+| `joined` | 참가 완료. `data.hostId`로 호스트 식별 |
+| `signaling` | WebRTC offer/answer/ICE 전달 (`data.from`) |
+| `error` | 오류 문자열. 등록·참가 대기 중이면 실패 처리 |
+| `participant-joined` / `participant-left` | `data.participantId`, `data.participantCount` |
+| `room-closed` | 방 종료. 보관한 호스트 토큰 삭제 |
+| `kicked` | 세션 종료. 모든 강퇴 경로에서 오지는 않음 |
+| `allow-join-expired` | 조인 허용 만료. 모든 만료에서 온다고 보장하지 않음 |
+| `room-expiring` | `data.minutesLeft` (서버가 30·5·1분 조건을 주기적으로 검사) |
+| `room-session-expired` | 방 만료. 보관한 호스트 토큰 삭제 |
+
+### 전체 흐름
 
 ```mermaid
 sequenceDiagram
-    participant Host as 호스트
-    participant Server as 시그널링 서버
-    participant Guest1 as 게스트1
-    participant Guest2 as 게스트2
-    participant P2P as P2P 연결
+    participant H as 호스트
+    participant S as 시그널링 서버
+    participant G as 참가자
 
-    Note over Host: "Host" 버튼 클릭
-    Host->>Server: POST /rooms<br/>{ hostId: "uuid" }
-    Server->>Server: 룸 코드 생성 (예: "1234")
-    Server->>Host: { roomCode: "1234", allowJoin: false }
-    
-    Note over Host: "Allow Join" 버튼 클릭
-    Host->>Server: POST /rooms/:roomCode/allow-join<br/>{ duration: 60 }
-    Server->>Server: allowJoin = true (60초 타이머)
-    Server->>Host: { allowJoin: true, allowJoinExpiresAt: ... }
-    
-    Note over Guest1: "Join" 버튼 클릭<br/>룸 코드 입력
-    Guest1->>Server: GET /rooms/:roomCode
-    Server->>Guest1: { hostId, allowJoin: true }
-    
-    Guest1->>Server: WebSocket: offer 전송
-    Server->>Host: offer 전달
-    Host->>Server: answer 전송
-    Server->>Guest1: answer 전달
-    Guest1->>Server: ICE candidate 교환
-    Server->>Host: ICE candidate 전달
-    
-    Note over Guest1,Host: P2P 연결 수립 완료
-    Host->>Guest1: project-state (초기 상태, isInitial: true)
-    Guest1->>Guest1: 프로젝트 상태 대체
-    
-    Note over Guest1: MIDI 이벤트 편집
-    Guest1->>P2P: midi-event 전송
-    P2P->>Host: midi-event 수신
-    Host->>Host: 충돌 해결
-    Host->>P2P: project-state 브로드캐스트
-    P2P->>Guest2: project-state 전달
+    H->>S: POST /rooms {hostId}
+    S-->>H: roomCode, hostToken, expiresAt
+    H->>S: WS register {role:host, hostToken}
+    S-->>H: registered
+    H->>S: POST /rooms/{code}/allow-join (Bearer)
+    G->>S: GET /rooms/{code}
+    S-->>G: RoomInfo (allowJoin: true)
+    G->>S: WS join {role:participant}
+    S-->>G: joined {hostId}
+    G->>S: WS signaling offer (to: host)
+    S-->>H: signaling offer (from: guest)
+    H->>S: WS signaling answer / ICE
+    S-->>G: signaling answer / ICE
+    Note over H,G: WebRTC DataChannel 연결
+    G->>H: P2P state-request
+    H->>G: P2P initial-state
+    G->>H: P2P change
+    H->>G: P2P change (다른 참가자에게도 중계)
 ```
 
-**1. 호스트 등록**
-```json
-// 클라이언트 → 서버
-{
-  "action": "register",
-  "roomCode": "1234",
-  "clientId": "host-uuid",
-  "data": {
-    "role": "host",
-    "hostToken": "issued-host-token"  // 필수: POST /rooms에서 받은 토큰
-  }
-}
+P2P 메시지(`initial-state`, `state-request`, `change`, `transport`)는 [프로토콜 정의](./protocol.md)를 따른다. 시그널링 서버는 P2P 데이터를 중계하지 않는다.
 
-// 서버 → 클라이언트
-{
-  "action": "registered",
-  "roomCode": "1234",
-  "data": {
-    "status": "active"
-  }
-}
-```
+## 배포 제약
 
-**2. 참가자 참여**
-```json
-// 클라이언트 → 서버
-{
-  "action": "join",
-  "roomCode": "1234",
-  "clientId": "client-uuid",
-  "data": {
-    "role": "participant"
-  }
-}
-
-// 서버 → 클라이언트
-{
-  "action": "joined",
-  "roomCode": "1234",
-  "data": {
-    "hostId": "host-uuid",
-    "status": "active"
-  }
-}
-```
-
-**3. 시그널링 메시지 전달**
-```json
-// 참가자 → 서버 → 호스트
-{
-  "action": "signaling",
-  "roomCode": "1234",
-  "clientId": "client-uuid",
-  "data": {
-    "type": "offer",
-    "to": "host-uuid",
-    "sdp": {...}
-  }
-}
-```
-
----
+- 방과 소켓은 서버 프로세스 메모리에 있다. 서버를 재시작·재배포하면 열린 방이 닫힌다.
+- REST와 WebSocket은 같은 api 프로세스의 room store를 써야 한다.
+- CORS 허용 Origin과 WebSocket Origin 확인은 같은 규칙이다. 현재 허용 요청 헤더: Content-Type, Authorization, X-CSRF-Token, X-Requested-With, X-Forwarded-For, X-Origin, X-Client-Id, X-Host-Id.

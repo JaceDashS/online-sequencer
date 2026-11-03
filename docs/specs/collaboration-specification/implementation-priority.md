@@ -10,14 +10,14 @@
 1. SignalingClient 구현
 2. WebRTCManager 기본 구현 (Star 토폴로지)
 3. 서버 API 계약 정합성 확인 (`VITE_API_URL` + `/online-sequencer/rooms`)
-4. 룸 생성 (6시간 유지) 및 "Allow Join" 기능 구현 (60초 조인 허용)
+4. 룸 생성 (로그인 6시간·비로그인 1시간 유지) 및 "Allow Join" 기능 구현 (60초 조인 허용)
 5. 호스트 강퇴 기능 구현
 
 ## Phase 2: P2P 통신
 1. DataChannel 통신 구현 (Star 토폴로지)
 2. 호스트-게스트 브로드캐스트 로직
 3. 프로젝트 상태 동기화
-4. 세션 만료 (6시간 후) 처리 및 P2P 연결 종료 확인
+4. 세션 만료 (방 만료 시각) 처리 및 P2P 연결 종료 확인
 
 ## Phase 3: 고급 기능
 1. 충돌 해결 (호스트 중심)

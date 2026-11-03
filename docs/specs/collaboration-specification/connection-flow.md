@@ -17,7 +17,7 @@ sequenceDiagram
     Host->>Server: "Host" 버튼 클릭
     Host->>Server: POST /api/online-sequencer/rooms<br/>{ hostId: "uuid" }
     Server->>Server: 4자리 룸 코드 생성<br/>(예: "1234")
-    Server->>Server: 룸 정보 저장<br/>(6시간 유지)
+    Server->>Server: 룸 정보 저장<br/>(로그인 6시간·비로그인 1시간 유지)
     Server->>Host: 룸 코드 반환
     Host->>WebRTC: WebRTCManager 초기화
     Host->>WebRTC: DataChannel 생성 준비
@@ -32,7 +32,7 @@ sequenceDiagram
     Server->>Server: allowJoin = false
     Note over Server: 새로운 참가자 조인 불가<br/>기존 P2P 연결은 유지
     
-    Note over Server: 6시간 후
+    Note over Server: 방 만료 시각
     Server->>Server: 룸 자동 삭제
     Server->>Host: 세션 만료 알림
     Note over Host: 새 룸 생성 필요
@@ -44,7 +44,7 @@ sequenceDiagram
    - SignalingClient가 서버에 연결
    - 서버에 룸 등록 요청: `POST /api/online-sequencer/rooms` with `{ hostId: "uuid" }`
    - 서버가 비어있는 4자리 룸 코드 생성 및 반환 (예: "1234")
-   - 서버가 룸 정보 저장 (6시간 유지)
+   - 서버가 룸 정보 저장 (로그인 6시간·비로그인 1시간 유지)
    - 호스트가 룸 코드 수신 및 표시
    - 호스트가 WebRTCManager 초기화
    - 호스트가 DataChannel 생성 준비
@@ -59,7 +59,7 @@ sequenceDiagram
 3. 60초 후
    - 서버가 룸의 allowJoin 상태를 false로 변경
    - 새로운 참가자 조인 불가
-   - 하지만 기존 P2P 연결은 계속 유지됨 (6시간 제한 전까지)
+   - 하지만 기존 P2P 연결은 계속 유지됨 (방 만료 전까지)
    - 참가자들은 계속 작업 가능
    - 호스트는 언제든지 "Allow Join" 버튼을 다시 클릭하여 조인 허용 상태로 만들 수 있음
 
@@ -74,7 +74,7 @@ sequenceDiagram
    - 5분 전: "Room will expire in 5 minutes. Please save your work."
    - 1분 전: "Room will expire in 1 minute. Please save your work."
 
-6. 6시간 후
+6. 방 만료 시각
    - 서버에서 룸 자동 삭제 (리소스 해제)
    - 모든 참가자에게 세션 만료 알림
    - P2P 종료는 클라이언트의 만료 이벤트 처리에 따라 다름
@@ -86,10 +86,10 @@ sequenceDiagram
    - 현재 클라이언트는 호스팅 중 재호스팅을 허용하지 않음 (먼저 종료 필요)
 
 2. **서버 리소스 관리:**
-   - "Host" 클릭 시 서버에 룸 생성 (6시간 유지)
-   - 룸 코드는 6시간 동안 유지되어 재사용 가능
+   - "Host" 클릭 시 서버에 룸 생성 (로그인 6시간·비로그인 1시간 유지)
+   - 룸 코드는 만료 시간(로그인 6시간·비로그인 1시간) 동안 유지되어 재사용 가능
    - "Allow Join" 클릭 시 60초 동안만 조인 허용
-   - 6시간 후 서버 룸 만료 (P2P 종료는 클라이언트 처리에 따라 다름)
+   - 방 만료 시각에 서버 룸 만료 (P2P 종료는 클라이언트 처리에 따라 다름)
    - 재연결/재조인 필요 시 호스트가 새 룸 생성
 
 3. **조인 허용 관리:**
@@ -99,7 +99,7 @@ sequenceDiagram
    - 만료 후에도 호스트가 다시 클릭하면 즉시 조인 허용 상태로 전환 (60초 타이머 재시작)
 
 4. **통신 구조:**
-   - 룸 생성 후: 서버를 통한 시그널링 (6시간 동안 가능)
+   - 룸 생성 후: 서버를 통한 시그널링 (방 만료 전까지 가능)
    - P2P 연결 수립 후: P2P 직접 통신 (Star 토폴로지)
 
 ### 2. 참가자 세션 참여
@@ -176,7 +176,7 @@ WebRTC 연결 수립 후:
 60초 후 조인 허용 만료:
 - 서버에서 룸의 allowJoin 상태를 false로 변경
 - 새로운 참가자 조인 불가
-- 하지만 기존 P2P 연결은 계속 유지 (6시간 제한 전까지)
+- 하지만 기존 P2P 연결은 계속 유지 (방 만료 전까지)
 - 참가자들은 계속 작업 가능
 - 호스트는 언제든지 "Allow Join" 버튼을 다시 클릭하여 조인 허용 상태로 만들 수 있음
 - 호스트가 다시 클릭하면 즉시 조인 허용 상태로 전환 (60초 타이머 재시작)
@@ -186,7 +186,7 @@ WebRTC 연결 수립 후:
 - 5분 전: "Room will expire in 5 minutes. Please save your work."
 - 1분 전: "Room will expire in 1 minute. Please save your work."
 
-6시간 후 세션 만료:
+방 만료 시:
 - 서버에서 룸 정보 삭제 (리소스 해제)
 - 모든 참가자에게 세션 만료 알림
 - P2P 종료는 클라이언트 처리에 따라 다름

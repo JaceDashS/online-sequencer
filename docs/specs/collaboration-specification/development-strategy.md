@@ -29,7 +29,7 @@
 - 설정된 API base URL 아래 REST 룸 엔드포인트 제공
 - 같은 API base URL 아래 WebSocket 시그널링 엔드포인트 제공
 - 룸 생성 및 조회
-- 6시간 룸 만료
+- 방 만료 (로그인 6시간·비로그인 1시간)
 - "Allow Join" 60초 조인 허용 창
 - 참가자 강퇴 처리
 - WebRTC offer, answer, ICE candidate 메시지 전달

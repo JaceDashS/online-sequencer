@@ -18,7 +18,7 @@ class SignalingClient {
     this.clientId = generateUUID();
   }
   
-  // 룸 등록 (호스트) - 서버에서 룸 코드 생성 (6시간 유지)
+  // 룸 등록 (호스트) - 서버에서 룸 코드 생성 (로그인 6시간·비로그인 1시간 유지)
   async registerRoom(hostId: string): Promise<string>  // 룸 코드 반환
   
   // 조인 허용 활성화 (호스트) - 언제든지 호출 가능
