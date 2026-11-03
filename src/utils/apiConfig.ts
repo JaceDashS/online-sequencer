@@ -37,8 +37,6 @@ export const DEFAULT_SITE_URL = 'https://jace-s.com';
 /** jace-s에 등록된 Online Sequencer 앱 ID (공지 조회용) */
 export const DEFAULT_NOTICE_APP_ID = 41;
 
-/** 로그인 쿠키를 사용할 수 있는(서버 허용 Origin) 호스트 기본값 */
-export const DEFAULT_LOGIN_HOSTS = ['online-sequencer.jace-s.com'];
 
 /** 협업(시그널링) API 경로 */
 const COLLABORATION_PATH = '/online-sequencer';
@@ -111,10 +109,13 @@ export function buildWebSocketUrl(path: string, queryParams?: Record<string, str
 
 /**
  * 로그인 UI를 보여줄 호스트 목록 (VITE_LOGIN_HOSTS: 쉼표 구분)
+ *
+ * 코드 기본값은 없다. jace-s 서버가 credentials를 허용하는 Origin의 호스트만 넣는다
+ * (운영: online-sequencer.jace-s.com). 설정하지 않으면 어느 주소에서도 로그인 UI를 숨긴다.
  */
 export function getLoginHosts(): string[] {
   const raw = getEnvValue('VITE_LOGIN_HOSTS');
-  if (!raw) return DEFAULT_LOGIN_HOSTS;
+  if (!raw) return [];
   return raw
     .split(',')
     .map((host) => host.trim().toLowerCase())

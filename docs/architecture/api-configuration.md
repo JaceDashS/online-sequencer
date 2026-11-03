@@ -26,16 +26,22 @@ flowchart LR
 
 ## 환경 변수
 
-| 변수 | 기본값 | 용도 |
-|---|---|---|
-| `VITE_API_URL` | `https://api.jace-s.com` | 모든 API 주소. origin만 사용하며 경로에 `/api`를 붙이지 않음 |
-| `VITE_SITE_URL` | `https://jace-s.com` | 로그인 `/login`, 계정 `/account` 화면 |
-| `VITE_NOTICE_APP_ID` | `41` | 공지 조회 `/notices?app=41` |
-| `VITE_LOGIN_HOSTS` | `online-sequencer.jace-s.com` | 로그인 UI를 보여줄 호스트 (쉼표 구분) |
+전체 예시: 저장소 루트 `.env.example`
 
+| 변수 | 기본값 | 용도 | 운영(Vercel Production) |
+|---|---|---|---|
+| `VITE_API_URL` | `https://api.jace-s.com` | 모든 API 주소. origin만 사용하며 경로에 `/api`를 붙이지 않음 | 생략 가능 (기본값과 같음) |
+| `VITE_SITE_URL` | `https://jace-s.com` | 로그인 `/login`, 계정 `/account` 화면 | 생략 가능 |
+| `VITE_NOTICE_APP_ID` | `41` | 공지 조회 `/notices?app=41` | 생략 가능 |
+| `VITE_LOGIN_HOSTS` | **없음** | 로그인 UI를 보여줄 호스트 (쉼표 구분, 스킴·포트 없이) | **필수**: `online-sequencer.jace-s.com` |
+| `VITE_TURN_SERVER_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL` | 없음 | (선택) TURN 서버. 없으면 공개 STUN만 사용 | 필요할 때만 |
+| `ENABLE_DEVTOOLS` | `false` | (Electron main 전용) 개발자 도구 | 웹에는 해당 없음 |
+
+- `VITE_LOGIN_HOSTS`는 jace-s 서버의 허용 Origin(운영자가 서버 환경 변수로 관리)과 같은 호스트만 넣습니다. 설정하지 않으면 어느 주소에서도 로그인 UI가 숨겨지고 세션 확인 요청도 보내지 않습니다. 이 경우 개발자 패널도 운영에서는 보이지 않습니다.
+- `VITE_` 변수는 빌드 시점에 번들에 들어가 누구나 볼 수 있습니다. 비밀값을 넣지 않습니다. 값을 바꾸면 다시 배포해야 반영됩니다.
 - 값은 Vite의 `import.meta.env`에서 먼저 읽고, 없으면 Node `process.env`에서 읽습니다 (스크립트 테스트용).
-- 예전 변수 `VITE_API_BASE_URL`, `VITE_BASE_URL`, `VITE_API_PATH`는 더 이상 읽지 않습니다. 설정되어 있어도 무시됩니다.
-- 운영 배포에서는 기본값이 계약과 같으므로 변수를 설정하지 않아도 됩니다.
+- 예전 변수 `VITE_API_BASE_URL`, `VITE_BASE_URL`, `VITE_API_PATH`는 더 이상 읽지 않습니다. 남아 있으면 혼동을 막기 위해 삭제합니다.
+- Electron은 실행 파일 폴더 등에서 `.env.production`(패키징) / `.env.development`(개발)를 읽습니다(`electron/main.ts`). 웹 번들 값은 빌드 시점에 정해집니다.
 
 ---
 
@@ -48,7 +54,7 @@ flowchart LR
 | `buildWebSocketUrl('/signaling', { clientId })` | `wss://api.jace-s.com/online-sequencer/signaling?clientId=...` |
 | `getSiteUrl()` | `https://jace-s.com` |
 | `getNoticeAppId()` | `41` |
-| `isLoginAvailable()` | 브라우저(Electron 제외)이고 호스트가 `VITE_LOGIN_HOSTS`에 있으면 true |
+| `isLoginAvailable()` | 브라우저(Electron 제외)이고 호스트가 `VITE_LOGIN_HOSTS`에 있으면 true. 변수가 없으면 항상 false |
 
 - `http://` → `ws://`, `https://` → `wss://`로 변환합니다.
 - 엔드포인트 앞의 `/`가 없으면 붙입니다.

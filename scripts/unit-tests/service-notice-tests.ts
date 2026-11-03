@@ -18,6 +18,9 @@ import { resetTransport, setTransport } from '../../src/transport';
 import { buildApiUrl, buildWebSocketUrl, getApiUrl, getNoticeAppId, getSiteUrl, isLoginAvailable } from '../../src/utils/apiConfig';
 import type { IHttpRequestOptions, IHttpResponse, IWebSocket } from '../../src/transport/types';
 
+// 로그인 허용 호스트는 환경 변수로만 정한다 (운영 값과 같게 설정)
+process.env.VITE_LOGIN_HOSTS = 'online-sequencer.jace-s.com';
+
 type TestFn = () => void | Promise<void>;
 const tests: Array<{ name: string; fn: TestFn }> = [];
 function test(name: string, fn: TestFn): void {
@@ -195,6 +198,19 @@ test('admin access follows jace-s levels (none < read < write) per menu', () => 
   assert.equal(hasAdminAccess(usageOnly, 'notices'), false);
   assert.equal(hasAdminAccess({ ...admin, status: 'signed-out' }, 'notices'), false);
   assert.equal(hasAdminAccess({ ...admin, isAdmin: false }, 'notices'), false);
+});
+
+test('login hosts come only from VITE_LOGIN_HOSTS (no code default)', () => {
+  const previous = process.env.VITE_LOGIN_HOSTS;
+  try {
+    delete process.env.VITE_LOGIN_HOSTS;
+    assert.equal(isLoginAvailable({ protocol: 'https:', hostname: 'online-sequencer.jace-s.com' }), false);
+    process.env.VITE_LOGIN_HOSTS = ' Online-Sequencer.jace-s.com , staging.jace-s.com ';
+    assert.equal(isLoginAvailable({ protocol: 'https:', hostname: 'online-sequencer.jace-s.com' }), true);
+    assert.equal(isLoginAvailable({ protocol: 'https:', hostname: 'staging.jace-s.com' }), true);
+  } finally {
+    process.env.VITE_LOGIN_HOSTS = previous;
+  }
 });
 
 test('login is only available on the allowed host', () => {
