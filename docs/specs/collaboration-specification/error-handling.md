@@ -9,8 +9,8 @@
 > **확인된 차이 (2026-11-03)**
 > - P2P 메시지는 `midi-event`·`project-state`가 아니라 `change`·`initial-state`·`state-request`를 씁니다. 버전 번호 기반 `ProjectStateMessage`(11.2)는 구현되어 있지 않습니다.
 > - 방 유지 시간은 고정 6시간이 아니라 로그인 6시간·비로그인 1시간이며, 클라이언트는 응답의 `expiresAt`을 씁니다.
-> - 클라이언트에 만료 경고 타이머(9장 예시)는 없습니다. 서버 `room-expiring` 이벤트를 표시하는 UI도 아직 없습니다.
-> - `room-session-expired` 수신 시 클라이언트는 보관한 호스트 토큰만 지우며, 호스팅 화면을 자동으로 닫지 않습니다.
+> - 클라이언트에 만료 경고 타이머(9장 예시)는 없습니다. 대신 서버 `room-expiring`(30·5·1분 전)을 받으면 경고 토스트를 10초 표시합니다(2026-11-03).
+> - `room-session-expired`를 받으면 보관한 호스트 토큰을 지우고, 연결을 끊고, 호스팅·참가 화면을 닫은 뒤 "The room has expired." 토스트를 표시합니다(2026-11-03).
 > - 강퇴 REST 경로는 WebSocket `kicked`를 직접 보내지 않습니다(서버 계약).
 
 ---
@@ -897,8 +897,8 @@ signalingClient.on('room-session-expired', () => {
   // 호스트가 새 룸을 만들면 재연결 가능
 });
 
-// (설계 예시, 미구현) 호스트 측: 방 만료 경고
-// 실제로는 서버가 room-expiring(30·5·1분 전)을 보낸다. 클라이언트 표시 UI는 아직 없다.
+// (설계 예시) 호스트 측: 클라이언트 타이머 방식 — 실제 구현은 서버 room-expiring 이벤트를 표시한다
+// 구현: CollaborationButtons의 room-expiring / room-session-expired 핸들러
 if (isHost) {
   // 응답의 expiresAt 기준 (고정 6시간 아님)
   const sessionDuration = roomExpiresAt - Date.now();

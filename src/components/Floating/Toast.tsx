@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { getTopToastSlot } from '../../utils/topToastHost';
 import { toastStore, type Toast } from '../../utils/toastStore';
 import styles from './Toast.module.css';
 
@@ -21,7 +23,12 @@ export const ToastContainer: React.FC = () => {
     toastStore.removeToast(id);
   };
 
-  return (
+  if (toasts.length === 0 || typeof document === 'undefined') {
+    return null;
+  }
+
+  // 서비스 공지 토스트와 같은 위치에 쌓아 겹치지 않게 한다 (공지 아래)
+  return createPortal(
     <div className={styles.toastContainer}>
       {toasts.map((toast) => (
         <div
@@ -44,7 +51,8 @@ export const ToastContainer: React.FC = () => {
           </div>
         </div>
       ))}
-    </div>
+    </div>,
+    getTopToastSlot('app')
   );
 };
 

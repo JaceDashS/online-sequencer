@@ -9,6 +9,7 @@ import {
   type ServiceStatusSnapshot,
 } from '../../core/notices/serviceNotices';
 import { subscribeNoticePreview } from '../../utils/uiPreview';
+import { getTopToastSlot } from '../../utils/topToastHost';
 import styles from './ServiceNoticeToasts.module.css';
 
 /**
@@ -112,7 +113,7 @@ const ServiceNoticeToasts: React.FC = () => {
         </div>
       ))}
     </div>,
-    document.body
+    getTopToastSlot('notices')
   );
 };
 

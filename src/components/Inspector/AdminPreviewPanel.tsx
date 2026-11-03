@@ -4,7 +4,8 @@ import { describeApprovalFailure, getJaceSession, hasAdminAccess, requestAdminAp
 import { PREVIEW_PERMISSIONS } from '../../utils/adminPreviewPermissions';
 import { OUTAGE_MESSAGE } from '../../core/notices/serviceNotices';
 import { createRoomApiError } from '../../core/sync/roomApiErrors';
-import { showError } from '../../utils/toastStore';
+import { showError, showWarning } from '../../utils/toastStore';
+import { roomExpiredMessage, roomExpiringMessage } from '../../core/sync/roomExpiry';
 import {
   previewServiceNotices,
   resetUiPreview,
@@ -132,6 +133,11 @@ const AdminPreviewPanel: React.FC = () => {
           <button type="button" className={preview.hosting ? '' : styles.active} onClick={guarded('rooms', () => setHostingPreview(null))}>off</button>
         </div>
         <div className={styles.hint}>Shown only while not actually hosting or joining.</div>
+        <div className={styles.buttons}>
+          <button type="button" onClick={guarded('rooms', () => showWarning(roomExpiringMessage(5, true), 10000))}>Expiry warning (host)</button>
+          <button type="button" onClick={guarded('rooms', () => showWarning(roomExpiringMessage(1, false), 10000))}>Expiry warning (guest)</button>
+          <button type="button" onClick={guarded('rooms', () => showError(roomExpiredMessage(true)))}>Room expired</button>
+        </div>
       </section>
       )}
 

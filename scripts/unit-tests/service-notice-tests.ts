@@ -12,7 +12,7 @@ import {
 import { getJaceSession, hasAdminAccess, parseAdminAccess, parseSessionPayload, refreshJaceSession, requestAdminApproval, withJaceAuth } from '../../src/core/auth/jaceSession';
 import { SignalingClient } from '../../src/core/sync/SignalingClient';
 import { createRoomApiError } from '../../src/core/sync/roomApiErrors';
-import { formatRoomExpiry } from '../../src/core/sync/roomExpiry';
+import { formatRoomExpiry, roomExpiredMessage, roomExpiringMessage } from '../../src/core/sync/roomExpiry';
 import { clearHostRoomIfMatches, loadHostRoom, saveHostRoom } from '../../src/core/sync/hostTokenStore';
 import { resetTransport, setTransport } from '../../src/transport';
 import { buildApiUrl, buildWebSocketUrl, getApiUrl, getNoticeAppId, getSiteUrl, isLoginAvailable } from '../../src/utils/apiConfig';
@@ -578,6 +578,13 @@ test('room expiry is formatted from the server expiresAt', () => {
   assert.equal(formatRoomExpiry(now + 1000, now)?.remaining, '1 min left');
   assert.deepEqual(formatRoomExpiry(now - 1, now)?.expired, true);
   assert.equal(formatRoomExpiry(null, now), null);
+});
+
+test('room expiry messages follow minutesLeft and role', () => {
+  assert.equal(roomExpiringMessage(1, false), 'This room expires in 1 minute.');
+  assert.match(roomExpiringMessage(30, true), /30 minutes\. Save your work/);
+  assert.match(roomExpiredMessage(true), /Start hosting again/);
+  assert.equal(roomExpiredMessage(false), 'The room has expired.');
 });
 
 test('signaling client exposes expiresAt from creation and keeps it on re-registration without one', async () => {

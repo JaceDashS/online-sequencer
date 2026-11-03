@@ -1,22 +1,18 @@
+/* 위치는 공용 영역(src/utils/topToastHost.ts)이 정한다. 서비스 공지 아래에 쌓인다 */
 .toastContainer {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10000;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   pointer-events: none;
-  width: fit-content;
-  max-width: 90vw;
+  width: 100%;
 }
 
 .toast {
-  min-width: 300px;
-  max-width: 500px;
+  min-width: min(300px, 100%);
+  max-width: 100%;
   width: fit-content;
+  box-sizing: border-box;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 6px;

@@ -5,10 +5,10 @@ import type { ServerToClientMessage } from '../../core/sync/SignalingClient';
 import { getCollaborationManager, setCollaborationManager } from '../../core/sync/collaborationSession';
 import { getOrCreateClientId } from '../../core/sync/utils/uuid';
 import type { ConnectionState } from '../../core/sync/types/p2p';
-import { showError } from '../../utils/toastStore';
+import { showError, showWarning } from '../../utils/toastStore';
 import { useWindowWidth } from '../../hooks/useWindowWidth';
 import { BREAKPOINTS } from '../../constants/ui';
-import { formatRoomExpiry } from '../../core/sync/roomExpiry';
+import { formatRoomExpiry, roomExpiredMessage, roomExpiringMessage } from '../../core/sync/roomExpiry';
 import { getJaceSession, openJaceLoginWindow, subscribeJaceSession, type JaceSessionState } from '../../core/auth/jaceSession';
 import { setHostingPreview, updateHostingPreview, useUiPreview } from '../../utils/uiPreview';
 
@@ -122,6 +122,29 @@ const CollaborationButtons: React.FC = () => {
       showError('You have been kicked from the session');
     };
 
+    // 방 만료 경고 (서버가 만료 30·5·1분 전에 보냄)
+    const handleRoomExpiring = (message: ServerToClientMessage) => {
+      const minutesLeft = Number(message.data?.minutesLeft);
+      if (!Number.isFinite(minutesLeft) || minutesLeft <= 0) return;
+      setExpiryNow(Date.now());
+      showWarning(roomExpiringMessage(minutesLeft, isHost), 10000);
+    };
+
+    // 방 만료 (서버가 방을 닫음)
+    const handleRoomSessionExpired = () => {
+      if (collaborationManagerRef.current) {
+        collaborationManagerRef.current.disconnect();
+      }
+      setMode('idle');
+      setRoomCode(null);
+      setRoomExpiresAt(null);
+      setParticipants([]);
+      setShowParticipantsDropdown(false);
+      setIsHost(false);
+      setAllowCountdown(null);
+      showError(roomExpiredMessage(isHost));
+    };
+
     // 연결 상태 변화 핸들러 등록
     const handleConnectionStateChange = (peerId: string, state: ConnectionState) => {
       
@@ -151,6 +174,8 @@ const CollaborationButtons: React.FC = () => {
       collaborationManagerRef.current.onServerMessage('participant-joined', handleParticipantJoined);
       collaborationManagerRef.current.onServerMessage('participant-left', handleParticipantLeft);
       collaborationManagerRef.current.onServerMessage('kicked', handleKicked);
+      collaborationManagerRef.current.onServerMessage('room-expiring', handleRoomExpiring);
+      collaborationManagerRef.current.onServerMessage('room-session-expired', handleRoomSessionExpired);
       collaborationManagerRef.current.onConnectionStateChange(handleConnectionStateChange);
     }
 
@@ -161,6 +186,8 @@ const CollaborationButtons: React.FC = () => {
         collaborationManagerRef.current.offServerMessage('participant-joined', handleParticipantJoined);
         collaborationManagerRef.current.offServerMessage('participant-left', handleParticipantLeft);
         collaborationManagerRef.current.offServerMessage('kicked', handleKicked);
+        collaborationManagerRef.current.offServerMessage('room-expiring', handleRoomExpiring);
+        collaborationManagerRef.current.offServerMessage('room-session-expired', handleRoomSessionExpired);
         collaborationManagerRef.current.offConnectionStateChange(handleConnectionStateChange);
       }
       // 컴포넌트 언마운트 시에는 연결을 유지하고 리스너만 해제 (중복 언마운트/마운트 보호)

@@ -35,3 +35,16 @@ export function formatRoomExpiry(expiresAt: number | null, now: number = Date.no
     : `${minutes} min left`;
   return { label, remaining, expired: false };
 }
+
+/** 서버 room-expiring(30·5·1분 전) 경고 문구 */
+export function roomExpiringMessage(minutesLeft: number, isHost: boolean): string {
+  const unit = minutesLeft === 1 ? 'minute' : 'minutes';
+  return isHost
+    ? `This room expires in ${minutesLeft} ${unit}. Save your work; start hosting again after it expires.`
+    : `This room expires in ${minutesLeft} ${unit}.`;
+}
+
+/** 서버 room-session-expired 문구 */
+export function roomExpiredMessage(isHost: boolean): string {
+  return isHost ? 'The room has expired. Start hosting again to continue.' : 'The room has expired.';
+}

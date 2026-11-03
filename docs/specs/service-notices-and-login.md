@@ -49,7 +49,7 @@ Online Sequencer는 jace-s에 앱 ID **41**로 등록되어 있습니다. 이 �
 
 ### 모양
 
-- 화면 위 가운데, 위 여백 12px, 폭 `min(512px, 100vw - 24px)`
+- 화면 위 가운데, 위 여백 12px, 폭 `min(512px, 100vw - 24px)`. 앱 토스트(오류·경고)와 같은 공용 영역(`src/utils/topToastHost.ts`)에 쌓이며, 서비스 공지가 위, 앱 토스트가 아래에 와서 겹치지 않습니다
 - 토스트 밖 영역은 클릭이 아래로 통과 (`pointer-events: none`)
 - 테마 변수 사용: 배경 `--bg-primary`, 글자 `--text-primary`, 테두리 `--border-color`. 장애 토스트는 `--color-warning` 테두리. 흰색 고정 금지
 - 둥근 모서리 8px, 그림자, 0.3초 동안 위에서 내려옴 (`prefers-reduced-motion`이면 애니메이션 없음), 닫기 버튼 ×

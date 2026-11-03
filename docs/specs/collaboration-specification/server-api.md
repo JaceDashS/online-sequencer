@@ -130,8 +130,8 @@ wss://api.jace-s.com/online-sequencer/signaling?clientId=<client-uuid>
 | `room-closed` | 방 종료. 보관한 호스트 토큰 삭제 |
 | `kicked` | 세션 종료. 모든 강퇴 경로에서 오지는 않음 |
 | `allow-join-expired` | 조인 허용 만료. 모든 만료에서 온다고 보장하지 않음 |
-| `room-expiring` | `data.minutesLeft` (서버가 30·5·1분 조건을 주기적으로 검사) |
-| `room-session-expired` | 방 만료. 보관한 호스트 토큰 삭제 |
+| `room-expiring` | `data.minutesLeft` (서버가 30·5·1분 조건을 주기적으로 검사). 클라이언트는 경고 토스트 10초 표시 |
+| `room-session-expired` | 방 만료. 보관한 호스트 토큰 삭제, 연결 종료, 호스팅·참가 화면 닫고 만료 토스트 표시 |
 
 ### 전체 흐름
 
