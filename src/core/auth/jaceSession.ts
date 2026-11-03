@@ -24,12 +24,24 @@ export interface JaceSessionUser {
   [key: string]: unknown;
 }
 
+/**
+ * jace-s 관리 메뉴와 권한 수준 (jace-s services/shared/types/admin.ts와 같은 값)
+ */
+export const ADMIN_MENUS = ['overview', 'monitor', 'access-log', 'audit', 'users', 'policies', 'notices', 'rooms'] as const;
+export type AdminMenu = (typeof ADMIN_MENUS)[number];
+export type AdminAccessLevel = 'none' | 'read' | 'write';
+export type AdminAccess = Record<AdminMenu, AdminAccessLevel>;
+
+const NO_ADMIN_ACCESS: AdminAccess = Object.fromEntries(ADMIN_MENUS.map((menu) => [menu, 'none'])) as AdminAccess;
+
 export interface JaceSessionState {
   status: JaceSessionStatus;
   user: JaceSessionUser | null;
   csrfToken: string | null;
   /** jace-s 관리 메뉴를 하나라도 볼 수 있는 계정인지 (화면 표시용) */
   isAdmin: boolean;
+  /** 관리 메뉴별 권한 (화면 표시용, 판정은 서버가 한다). 모르는 메뉴·값은 none */
+  adminAccess: AdminAccess;
 }
 
 const SESSION_TIMEOUT_MS = 10_000;
@@ -43,6 +55,7 @@ let state: JaceSessionState = {
   user: null,
   csrfToken: null,
   isAdmin: false,
+  adminAccess: NO_ADMIN_ACCESS,
 };
 const listeners = new Set<Listener>();
 let inflight: Promise<JaceSessionState> | null = null;
@@ -74,15 +87,43 @@ export function subscribeJaceSession(listener: Listener): () => void {
  * csrfToken은 계약상 null일 수 있습니다(CSRF 쿠키가 다른 세션의 것일 때). 이때는 로그인 상태로 표시하되
  * 변경 요청에 쿠키·CSRF를 붙이지 않습니다(비로그인 요청으로 처리).
  */
-export function parseSessionPayload(payload: unknown): Pick<JaceSessionState, 'user' | 'csrfToken' | 'isAdmin'> | null {
+export function parseSessionPayload(payload: unknown): Pick<JaceSessionState, 'user' | 'csrfToken' | 'isAdmin' | 'adminAccess'> | null {
   if (!payload || typeof payload !== 'object') return null;
-  const body = payload as { user?: unknown; csrfToken?: unknown; isAdmin?: unknown };
+  const body = payload as { user?: unknown; csrfToken?: unknown; isAdmin?: unknown; adminAccess?: unknown };
   if (!body.user || typeof body.user !== 'object') return null;
   return {
     user: body.user as JaceSessionUser,
     csrfToken: typeof body.csrfToken === 'string' && body.csrfToken ? body.csrfToken : null,
     isAdmin: body.isAdmin === true,
+    adminAccess: parseAdminAccess(body.adminAccess),
   };
+}
+
+/**
+ * adminAccess를 메뉴별 none/read/write로 정규화합니다. 없거나 모르는 값은 none입니다.
+ */
+export function parseAdminAccess(value: unknown): AdminAccess {
+  const source = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  const result = { ...NO_ADMIN_ACCESS };
+  for (const menu of ADMIN_MENUS) {
+    const level = source[menu];
+    if (level === 'read' || level === 'write') result[menu] = level;
+  }
+  return result;
+}
+
+/**
+ * 로그인한 어드민이 그 메뉴에 needed 이상의 권한을 갖는지 확인합니다. (화면 표시용)
+ * jace-s 서버의 meetsAdminLevel과 같은 순서: none < read < write
+ */
+export function hasAdminAccess(
+  session: Pick<JaceSessionState, 'status' | 'isAdmin' | 'adminAccess'>,
+  menu: AdminMenu,
+  needed: 'read' | 'write' = 'read'
+): boolean {
+  if (session.status !== 'signed-in' || !session.isAdmin) return false;
+  const level = session.adminAccess[menu];
+  return needed === 'read' ? level === 'read' || level === 'write' : level === 'write';
 }
 
 /**
@@ -103,7 +144,7 @@ export function getSessionDisplayName(user: JaceSessionUser | null): string {
 export function refreshJaceSession(): Promise<JaceSessionState> {
   if (!isLoginAvailable()) {
     if (state.status !== 'unavailable') {
-      setState({ status: 'unavailable', user: null, csrfToken: null, isAdmin: false });
+      setState({ status: 'unavailable', user: null, csrfToken: null, isAdmin: false, adminAccess: NO_ADMIN_ACCESS });
     }
     return Promise.resolve(state);
   }
@@ -126,15 +167,15 @@ export function refreshJaceSession(): Promise<JaceSessionState> {
         const parsed = parseSessionPayload(await response.json());
         setState(parsed
           ? { status: 'signed-in', ...parsed }
-          : { status: 'signed-out', user: null, csrfToken: null, isAdmin: false });
+          : { status: 'signed-out', user: null, csrfToken: null, isAdmin: false, adminAccess: NO_ADMIN_ACCESS });
       } else if (response.status === 401) {
-        setState({ status: 'signed-out', user: null, csrfToken: null, isAdmin: false });
+        setState({ status: 'signed-out', user: null, csrfToken: null, isAdmin: false, adminAccess: NO_ADMIN_ACCESS });
       } else {
         // 서버 오류: 로그인 여부를 판단할 수 없음
-        setState({ status: 'unknown', user: null, csrfToken: null, isAdmin: false });
+        setState({ status: 'unknown', user: null, csrfToken: null, isAdmin: false, adminAccess: NO_ADMIN_ACCESS });
       }
     } catch {
-      setState({ status: 'unknown', user: null, csrfToken: null, isAdmin: false });
+      setState({ status: 'unknown', user: null, csrfToken: null, isAdmin: false, adminAccess: NO_ADMIN_ACCESS });
     } finally {
       clearTimeout(timer);
       inflight = null;

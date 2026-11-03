@@ -9,7 +9,7 @@ import {
   parseNoticesPayload,
   resolveServiceNoticeToasts,
 } from '../../src/core/notices/serviceNotices';
-import { getJaceSession, parseSessionPayload, refreshJaceSession, withJaceAuth } from '../../src/core/auth/jaceSession';
+import { getJaceSession, hasAdminAccess, parseAdminAccess, parseSessionPayload, refreshJaceSession, withJaceAuth } from '../../src/core/auth/jaceSession';
 import { SignalingClient } from '../../src/core/sync/SignalingClient';
 import { createRoomApiError } from '../../src/core/sync/roomApiErrors';
 import { formatRoomExpiry } from '../../src/core/sync/roomExpiry';
@@ -166,14 +166,35 @@ test('health 200 without notices shows nothing', () => {
 });
 
 test('session payload reads user, isAdmin and a nullable csrfToken', () => {
-  assert.deepEqual(
-    parseSessionPayload({ user: { name: 'a' }, csrfToken: 't', isAdmin: true, adminAccess: {} }),
-    { user: { name: 'a' }, csrfToken: 't', isAdmin: true }
-  );
+  const parsed = parseSessionPayload({ user: { name: 'a' }, csrfToken: 't', isAdmin: true, adminAccess: { rooms: 'read' } });
+  assert.equal(parsed?.isAdmin, true);
+  assert.equal(parsed?.csrfToken, 't');
+  assert.equal(parsed?.adminAccess.rooms, 'read');
+  assert.equal(parsed?.adminAccess.users, 'none');
   // 계약: csrfToken은 null일 수 있다 → 로그인 상태이지만 변경 요청에 쿠키·CSRF를 붙이지 않음
-  assert.deepEqual(parseSessionPayload({ user: { name: 'a' }, csrfToken: null }), { user: { name: 'a' }, csrfToken: null, isAdmin: false });
+  const noCsrf = parseSessionPayload({ user: { name: 'a' }, csrfToken: null });
+  assert.equal(noCsrf?.csrfToken, null);
+  assert.equal(noCsrf?.isAdmin, false);
   assert.equal(parseSessionPayload({ csrfToken: 't' }), null);
   assert.equal(parseSessionPayload(null), null);
+});
+
+test('admin access follows jace-s levels (none < read < write) per menu', () => {
+  const access = parseAdminAccess({ notices: 'write', rooms: 'read', users: 'none', monitor: 'bogus', extra: 'write' });
+  assert.equal(access.notices, 'write');
+  assert.equal(access.monitor, 'none');
+  assert.equal((access as Record<string, string>).extra, undefined);
+  const admin = { status: 'signed-in' as const, isAdmin: true, adminAccess: access };
+  assert.equal(hasAdminAccess(admin, 'notices', 'write'), true);
+  assert.equal(hasAdminAccess(admin, 'rooms', 'read'), true);
+  assert.equal(hasAdminAccess(admin, 'rooms', 'write'), false);
+  assert.equal(hasAdminAccess(admin, 'users'), false);
+  // Usage 조회만 가능한 계정 예: isAdmin은 true지만 다른 메뉴는 false
+  const usageOnly = { status: 'signed-in' as const, isAdmin: true, adminAccess: parseAdminAccess({ monitor: 'read' }) };
+  assert.equal(hasAdminAccess(usageOnly, 'monitor'), true);
+  assert.equal(hasAdminAccess(usageOnly, 'notices'), false);
+  assert.equal(hasAdminAccess({ ...admin, status: 'signed-out' }, 'notices'), false);
+  assert.equal(hasAdminAccess({ ...admin, isAdmin: false }, 'notices'), false);
 });
 
 test('login is only available on the allowed host', () => {

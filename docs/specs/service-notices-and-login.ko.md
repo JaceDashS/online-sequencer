@@ -102,7 +102,8 @@ Online Sequencer는 jace-s에 앱 ID **41**로 등록되어 있습니다. 이 �
 
 | 항목 | 내용 |
 |---|---|
-| 표시 조건 | `GET {API}/auth/session` 200 응답의 `isAdmin === true` (jace-s 메인 사이트 `services/web/src/utils/authClient.ts`와 같은 기준) |
+| 표시 조건 | `GET {API}/auth/session` 200 응답의 `isAdmin === true` (jace-s 메인 사이트 `services/web/src/utils/authClient.ts`와 같은 기준)이고, 아래 영역별 `adminAccess` 권한이 하나 이상 있을 때 |
+| 영역별 권한 | 공지 토스트: `notices` read 이상 / 계정 버튼: `users` read 이상 / 호스팅 드롭다운·방 에러: `rooms` read 이상. 표는 `src/utils/adminPreviewPermissions.ts` 한 곳에서 관리. 수준 비교는 jace-s `meetsAdminLevel`과 같음(none < read < write) |
 | 사실상 사용 가능 주소 | 로그인이 되는 `online-sequencer.jace-s.com`만. localhost·vercel.app·Electron에서는 세션 확인을 하지 않으므로 보이지 않음 |
 | 위치 | 인스펙터 아래(DEV 패널 다음). 인스펙터를 숨기면 함께 숨겨짐 |
 | 성격 | 화면 표시 전용. 서버 요청을 보내지 않고 실제 방·세션·공지 상태를 바꾸지 않음. 새로고침하면 사라짐. `isAdmin`은 권한 판정이 아님 |

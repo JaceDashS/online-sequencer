@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styles from './AdminPreviewPanel.module.css';
-import { getJaceSession, subscribeJaceSession, type JaceSessionState } from '../../core/auth/jaceSession';
+import { getJaceSession, hasAdminAccess, subscribeJaceSession, type JaceSessionState } from '../../core/auth/jaceSession';
+import { PREVIEW_PERMISSIONS } from '../../utils/adminPreviewPermissions';
 import { OUTAGE_MESSAGE } from '../../core/notices/serviceNotices';
 import { createRoomApiError } from '../../core/sync/roomApiErrors';
 import { showError } from '../../utils/toastStore';
@@ -30,10 +31,12 @@ const ROOM_ERRORS: Array<{ code: string; status: number }> = [
 
 const MINUTE = 60_000;
 
+
 /**
  * 어드민 UI 미리보기 패널
  *
- * jace-s 세션의 isAdmin이 true일 때만 보인다(jace-s 메인 사이트와 같은 기준).
+ * jace-s 세션의 isAdmin이 true이고(jace-s 메인 사이트와 같은 기준), 영역별로 PREVIEW_PERMISSIONS의
+ * 관리 메뉴 권한(adminAccess)이 있을 때만 그 영역을 보여준다. 볼 수 있는 영역이 없으면 패널을 숨긴다.
  * 새 UI를 서버 상태와 관계없이 강제로 띄운다. 서버 요청을 보내지 않고 실제 상태를 바꾸지 않으며,
  * 새로고침하면 사라진다. isAdmin은 화면 표시용이며 권한 판정이 아니다.
  */
@@ -43,7 +46,13 @@ const AdminPreviewPanel: React.FC = () => {
 
   useEffect(() => subscribeJaceSession(setSession), []);
 
-  if (session.status !== 'signed-in' || !session.isAdmin) {
+  const can = (area: keyof typeof PREVIEW_PERMISSIONS) =>
+    hasAdminAccess(session, PREVIEW_PERMISSIONS[area].menu, PREVIEW_PERMISSIONS[area].level);
+  const canNotices = can('notices');
+  const canAccount = can('account');
+  const canRooms = can('rooms');
+
+  if (!canNotices && !canAccount && !canRooms) {
     return null;
   }
 
@@ -61,6 +70,7 @@ const AdminPreviewPanel: React.FC = () => {
       </div>
       <p className={styles.note}>Display only. No server requests; cleared on reload.</p>
 
+      {canNotices && (
       <section className={styles.group}>
         <div className={styles.label}>Notice toasts</div>
         <div className={styles.buttons}>
@@ -75,7 +85,9 @@ const AdminPreviewPanel: React.FC = () => {
           </button>
         </div>
       </section>
+      )}
 
+      {canAccount && (
       <section className={styles.group}>
         <div className={styles.label}>Account button</div>
         <div className={styles.buttons}>
@@ -96,7 +108,9 @@ const AdminPreviewPanel: React.FC = () => {
           ))}
         </div>
       </section>
+      )}
 
+      {canRooms && (
       <section className={styles.group}>
         <div className={styles.label}>Hosting dropdown (room 0000)</div>
         <div className={styles.buttons}>
@@ -108,7 +122,9 @@ const AdminPreviewPanel: React.FC = () => {
         </div>
         <div className={styles.hint}>Shown only while not actually hosting or joining.</div>
       </section>
+      )}
 
+      {canRooms && (
       <section className={styles.group}>
         <div className={styles.label}>Room API error toasts</div>
         <div className={styles.buttons}>
@@ -123,6 +139,7 @@ const AdminPreviewPanel: React.FC = () => {
           ))}
         </div>
       </section>
+      )}
     </div>
   );
 };
