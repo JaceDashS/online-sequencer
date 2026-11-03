@@ -1,0 +1,202 @@
+# 프로젝트 Todo 및 검토 재개 기록
+
+기준: 2026-09-09 검토, 2026-09-10 최종 정리. 루트 HEAD `c8936e9`, 서버 HEAD `4d7423c`.
+상태: **전반 검토·Todo 작성 완료 / 개선 구현은 대기**.
+프로젝트 개선 25개와 기존 Todo 기능 초안 8개를 보존한다. 아래 우선순위는 검토 권장 순서이며 사용자 확정 사항이 아니다.
+
+## 중단·재개
+
+- 요청 범위: 프로젝트를 검토하고 최적화·개선 작업을 Todo에 추가한다.
+- 사용자가 약 3시간 부재할 수 있다는 조건에 따라 중간 체크포인트를 먼저 저장했다. 실제 중단 후 같은 HEAD와 작업 상태를 확인하여 이어서 정리했다.
+- 앱 종료·네트워크 단절·세션 종료 후 자동 실행 재개를 보장하지 않는다. 이 파일과 `agent-responses.private.html`을 읽고 마지막 상태부터 재개한다.
+- 재개 시 두 저장소의 HEAD와 `git status --short`, 루트 `git stash list`를 다시 확인한다. `stash@{0}` 위치는 바뀔 수 있으므로 메시지와 diff를 확인한다.
+- 현재 루트 stash 메시지: `wip: online sequencer auth integration`. 이번 검토에서 복원하지 않았다.
+- 기존 사용자 변경: 루트 `vite.config.ts`, 인증 문서 2개, 중첩 `jace-s/`; 서버 추적 파일 23개 수정. 이번 산출물은 이 문서와 비공개 응답 기록이다. 검증 과정에서 웹/Electron 빌드 산출물은 갱신됐다.
+- 다음 시작점: D-03~D-06 데이터 보호, C-01~C-06 협업 계약·권한, A-01~A-02 재생·내보내기 순으로 구현 배치를 검토한다. 실제 구현·커밋·배포는 아직 수행하지 않았다.
+- 기존 F-01~F-03 판단은 미결정이다. 이번 개선 목록 작성 완료가 Todo UI 구현 승인이나 저장 정책 승인이라는 뜻은 아니다.
+
+## 검토 범위와 판정
+
+오디오 스케줄러·샘플/노드 수명, MIDI 내보내기, React 편집 화면·상태·Undo/Redo, JSON/Electron 저장, 클라이언트 협업과 서버의 시그널링/룸/인증, 빌드·린트를 검토했다. 중첩 서버의 포트폴리오 화면·Oracle DB·배포 전반은 이번 시퀀서 중심 검토의 상세 감사 대상이 아니다.
+
+- **재현 확인:** 실제 소스 함수를 별도 Node 프로세스에서 호출해 결과 확인. 실행 중인 사용자의 앱 상태나 파일 데이터는 건드리지 않았다.
+- **모의 환경 확인:** 오디오/소켓 대역을 연결한 소스 실행 결과. 실제 기기·네트워크에서의 결과까지 보장하지 않는다.
+- **코드 확인:** 해당 경로의 누락·불일치를 소스에서 확인. 실제 UI 실행은 후속 검증 대상이다.
+- **측정 후보:** 비용이 생기는 경로는 확인했지만 실제 지연·메모리 증가량은 아직 측정하지 않았다.
+- 우선순위: P1 데이터 손실·핵심 기능·권한 문제, P2 안정성·규모 대응, P3 후속 정리. 모든 체크박스는 **구현 대기**다.
+
+## 확인한 검사 결과
+
+| 검사 | 결과 | 해석 |
+|---|---|---|
+| 루트 `npm test` | 109/109 통과 | 기존 회귀 범위; 새로 발견한 결함의 부재를 뜻하지 않음 |
+| 루트 `npm run build` | 통과 | TypeScript + Vite |
+| `npm run electron:build:main` | 통과 | main/preload 컴파일; 패키지 UI 실행은 아님 |
+| 루트 전체 `npm run lint` | 실패 | 후속 ESLint API 집계: 오류 249, 경고 34. 중첩 .next에서 247/34, 중첩 소스에서 루트 규칙으로 2개 오류 |
+| 루트 범위 한정 린트 | 158파일, 오류·경고 0 | src, electron, scripts, vite.config.ts |
+| 서버 자체 설정 린트 | 102파일, 오류·경고 0 | app, scripts, server.ts; 루트 규칙 적용 결과와 구분 |
+| 서버 `npm run test:security` | 6개 스크립트 모두 통과 | 인증 core/세션/라우트/CORS/호스트 토큰/WS 호스트 인증. 테스트 초기화의 DB 설정 경고는 있었으며 실제 DB 연결 검증은 아님 |
+| 추가 메모리 재현 | 결함 확인 | 파트 삭제 Undo 후 노트 0개, 프로젝트 교체 후 이전 파트 재등장, 잘못된 JSON 로드 후 상태 오염, 10만 노트 내보내기 RangeError |
+| 웹 빌드 기준값 | 주 JS 495.71 kB, gzip 141.00 kB | react-vendor 47.03 kB, MIDI editor 75.44 kB 별도 청크. 초기 로딩 지연은 미측정 |
+
+실제 청취, 3시간 연속 실행, 브라우저 Performance/React Profiler, 두 기기 협업, Electron 패키지 실행, 운영 API, 서버 전체 타입 검사·빌드는 이번에 수행하지 않았다. 소스·검사 결과로 확인할 수 있는 수준의 검토를 완료했다.
+
+## 데이터 보호·저장
+
+- [ ] **D-01 · P2 · 중단 후 프로젝트 복구**
+  - 근거: [DawPage.tsx](../src/pages/DawPage.tsx):147 종료 처리는 리소스 해제이며, src/electron 검색에서 프로젝트 자동 저장·복구 경로를 확인하지 못했다. 테마·QA 결과의 localStorage 저장은 프로젝트 복구가 아니다.
+  - 영향/판정: 장시간 작업을 저장하지 않고 종료하면 복구 수단이 부족하다. 코드 확인.
+  - 완료 조건: 변경 감지, 마지막 정상 복구본, 복구 선택, 저장 실패 알림을 추가한다. 새로고침·강제 종료·저장 공간 부족·복구 거절을 검증한다. 저장 주기는 재생 성능 측정 후 정한다. F-01 정책과 연계하되 개발 문서 체크포인트와 앱 복구 기능을 혼동하지 않는다.
+
+- [ ] **D-02 · P1 · Electron 저장 실패로부터 원본 보호**
+  - 근거: [main.ts](../electron/main.ts):193의 직접 writeFile, [SaveLoadButtons.tsx](../src/components/Toolbar/SaveLoadButtons.tsx):134의 JSON/MIDI 순차 저장.
+  - 영향/판정: 쓰기 중단 시 원본 훼손 가능성이 있고 두 파일 중 하나만 갱신될 수 있다. 코드 확인; 디스크 장애 재현은 미실시.
+  - 완료 조건: 임시 파일·교체·백업과 두 파일의 부분 성공 정책을 정의한다. 파일별 실패·두 번째 저장 취소 시 기존 데이터와 저장 대상 UI가 일관되고 재시도가 가능해야 한다.
+
+- [ ] **D-03 · P1 · 파트 삭제 Undo에서 초기 노트 보존**
+  - 근거: [projectStore.ts](../src/store/projectStore.ts):517, [noteHistory.ts](../src/store/history/noteHistory.ts):65. 삭제 스냅샷 노트를 빈 배열부터 재생한 히스토리로 덮어쓴다.
+  - 재현 확인: 노트 1개 프로젝트 로드 → 파트 삭제 → Undo → 복원된 파트 노트 0개.
+  - 완료 조건: 로드 당시 노트를 복원 기준으로 보존한다. JSON/MIDI 로드 후 단일·다중 파트 삭제/Undo/Redo에서 노트와 CC가 원본과 일치하고, 히스토리 상한 경계에서도 소실되지 않아야 한다.
+
+- [ ] **D-04 · P1 · 프로젝트 교체 시 Undo/Redo 격리**
+  - 근거: [projectState.ts](../src/store/projectState.ts):97, [partHistory.ts](../src/store/history/partHistory.ts):26, [history.ts](../src/store/history/history.ts):246. setProject가 전역 히스토리를 초기화하지 않으며 초기화 함수는 테스트용이다.
+  - 재현 확인: A에서 part-A 추가 → 빈 B 로드 → Undo/Redo → B에 part-A 등장. 동일 ID인 경우 B의 파트 삭제도 가능하다.
+  - 완료 조건: 새 프로젝트/파일 로드/협업 초기 상태 적용 시 노트·파트 히스토리와 지연 기록을 초기화하거나 프로젝트별 격리한다. 교체 직후 이전 작업이 새 프로젝트를 변경하지 않아야 한다.
+
+- [ ] **D-05 · P1 · JSON 검증 및 성공 후 상태 교체**
+  - 근거: [SaveLoadButtons.tsx](../src/components/Toolbar/SaveLoadButtons.tsx):666의 검증은 배열 여부와 timing 존재만 확인한다. [projectState.ts](../src/store/projectState.ts):114는 후속 처리가 성공하기 전에 전역 객체를 교체한다.
+  - 재현 확인: `{version:2,tracks:[],midiParts:[],timing:{}}`를 로드하면 예외가 나지만 현재 프로젝트는 잘못된 객체로 바뀐다.
+  - 완료 조건: 버전, timing 내부 구조, 유한한 수치·범위, ID 중복·참조를 검증하고 준비 완료 뒤 상태를 교체한다. 실패 시 기존 프로젝트·히스토리·저장 대상은 유지된다. 지원하는 레거시 형식도 마이그레이션 전에 잘못 거절되지 않도록 별도 검사한다.
+
+- [ ] **D-06 · P1 · Electron JSON 인코딩 계약 수정**
+  - 근거: [main.ts](../electron/main.ts):187은 모든 파일을 Base64로 반환한다. [SaveLoadButtons.tsx](../src/components/Toolbar/SaveLoadButtons.tsx):411은 isBinary가 true인 경우만 디코딩한다. JSON은 false다.
+  - 영향/판정: 정상 JSON의 Base64 문자열을 JSON.parse에 전달하여 실패한다. 코드 확인 및 IPC 반환값 모의 재현.
+  - 완료 조건: 텍스트/바이너리 반환 계약을 통일하고 UTF-8로 디코딩한다. 한글·이모지 트랙명을 포함한 JSON 저장 → 앱 재시작 → 로드 결과가 원본과 일치하며 MIDI 로드도 유지된다.
+
+- [ ] **D-07 · P1 · 초기 데모 비동기 로드가 사용자 작업을 덮어쓰지 않도록 보호**
+  - 근거: [DawPage.tsx](../src/pages/DawPage.tsx):45~80은 fetch 전 빈 프로젝트 여부만 검사하고 완료 후 곧바로 setProject를 호출한다. effect 취소·세대 확인이 없다.
+  - 영향/판정: 느린 데모 로딩 중 사용자가 새 파일을 열거나 편집하면 늦게 도착한 데모가 덮어쓸 수 있다. 코드 확인; 브라우저 재현 필요.
+  - 완료 조건: 초기화 작업 취소/세대 토큰과 적용 직전 프로젝트 변경 확인을 추가한다. 지연 응답, 언마운트, 개발 StrictMode 재실행 중 사용자 프로젝트가 보존된다.
+
+## 오디오·MIDI
+
+- [ ] **A-01 · P1 · 중간 재생에서 이미 울리는 긴 노트 복구**
+  - 근거: [PlaybackController.ts](../src/core/audio/PlaybackController.ts):542의 시작 시각 이진 탐색과 :471의 시작 시각 검사.
+  - 모의 환경 확인: 0~2초 노트를 1초부터 재생할 때 예약 0회. 이미 시작했지만 아직 끝나지 않은 노트가 제외된다.
+  - 완료 조건: 시작/seek/resume에 현재 위치와 겹치는 노트를 포함하여 샘플 오프셋을 적용한다. 남은 구간만 한 번 예약하고 끝난 노트와 중복 예약은 제외한다. 순수 타이밍 함수뿐 아니라 PlaybackController 경로를 검증한다.
+
+- [ ] **A-02 · P1 · 대용량 MIDI 내보내기의 함수 인수 한도 제거**
+  - 근거: [MidiExporter.ts](../src/core/midi/MidiExporter.ts):361,438의 `Math.max(...eventsWithTicks.map(...))`.
+  - 재현 확인: 단일 트랙 10만 노트 내보내기에서 `RangeError: Maximum call stack size exceeded`. 실패 임계치는 실행 환경에 따라 다르다.
+  - 완료 조건: 반복문 등 인수 수에 의존하지 않는 최대 tick 계산으로 변경한다. 10만 노트 내보내기·재파싱에서 이벤트 수·마지막 tick을 보존하고 빈 트랙도 통과한다.
+
+- [ ] **A-03 · P2 · 파트 경계의 재생/내보내기 일치**
+  - 근거: [buildPlaybackEvents.ts](../src/core/audio/buildPlaybackEvents.ts):115는 파트 경계로 자르지만 [MidiExporter.ts](../src/core/midi/MidiExporter.ts):284는 원래 노트 길이를 쓴다.
+  - 모의 환경 확인: 480tick 파트의 1920tick 노트가 재생은 480tick, 내보내기는 1920tick까지 남는다.
+  - 완료 조건: 파트 경계 처리 정책을 공유한다. 파트 밖 노트와 양 끝 걸침, 음수 시작, CC64를 검사한다. export locator의 “겹치는 노트 전체 보존” 정책은 별개이므로 의도 확인 없이 함께 바꾸지 않는다.
+
+- [ ] **A-04 · P2 · 빠른 동일 음 재입력 시 미리듣기 추적 보존**
+  - 근거: [AudioEngine.ts](../src/core/audio/AudioEngine.ts):740,776의 종료 콜백·타이머가 소스 동일성 확인 없이 MIDI 번호로 Map 항목을 삭제한다.
+  - 모의 환경 확인: 새 음이 등록된 후 이전 음 종료 콜백이 새 등록을 지운다. 키 해제/전체 정지가 새 음을 놓칠 수 있다.
+  - 완료 조건: 현재 등록된 소스일 때만 추적 항목을 지운다. 동일 음 빠른 반복·키 해제·전체 정지에 이전 콜백이 새 소스에 영향을 주지 않는다.
+
+- [ ] **A-05 · P2 · 삭제한 트랙 오디오 자원 해제**
+  - 근거: [AudioEngine.ts](../src/core/audio/AudioEngine.ts):426에서 trackNodes를 저장하고 :1052 전체 dispose에서 정리한다. 트랙별 제거 경로가 없다.
+  - 모의 환경 확인: 프로젝트 트랙 0개인데 오디오 Map은 1개 잔류. CPU/실제 메모리 증가량은 미측정.
+  - 완료 조건: 트랙 삭제·프로젝트 교체 시 관련 노드 disconnect, 효과 dispose, 미터/소스 정리를 연결한다. 100회 생성·삭제 후 Map과 연결 수가 기준값으로 돌아오고 공유 샘플은 잘못 제거되지 않는다.
+
+## 협업 계약·권한
+
+서버 항목은 `jace-s` 별도 저장소에 속한다. 정상 호스트 토큰·관리자 인증 구현은 이미 서버 커밋에 있으며 현재 클라이언트는 stash 밖의 예전 계약을 사용한다. 이번 검토는 운영 배포 상태를 확인한 것이 아니다.
+
+- [ ] **C-01 · P1 · 호스트 토큰 계약을 클라이언트에 연결**
+  - 근거: [SignalingClient.ts](../src/core/sync/SignalingClient.ts):382,400 및 REST 호스트 요청, [signalingService.ts](../jace-s/app/services/collaboration/signalingService.ts):335.
+  - 판정: 서버는 hostToken을 검증하나 클라이언트는 생성 응답에서 토큰을 보관하지 않고 WS/REST에 전달하지 않는다. 현재 WS 등록 메시지로 모의 인증 거부 확인.
+  - 완료 조건: stash 내용을 검토하여 중복 구현을 피하고 생성→등록→재연결→참가 허용→강퇴→삭제를 양 플랫폼에서 검증한다. 재등록의 null 토큰으로 유효한 기존 토큰을 지우지 않는다. 토큰을 로그·문서에 출력하지 않는다.
+
+- [ ] **C-02 · P1 · 관리자 로그인·룸 API 계약 전환**
+  - 근거: [PasswordModal.tsx](../src/components/Inspector/PasswordModal.tsx):31~51은 trim과 `{valid:true}` JSON을 기대한다. [verify-password/route.ts](../jace-s/app/api/auth/verify-password/route.ts):30은 새 로그인(204 + 쿠키)으로 위임한다. [RoomsListModal.tsx](../src/components/Inspector/RoomsListModal.tsx):58은 410을 반환하는 일반 목록 경로를 호출한다.
+  - 판정: 코드상 요청/응답 계약 불일치. 현재 운영 서버 상태는 미확인.
+  - 완료 조건: 로그인·세션 확인·로그아웃·관리자 목록/상세/삭제를 새 경로에 연결한다. 쿠키/CSRF/401 처리와 비밀번호 원문 전송을 검증한다. 기존 서버 인증을 다시 만드는 작업이 아니라 클라이언트 전환 작업으로 진행한다.
+
+- [ ] **C-03 · P1 · 중복 clientId의 이전 소켓 권한 회수**
+  - 근거: [signalingService.ts](../jace-s/app/services/collaboration/signalingService.ts):81,211,252. 연결 Map은 덮어쓰지만 이전 핸들러는 ID로 최신 연결을 조회한다.
+  - 모의 환경 확인: 같은 ID의 이전 소켓 메시지가 최신 호스트 연결의 역할로 처리되어 방에 영향을 줄 수 있다.
+  - 완료 조건: 메시지·close·error 처리를 실제 소켓/연결 세대와 결합한다. 중복 연결 시 이전 소켓 메시지·종료가 새 연결이나 방을 변경하지 않아야 한다.
+
+- [ ] **C-04 · P1 · 정원 초과 참가 실패를 원자적으로 처리**
+  - 근거: [signalingService.ts](../jace-s/app/services/collaboration/signalingService.ts):409의 registerClient가 [roomService.ts](../jace-s/app/services/collaboration/roomService.ts):204 정원 검사보다 먼저 실행된다.
+  - 모의 환경 확인: Room is full 응답을 받은 소켓의 시그널링 전달 권한이 남는다.
+  - 완료 조건: 참가 조건 확인 후 양 저장소 상태를 함께 갱신하거나 실패 시 롤백한다. 거부된 연결이 참가 목록·시그널링 권한 어디에도 남지 않아야 한다.
+
+- [ ] **C-05 · P1 · 강퇴와 소켓 권한·재참가 차단 연동**
+  - 근거: [kick/route.ts](../jace-s/app/api/online-sequencer/rooms/[roomCode]/kick/route.ts):94와 [signalingService.ts](../jace-s/app/services/collaboration/signalingService.ts):361.
+  - 모의 환경 확인: 강퇴는 룸 참가자/차단 목록만 바꾸고 기존 소켓의 전달 권한과 WS 직접 재참가 경로를 차단하지 않는다.
+  - 완료 조건: 강퇴 알림·연결 권한 회수·WS 참가 시 차단 검사를 함께 적용한다. 기존 소켓과 같은 ID의 재참가가 모두 거절돼야 한다. 클라이언트 ID 변경까지 막는 사용자 인증 도입은 별도 범위 판단이다.
+
+- [ ] **C-06 · P1 · 참가 허용 만료를 WS에서도 직접 검증**
+  - 근거: [signalingService.ts](../jace-s/app/services/collaboration/signalingService.ts):400은 allowJoin만 검사한다. [roomCode/route.ts](../jace-s/app/api/online-sequencer/rooms/[roomCode]/route.ts):58의 REST 조회가 만료 상태를 갱신한다.
+  - 모의 환경 확인: 만료 뒤 REST 조회 없이 WS 참가 요청 시 성공한다.
+  - 완료 조건: 참가 시 현재 시각과 만료를 직접 검사한다. REST 조회 여부와 무관하게 만료 경계부터 거절하며 재허용·서버 시각 경계도 테스트한다.
+
+## Electron 통신
+
+- [ ] **E-01 · P1 · HTTP 취소·타임아웃을 실제 요청까지 전달**
+  - 근거: [SignalingClient.ts](../src/core/sync/SignalingClient.ts):357의 10초 AbortController, [ElectronTransport.ts](../src/transport/ElectronTransport.ts):35의 signal 누락, [main.ts](../electron/main.ts):204의 요청 종료/타임아웃 경로 부재.
+  - 판정: WebTransport와 ElectronTransport의 취소 계약이 다르다. Electron은 응답 없는 서버에서 계속 대기할 수 있다. 코드 확인.
+  - 완료 조건: IPC 요청 ID·취소 또는 메인 요청 타임아웃을 구현하고 원 요청도 파기한다. 응답하지 않는 로컬 서버·중간 단절·사용자 취소에서 정해진 시간 안에 종료되고 타이머/리스너가 남지 않는다.
+
+## 측정 후 최적화
+
+- [ ] **P-00 · P2 · 성능·장시간 안정성 기준 만들기**
+  - 근거: 위 빌드 기준값, [기존 오디오 분석](specs/audio-playback-timing-jank-analysis.ko.md)의 측정 계획.
+  - 판정: 프로파일링 과제. 청크 크기만으로 체감 지연을 단정하지 않는다.
+  - 완료 조건: 같은 기기·브라우저·프로젝트로 초기 로딩, 샘플 준비, 재생 지연, 프레임/commit 시간, 힙·활성 소스 수를 기록한다. 10/50/100 트랙과 1천/1만/10만 노트, 미터 ON/OFF, 백그라운드·재연결을 비교한다. 3시간 세션에서 일정 시점마다 값을 기록하고 종료·복귀 후 기능 회복도 검사한다. 목표값은 첫 측정 후 확정한다.
+
+- [ ] **P-01 · P2 · 긴 클립 미리보기 전체 노트 순회 줄이기**
+  - 근거: [TimelineView.tsx](../src/components/EventDisplay/TimelineView.tsx):311 음역 계산, :490 전체 노트 map, :538 화면 범위 제외.
+  - 판정: 화면에 일부만 걸친 긴 클립도 전체 노트를 처리하는 경로 확인. 실제 프레임 지연은 미측정.
+  - 완료 조건: P-00에서 병목 확인 후 음역 캐시·시간 범위 조회를 적용한다. 스크롤·줌·리사이즈에서 노트 표시 정확성을 유지하고 같은 범위의 작업량과 commit 시간을 전후 비교한다.
+
+- [ ] **P-02 · P2 · 레벨 미터 React 갱신 비용 측정·축소**
+  - 근거: [LevelMeter.tsx](../src/components/Mixer/LevelMeter.tsx):58의 setLevel, :158부터 20개 막대 렌더링.
+  - 판정: 측정 후보. 현재 AudioEngine의 analyser 배열 재사용과 미터 중앙 갱신 최적화는 이미 존재하므로 “매번 배열 생성 제거”를 새 과제로 중복 등록하지 않는다.
+  - 완료 조건: 많은 트랙에서 미터 ON/OFF의 렌더 비용을 비교한다. 병목이 확인되면 고정 임계값 캐시·표시 단계가 같을 때 갱신 생략·DOM/CSS 갱신 등 최소 변경안을 선택한다. 음량 표시와 감쇠 동작을 유지한다.
+
+## 검증·유지보수
+
+- [ ] **Q-01 · P2 · 루트 린트의 중첩 저장소·산출물 검사 분리**
+  - 근거: [eslint.config.js](../eslint.config.js):8은 dist만 제외한다. `eslint .`는 jace-s/.next까지 검사하고 서버 소스에도 루트 React/Vite 규칙을 적용한다.
+  - 판정: 전체 명령 실패 재현. 서버 자체 설정의 한정 린트는 통과하므로 루트에서 발생한 서버 경고를 제품 결함으로 그대로 취급하지 않는다.
+  - 완료 조건: 산출물과 중첩 저장소를 적절히 제외하고 각 저장소의 자체 검사 명령을 유지한다. 룰 비활성화로 통과시키지 않는다.
+
+- [ ] **Q-02 · P3 · 인증 작업 상태 문서와 현재 Git 상태 정합성**
+  - 근거: [기존 작업 상태 문서](specs/online-sequencer-auth-refactoring-status.ko.md)는 서버 인증이 미커밋이라고 적지만 서버 이력에는 `cd28d53 [feat] Add server-side admin authorization`가 있다. 현재 23개 미커밋 파일은 주로 주석과 레거시 룸 목록 410 변경이다.
+  - 판정: 코드/이력 확인. 원격 push·실배포 여부는 미확인.
+  - 완료 조건: 로컬 구현·커밋·원격·배포를 구분하고 검증한 사실과 미확인 상태를 적는다. stash 복원은 고정 번호 대신 메시지·내용·현재 계약을 확인한다.
+
+- [ ] **Q-03 · P2 · 녹음 버튼의 구현 상태를 사용자에게 정확히 표시**
+  - 근거: [TransportControls.tsx](../src/components/Toolbar/TransportControls.tsx):421~427은 recording 상태만 전환하고 실제 녹음 연결은 TODO다.
+  - 판정: 코드 확인. 버튼 상태 전환을 녹음 완료로 해석하면 사용자가 결과를 기대할 수 있다.
+  - 완료 조건: 미지원 표시/비활성화 또는 실제 MIDI·오디오 녹음 범위를 결정한다. UI 설명과 실제 입력·저장 결과를 일치시킨다. 녹음 엔진 신규 구현은 이 문서 작성 범위를 넘어서는 후속 기능 작업이다.
+
+## 기존 Todo 기능 초안 — 사용자 판단 대기
+
+이전 대화의 제안을 보존한다. 저장 범위·위치·세부 기능은 확정되지 않았다.
+
+- [ ] **F-01** 저장 범위 확정: 프로젝트 파일 / 브라우저 로컬 / 협업 룸 공유. 이전 권장안은 프로젝트 파일 저장. 공유 여부에 따라 동기화·충돌 처리 범위가 달라진다.
+- [ ] **F-02** 필드·동작 확정: 제목, 완료 여부, 정렬 순서, 생성·수정 시각; 추가·수정·완료 전환·순서 변경·삭제; 전체·미완료·완료 필터.
+- [ ] **F-03** UI 배치 확정: 트랙 선택과 독립적인 오른쪽 Inspector Todo 패널 제안.
+- [ ] **F-04** 승인된 저장 범위에 맞는 데이터 모델·기존 파일 마이그레이션 설계.
+- [ ] **F-05** 상태 관리 액션·셀렉터와 입력·필터·정렬 UI 구현.
+- [ ] **F-06** 프로젝트 저장/불러오기 연동 또는 확정된 대체 저장 경로 구현.
+- [ ] **F-07** 키보드 접근성·빈 상태·오류 처리와 회귀 테스트.
+- [ ] **F-08** QA 시나리오·사용자 문서 갱신.
+
+## 최종 체크포인트
+
+1. 완료: 두 저장소 및 기존 초안 확인, 중단 후 상태 재확인.
+2. 완료: 시퀀서 중심 코드 검토 및 지적 근거 교차 확인.
+3. 완료: 위에 열거한 기존 검사와 추가 메모리 재현. 미실시 검증은 별도 명시.
+4. 완료: 개선 Todo 25개 + 기존 기능 초안 8개 문서화.
+5. 다음 작업: 사용자 선택을 받아 구현 배치를 시작한다. 개선 자체는 아직 모두 대기다.
