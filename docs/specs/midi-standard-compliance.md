@@ -1,5 +1,11 @@
 # MIDI 표준 준수 스펙
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-11-03
+
+---
+
 ## 개요
 
 이 문서는 Online DAW 프로젝트의 MIDI 표준 준수 사양을 정의합니다. 프로젝트는 **음악 제작 중심**으로 설계되었으며, 영상 동기화 기능은 지원하지 않습니다.

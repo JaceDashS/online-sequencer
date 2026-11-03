@@ -99,28 +99,15 @@ npm run electron:build
 
 ## 테스트
 
-### 1. 스크립트 통합 테스트
-
 ```bash
-# 전체 통합 테스트 실행
+# 스크립트 통합 테스트
 npm test
 
-# 필요한 묶음만 실행
-npm run test:unit
-npm run test:store
-npm run test:history
-npm run test:sync
-npm run test:midi-all
-```
-
-### 2. 브라우저 및 사용자 통합 테스트
-
-```bash
-# 개발 서버를 시작하고 QA 화면 열기
+# 개발 서버를 시작하고 QA 화면(/qa, 개발 전용) 열기
 npm run qa
 ```
 
-QA 화면은 개발 환경의 `/qa`에서만 제공됩니다. Codex 브라우저 테스트는 1280×720을 기준으로 하며, 서버가 응답하지 않으면 협업 시나리오만 `BLOCKED`로 처리하고 오프라인 시나리오는 계속 진행합니다. 상세한 운영 원칙은 [통합 테스트 전략](docs/testing.md)을 참고하십시오.
+실행 순서, 판정 기준, 서버 장애 정책은 [통합 테스트 전략](docs/testing.md)을 참고하십시오.
 
 ## 문서
 

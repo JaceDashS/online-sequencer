@@ -1,5 +1,11 @@
 # 통합 테스트 전략
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-11-03
+
+---
+
 이 프로젝트에서는 앱의 여러 모듈과 사용자 흐름을 함께 검증하는 전체 활동을 `통합 테스트`라고 부릅니다. 내부 명령에 `unit`이라는 이름이 남아 있어도 운영 우선순위는 아래 세 단계로 통일합니다.
 
 ## 우선순위
@@ -22,7 +28,17 @@
 ## 실행 방법
 
 ```bash
+# 전체 스크립트 통합 테스트
 npm test
+
+# 필요한 묶음만 실행
+npm run test:unit      # 실제 소스를 불러오는 핵심 정합성 (재생 타임라인, 서비스 공지·로그인·방 API 포함)
+npm run test:store     # store 모듈
+npm run test:history   # undo/redo 히스토리
+npm run test:sync      # 협업 상태 동기화
+npm run test:midi-all  # MIDI 변환·마이그레이션·경계값
+
+# 개발 서버를 시작하고 QA 화면 열기
 npm run qa
 ```
 
