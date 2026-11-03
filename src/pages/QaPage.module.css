@@ -193,8 +193,7 @@
 }
 
 .statusBadge[data-status='blocked'],
-.statusBadge[data-status='offline'],
-.statusBadge[data-status='unconfigured'] {
+.statusBadge[data-status='offline'] {
   color: #f4bd63;
   background: rgba(218, 145, 39, 0.1);
 }

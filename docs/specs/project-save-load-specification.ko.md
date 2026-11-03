@@ -296,7 +296,6 @@ function isValidProject(obj: unknown): obj is Project {
 - 저장/로드는 `src/components/Toolbar/SaveLoadButtons.tsx`에서 구현됨 (웹 + Electron).
 - JSON 저장은 메모리상의 `Project`에 `midiFileName`, `locatorStart`/`locatorEnd`를 추가해 저장함.
 - MIDI Export는 `src/core/midi/MidiExporter.ts`의 `exportProjectToMidiFile`을 사용함.
-- `src/core/midi/ProjectSaver.ts`와 `src/core/midi/ProjectLoader.ts`는 현재 플레이스홀더이며 사용되지 않음.
 
 ## 데이터 마이그레이션
 

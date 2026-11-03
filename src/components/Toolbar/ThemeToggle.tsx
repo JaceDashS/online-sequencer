@@ -1,18 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import styles from './ThemeToggle.module.css';
 import { useUIState } from '../../store/uiStore';
+import { applyTheme, getStoredTheme } from '../../utils/theme';
 
 const ThemeToggle: React.FC = () => {
   const ui = useUIState();
-  const [isDark, setIsDark] = useState(() => {
-    return typeof localStorage === 'undefined' || localStorage.getItem('theme') !== 'light';
-  });
+  // 첫 적용은 main.tsx에서 한다. 여기서는 저장된 값을 읽어 버튼 상태만 맞춘다.
+  const [isDark, setIsDark] = useState(() => getStoredTheme() === 'dark');
   const devClickCountRef = useRef(0);
-
-  useEffect(() => {
-    // 초기 테마 설정 (localStorage에서 불러오거나 기본값 사용)
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
 
   const toggleTheme = () => {
     devClickCountRef.current += 1;
@@ -22,8 +17,7 @@ const ThemeToggle: React.FC = () => {
     }
     const newTheme = isDark ? 'light' : 'dark';
     setIsDark(!isDark);
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
+    applyTheme(newTheme, { persist: true });
   };
 
   return (

@@ -6,7 +6,7 @@ import styles from './QaPage.module.css';
 
 type QaStatus = 'not-run' | 'pass' | 'fail' | 'blocked';
 type ResultSource = 'manual' | 'preflight';
-type ServerState = 'unchecked' | 'checking' | 'online' | 'offline' | 'unconfigured';
+type ServerState = 'unchecked' | 'checking' | 'online' | 'offline';
 
 interface QaResult {
   status: QaStatus;
@@ -19,7 +19,7 @@ interface ServerCheck {
   state: ServerState;
   message: string;
   checkedAt: string | null;
-  baseUrl: string | null;
+  baseUrl: string;
 }
 
 interface ViewportInfo {
@@ -44,7 +44,6 @@ const serverLabels: Record<ServerState, string> = {
   checking: 'CHECKING',
   online: 'ONLINE',
   offline: 'OFFLINE',
-  unconfigured: 'NOT CONFIGURED',
 };
 
 const executorLabels: Record<QaExecutor, string> = {
@@ -142,7 +141,7 @@ function QaPage() {
     state: 'unchecked',
     message: '서버 상태를 아직 확인하지 않았습니다.',
     checkedAt: null,
-    baseUrl: null,
+    baseUrl: getApiUrl(),
   });
   const [validationMessage, setValidationMessage] = useState('');
 
@@ -393,7 +392,7 @@ function QaPage() {
                 {serverLabels[server.state]}
               </span>
             </div>
-            <strong>{server.baseUrl ?? 'API URL 없음'}</strong>
+            <strong>{server.baseUrl}</strong>
             <p>{server.message} · {formatTime(server.checkedAt)}</p>
             <button
               type="button"
