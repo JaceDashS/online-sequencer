@@ -7,8 +7,8 @@ import { getOrCreateClientId } from './utils/uuid';
 import { getTransport } from '../../transport';
 import type { ITransport, IWebSocket } from '../../transport';
 import { buildApiUrl, buildWebSocketUrl } from '../../utils/apiConfig';
-import { withJaceAuth } from '../auth/jaceSession';
-import { readRoomApiError } from './roomApiErrors';
+import { refreshJaceSession, withJaceAuth } from '../auth/jaceSession';
+import { readRoomApiError, RoomApiError } from './roomApiErrors';
 import { clearHostRoom, clearHostRoomIfMatches, loadHostRoom, saveHostRoom } from './hostTokenStore';
 
 /**
@@ -387,12 +387,12 @@ export class SignalingClient {
       if (!this.hostToken) {
         this.hostToken = loadHostRoom(hostId)?.hostToken ?? null;
       }
-      roomCode = await this.requestRoomRegistration(hostId, this.hostToken);
+      roomCode = await this.requestRoomRegistrationWithCsrfRetry(hostId, this.hostToken);
     } catch (err) {
       if (this.hostToken && err instanceof RoomRegistrationRejectedError) {
         this.hostToken = null;
         clearHostRoom();
-        roomCode = await this.requestRoomRegistration(hostId, null);
+        roomCode = await this.requestRoomRegistrationWithCsrfRetry(hostId, null);
       } else {
         throw err;
       }
@@ -435,6 +435,24 @@ export class SignalingClient {
 
       this.onMessage('registered', callback);
     });
+  }
+
+  /**
+   * 방 등록 요청. 403 CSRF_VALIDATION_FAILED이면 세션을 다시 확인하고 한 번만 재시도한다.
+   *
+   * 계약상 이 경우 방이 만들어지지 않으므로 재시도로 방이 중복 생성되지 않는다.
+   * 세션이 만료됐으면 재시도는 비로그인 요청(쿠키·CSRF 없음)으로 나간다.
+   */
+  private async requestRoomRegistrationWithCsrfRetry(hostId: string, hostToken: string | null): Promise<string> {
+    try {
+      return await this.requestRoomRegistration(hostId, hostToken);
+    } catch (err) {
+      if (!(err instanceof RoomApiError) || err.code !== 'CSRF_VALIDATION_FAILED') {
+        throw err;
+      }
+      await refreshJaceSession();
+      return await this.requestRoomRegistration(hostId, hostToken);
+    }
   }
 
   /**

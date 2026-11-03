@@ -65,6 +65,7 @@ Online Sequencer는 jace-s에 앱 ID **41**로 등록되어 있습니다. 이 �
 | 로그인 사용 가능 조건 | 브라우저(Electron 제외)이고 호스트가 허용 목록(기본 `online-sequencer.jace-s.com`)에 있음 |
 | 로그인 상태 확인 | `GET {API}/auth/session`, `credentials: 'include'`. 200 → `{user, csrfToken, ...}`, 401 → 로그아웃. 그 외는 판단 불가 |
 | 로그인 상태의 변경 요청 (POST/DELETE) | `credentials: 'include'` + 헤더 `x-csrf-token: <세션 응답의 csrfToken>`. 없거나 틀리면 403 `CSRF_VALIDATION_FAILED` |
+| CSRF 실패 처리 | 방 생성이 403 `CSRF_VALIDATION_FAILED`이면 세션을 다시 확인하고 **한 번만** 재시도. 세션이 만료됐으면 비로그인 요청으로 재시도. 계약상 이 경우 방은 만들어지지 않아 중복 생성이 없음 |
 | 로그인 상태의 조회 요청 (GET) | `credentials: 'include'`만 추가 |
 | 비로그인 상태 | 쿠키·CSRF 헤더 없이 요청 (허용 호스트에서도 동일) |
 | 로그인 화면 | `{SITE}/login`을 새 창으로 열고, 창이 닫히거나 포커스가 돌아오면 세션을 다시 확인 |

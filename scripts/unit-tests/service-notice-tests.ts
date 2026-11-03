@@ -449,6 +449,98 @@ test('rejected stored token is cleared and a new room is created', async () => {
   }
 });
 
+function createScriptedTransport(script: Array<{ match: string; status: number; body: unknown }>) {
+  const calls: IHttpRequestOptions[] = [];
+  const base = createRoomTransport([]);
+  return {
+    ...base,
+    calls,
+    async request(options: IHttpRequestOptions): Promise<IHttpResponse> {
+      calls.push(options);
+      const path = new URL(options.url).pathname;
+      const index = script.findIndex((step) => step.match === path);
+      const step = index >= 0 ? script.splice(index, 1)[0] : { status: 500, body: {} };
+      return {
+        ok: step.status >= 200 && step.status < 300,
+        status: step.status,
+        json: async () => step.body,
+        text: async () => JSON.stringify(step.body),
+      };
+    },
+  };
+}
+
+async function withSignedInWindow(fn: () => Promise<void>): Promise<void> {
+  const g = globalThis as unknown as { window?: unknown };
+  const previousWindow = g.window;
+  g.window = { location: { protocol: 'https:', hostname: 'online-sequencer.jace-s.com' } };
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    await fn();
+  } finally {
+    console.error = originalError;
+    resetTransport();
+    g.window = previousWindow;
+    await refreshJaceSession();
+  }
+}
+
+test('CSRF failure on room creation refreshes the session and retries once with the new token', async () => {
+  await withSignedInWindow(async () => {
+    const transport = createScriptedTransport([
+      { match: '/auth/session', status: 200, body: { user: { name: 'u' }, csrfToken: 'old' } },
+      { match: '/online-sequencer/rooms', status: 403, body: { success: false, error: 'CSRF_VALIDATION_FAILED' } },
+      { match: '/auth/session', status: 200, body: { user: { name: 'u' }, csrfToken: 'new' } },
+      { match: '/online-sequencer/rooms', status: 200, body: { success: true, roomCode: '0505', hostToken: 'h' } },
+    ]);
+    setTransport(transport);
+    await refreshJaceSession();
+    const client = new SignalingClient();
+    assert.equal(await client.registerRoom('host-uuid'), '0505');
+    const posts = transport.calls.filter((call) => call.method === 'POST');
+    assert.equal(posts.length, 2);
+    assert.equal(posts[0].headers?.['x-csrf-token'], 'old');
+    assert.equal(posts[1].headers?.['x-csrf-token'], 'new');
+    assert.equal(posts[1].credentials, 'include');
+  });
+});
+
+test('CSRF retry after an expired session goes out as a signed-out request', async () => {
+  await withSignedInWindow(async () => {
+    const transport = createScriptedTransport([
+      { match: '/auth/session', status: 200, body: { user: { name: 'u' }, csrfToken: 'old' } },
+      { match: '/online-sequencer/rooms', status: 403, body: { success: false, error: 'CSRF_VALIDATION_FAILED' } },
+      { match: '/auth/session', status: 401, body: {} },
+      { match: '/online-sequencer/rooms', status: 200, body: { success: true, roomCode: '0606', hostToken: 'h' } },
+    ]);
+    setTransport(transport);
+    await refreshJaceSession();
+    const client = new SignalingClient();
+    assert.equal(await client.registerRoom('host-uuid'), '0606');
+    const retry = transport.calls.filter((call) => call.method === 'POST')[1];
+    assert.equal(retry.headers?.['x-csrf-token'], undefined);
+    assert.equal(retry.credentials, undefined);
+    assert.equal(getJaceSession().status, 'signed-out');
+  });
+});
+
+test('CSRF retry happens only once', async () => {
+  await withSignedInWindow(async () => {
+    const transport = createScriptedTransport([
+      { match: '/auth/session', status: 200, body: { user: {}, csrfToken: 'a' } },
+      { match: '/online-sequencer/rooms', status: 403, body: { success: false, error: 'CSRF_VALIDATION_FAILED' } },
+      { match: '/auth/session', status: 200, body: { user: {}, csrfToken: 'b' } },
+      { match: '/online-sequencer/rooms', status: 403, body: { success: false, error: 'CSRF_VALIDATION_FAILED' } },
+    ]);
+    setTransport(transport);
+    await refreshJaceSession();
+    const client = new SignalingClient();
+    await assert.rejects(() => client.registerRoom('host-uuid'), /sign-in session could not be verified/);
+    assert.equal(transport.calls.filter((call) => call.method === 'POST').length, 2);
+  });
+});
+
 (async () => {
   let pass = 0;
   let fail = 0;
