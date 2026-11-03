@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-08-30
+**Last Updated**: 2026-11-03
 
 **카테고리**: 구현 수준 - 오디오 재생 최적화
 
@@ -31,7 +31,7 @@
 ## 알고리즘
 
 ### Lookahead 윈도우
-0.75초 앞의 노트를 미리 스케줄링합니다.
+기본 0.75초 앞의 노트를 미리 스케줄링합니다. 개발자 패널에서 0~5초 범위로 조절할 수 있습니다 (`PlaybackController.setScheduleLookaheadSeconds`).
 
 ### 업데이트 간격
 50ms마다 lookahead 윈도우를 갱신합니다.
@@ -79,12 +79,12 @@ graph LR
 ## 코드 구조
 
 ```typescript
-const SCHEDULE_LOOKAHEAD_SECONDS = 0.75;
+const DEFAULT_SCHEDULE_LOOKAHEAD_SECONDS = 0.75; // 개발자 패널에서 0~5초로 변경 가능
 const SCHEDULE_INTERVAL_MS = 50;
 
 private scheduleLookahead(): void {
-  const playbackTime = getCurrentTimelineTime();
-  const windowEnd = playbackTime + SCHEDULE_LOOKAHEAD_SECONDS;
+  const playbackTime = this.getCurrentTimelineTime(); // 고정 오디오 앵커 기준
+  const windowEnd = playbackTime + this.scheduleLookaheadSeconds;
   if (windowEnd <= this.scheduledUntil) {
     return;
   }
@@ -128,7 +128,7 @@ sequenceDiagram
 고정된 `AudioContext.currentTime` 앵커에서 계산한 타임라인 시간을 기준으로 lookahead 윈도우를 설정합니다.
 
 ### 2. 윈도우 범위 결정
-현재 시간부터 0.75초 앞까지의 범위를 스케줄링 대상으로 설정합니다.
+현재 시간부터 lookahead(기본 0.75초) 앞까지의 범위를 스케줄링 대상으로 설정합니다.
 
 ### 3. 이미 스케줄링된 범위 건너뛰기
 이미 스케줄링된 범위는 다시 스케줄링하지 않습니다.
@@ -138,6 +138,19 @@ sequenceDiagram
 
 ### 5. 주기적 갱신
 50ms마다 위 과정을 반복하여 lookahead 윈도우를 유지합니다.
+
+### 6. 늦은 노트 처리
+스케줄러 호출이 늦어져 노트 시작 시각이 이미 지난 경우 (`resolveScheduledPlaybackWindow`):
+- 아직 끝나지 않은 노트는 지난 샘플 구간을 건너뛰고(`skipTime`) 남은 길이만 재생합니다.
+- 이미 끝난 노트는 건너뜁니다.
+- 이벤트의 오디오 예약 시각은 고정 앵커에서 계산하므로 지연이 다음 이벤트로 누적되지 않습니다.
+
+### 7. 진단 로그
+- `schedule_tick_lag`: 스케줄러 호출 간격이 기대값보다 크게 늦은 경우
+- `lookahead_low` / `lookahead_depleted`: 예약 잔량이 50ms 미만이거나 고갈된 경우
+- `schedule_note_late`: 10ms 이상 늦게 처리된 노트
+
+고갈이 반복될 때의 복구 정책(동적 lookahead 등)은 후속 과제입니다.
 
 ---
 
@@ -156,7 +169,8 @@ sequenceDiagram
 ## 관련 문서
 
 - [`조절 가능한 오디오 버퍼 사이즈`](./audio-buffer-size.ko.md)
+- [`오디오 재생 타이밍 분석`](../../analysis/audio-playback-timing-jank-analysis.ko.md)
 
 ---
 
-**Last Updated**: 2026-08-30
+**Last Updated**: 2026-11-03

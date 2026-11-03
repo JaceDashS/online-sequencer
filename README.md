@@ -1,108 +1,110 @@
 # Online DAW
 
-[한국어](README.ko.md)
 
-[![Download Installer](https://img.shields.io/badge/Windows-Download%20Installer-blue?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online.Sequencer.Setup.0.1.0.exe)
-[![Download Portable](https://img.shields.io/badge/Windows-Download%20Portable-green?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online-Sequencer-0.1.0-Windows-Portable.zip)
+[![Windows 설치 파일 다운로드](https://img.shields.io/badge/Windows-설치%20파일%20다운로드-blue?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online.Sequencer.Setup.0.1.0.exe)
+[![Windows 포터블 버전 다운로드](https://img.shields.io/badge/Windows-포터블%20버전%20다운로드-green?style=for-the-badge&logo=windows)](https://github.com/JaceDashS/online-sequencer/releases/download/v0.1.0/Online-Sequencer-0.1.0-Windows-Portable.zip)
 
-A web-based Digital Audio Workstation (DAW) built with React, TypeScript, and Vite. Online DAW provides MIDI editing capabilities and client-side real-time collaboration features.
+Online DAW는 React, TypeScript, Vite 기반으로 구현된 **웹 기반 디지털 오디오 워크스테이션(DAW)**입니다.  
+MIDI 편집 기능과 클라이언트 측 실시간 협업 기능을 제공합니다.
 
-## Features
+## 주요 기능
 
-- **MIDI Editing**: Create and edit MIDI notes with a visual piano roll interface
-- **Standard MIDI File (SMF) Support**: Import and export MIDI files compliant with MIDI 1.0 specification
-- **Real-time Collaboration**: Client-side WebRTC P2P collaboration with WebSocket signaling integration
-- **Multi-track Support**: Work with multiple tracks, each with independent volume, panning, and effects
-- **Audio Engine**: Sample-based playback (SFZ support for Piano, GM Drums), custom effect chain architecture
-- **Audio Effects**: Apply effects such as EQ, Delay, Compressor, and Reverb to tracks and master channel
-- **Project Management**: Save and load projects in JSON and MIDI formats
-- **History System**: Undo/Redo support for project changes (Note level & Part level)
-- **Responsive UI**: Zoomable timeline, resizable tracks, and mobile support check
+- **MIDI 편집**: 피아노 롤 기반 UI를 통한 MIDI 노트 생성 및 편집
+- **표준 MIDI 파일(SMF) 지원**: MIDI 1.0 규격을 준수하는 MIDI 파일 불러오기 및 내보내기
+- **실시간 협업**: WebSocket 시그널링 연동과 WebRTC P2P 기반 클라이언트 협업
+- **멀티 트랙 지원**: 각 트랙별 볼륨, 패닝, 이펙트 개별 제어
+- **오디오 엔진**: 샘플 기반 재생 구조 (SFZ 지원: 피아노, GM 드럼), 커스텀 이펙트 체인 아키텍처
+- **오디오 이펙트**: EQ, 딜레이, 컴프레서, 리버브 등 트랙/마스터 채널 이펙트 적용
+- **프로젝트 관리**: JSON 및 MIDI 형식으로 프로젝트 저장 및 불러오기
+- **히스토리 시스템**: Undo / Redo 지원 (노트 단위 및 파트 단위)
+- **반응형 UI**: 타임라인 줌, 트랙 크기 조절, 모바일 환경 대응 여부 검증
 
-## Tech Stack
+## 기술 스택
 
-### Frontend
-- **Framework**: React 19, TypeScript, Vite
-- **State Management**: React Context + Custom Store Pattern
-- **Audio**: Web Audio API (Schedule Lookahead), SFZ Parser
-- **Styling**: CSS Modules
+### 프론트엔드
+- **프레임워크**: React 19, TypeScript, Vite
+- **상태 관리**: React Context + Custom Store 패턴
+- **오디오 처리**: Web Audio API (Schedule Lookahead), SFZ 파서
+- **스타일링**: CSS Modules
 
-### Desktop (Electron)
-- **Engine**: Electron 39+ (Chromium + Node.js)
-- **IPC**: Context Isolation, Preload Scripts
-- **Build**: electron-builder (Windows NSIS/Portable, macOS DMG, Linux AppImage)
+### 데스크톱 (Electron)
+- **엔진**: Electron 39+ (Chromium + Node.js)
+- **IPC**: Context Isolation, Preload Script
+- **빌드**: electron-builder (Windows NSIS / Portable, macOS DMG, Linux AppImage)
 
-### Collaboration Networking
-- **Signaling Client**: HTTP and WebSocket APIs configured through `VITE_API_BASE_URL`
-- **P2P Transport**: WebRTC DataChannel
-- **Topology**: Star Topology for host-centered collaboration
+### 협업 네트워킹
+- **시그널링 클라이언트**: `VITE_API_BASE_URL`(또는 `VITE_BASE_URL` + `VITE_API_PATH`) 기반 HTTP 및 WebSocket API 연동 ([API 설정](docs/architecture/api-configuration.ko.md))
+- **P2P 전송**: WebRTC DataChannel
+- **토폴로지**: 호스트 중심 Star Topology
 
-## Project Structure
+## 프로젝트 구조
 
 ```
 online-daw/
 ├── src/
-│   ├── components/   # React UI components (EventDisplay, MidiEditor, Mixer, etc.)
-│   ├── constants/    # App constants (MIDI, UI settings)
-│   ├── core/         # Core business logic
-│   │   ├── audio/    # Audio engine, Playback controller
-│   │   ├── effects/  # Audio effects implementation (EQ, Reverb, etc.)
-│   │   ├── midi/     # MIDI parser/exporter, SMF types
-│   │   └── sync/     # Collaboration logic (WebRTC, Conflict resolution)
-│   ├── domain/       # Domain models (Project, Timing)
-│   ├── hooks/        # Custom React hooks for UI logic
-│   ├── pages/        # Route pages
-│   ├── store/        # State management (Actions, History, Stores)
-│   ├── transport/    # Platform abstraction layer (Web/Electron I/O adapter)
-│   ├── utils/        # Utilities (Logger, Math, Time calculation)
-│   └── workers/      # Web Workers (Playback Clock, Debug Logger)
-├── docs/             # Documentation (Architecture, Specs, Manuals)
-├── electron/         # Electron main and preload processes
-├── scripts/          # Test and verification scripts
-├── case-tests/       # QA fixtures and detailed case references
-└── public/           # Static assets (Samples, Icons)
+│   ├── components/   # React UI 컴포넌트 (EventDisplay, MidiEditor, Mixer 등)
+│   ├── constants/    # 애플리케이션 상수 (MIDI, UI 설정)
+│   ├── core/         # 핵심 비즈니스 로직
+│   │   ├── audio/    # 오디오 엔진, 재생 컨트롤러
+│   │   ├── effects/  # 오디오 이펙트 구현 (EQ, Reverb 등)
+│   │   ├── midi/     # MIDI 파서/익스포터, SMF 타입
+│   │   └── sync/     # 협업 로직 (WebRTC, 충돌 해결)
+│   ├── domain/       # 도메인 로직 (timing 변환·캐시)
+│   ├── hooks/        # UI 로직용 커스텀 React 훅
+│   ├── pages/        # 라우트 페이지 (DAW, 개발 전용 QA)
+│   ├── qa/           # QA 시나리오 정의
+│   ├── store/        # 상태 관리 (Actions, History, Stores)
+│   ├── transport/    # 플랫폼 추상화 계층 (Web/Electron I/O 어댑터)
+│   ├── types/        # 프로젝트·Electron 타입 정의
+│   ├── utils/        # 유틸리티 (Logger, 수학, 시간 계산)
+│   └── workers/      # Web Worker (재생 클럭, 디버그 로거)
+├── docs/             # 문서 (명세, 아키텍처, 매뉴얼, 작업 기록)
+├── electron/         # Electron main/preload 프로세스
+├── scripts/          # 테스트 및 검증 스크립트
+├── case-tests/       # QA 테스트 데이터와 상세 케이스 참고 자료
+└── public/           # 정적 에셋 (샘플, 아이콘)
 ```
 
-### Prerequisites
+## 사전 요구 사항
 
-- Node.js 20.19+ or 22.12+
-- npm or yarn
+- Node.js 20.19 이상 또는 22.12 이상
+- npm 또는 yarn
 
-### Installation
+## 설치
 
 ```bash
 npm install
 ```
 
-### Development
+## 개발
 
 ```bash
-# Start development server
+# 개발 서버 실행
 npm run dev
 
-# Run with Electron
+# Electron 환경 실행
 npm run electron:dev
 ```
 
-### Build
+## 빌드
 
 ```bash
-# Build for production
+# 프로덕션 빌드
 npm run build
 
-# Build Electron app
+# Electron 앱 빌드
 npm run electron:build
 ```
 
-## Testing
+## 테스트
 
-### 1. Script integration tests
+### 1. 스크립트 통합 테스트
 
 ```bash
-# Run the complete integration test suite
+# 전체 통합 테스트 실행
 npm test
 
-# Run an individual group when needed
+# 필요한 묶음만 실행
 npm run test:unit
 npm run test:store
 npm run test:history
@@ -110,23 +112,25 @@ npm run test:sync
 npm run test:midi-all
 ```
 
-### 2. Browser and user integration tests
+### 2. 브라우저 및 사용자 통합 테스트
 
 ```bash
-# Start the development server and open the QA console
+# 개발 서버를 시작하고 QA 화면 열기
 npm run qa
 ```
 
-The QA console is available only at `/qa` in development. Codex browser checks use a 1280×720 baseline. If the server is unavailable, only server-dependent collaboration scenarios become `BLOCKED`; offline scenarios continue. See the [integration testing strategy](docs/testing.en.md) for details.
+QA 화면은 개발 환경의 `/qa`에서만 제공됩니다. Codex 브라우저 테스트는 1280×720을 기준으로 하며, 서버가 응답하지 않으면 협업 시나리오만 `BLOCKED`로 처리하고 오프라인 시나리오는 계속 진행합니다. 상세한 운영 원칙은 [통합 테스트 전략](docs/testing.ko.md)을 참고하십시오.
 
-## Documentation
+## 문서
 
-See [docs/README.en.md](docs/README.en.md) for detailed documentation including:
-- MIDI standard compliance specifications
-- Collaboration feature specifications
-- Architecture documentation
-- Project save/load specifications
+문서 목록과 분류 기준은 [`docs/README.ko.md`](docs/README.ko.md)를 참고하십시오.
 
-## License
+- [MIDI 표준 준수 사양](docs/specs/midi-standard-compliance.ko.md)
+- [프로젝트 저장/불러오기 포맷](docs/specs/project-save-load-specification.ko.md)
+- [실시간 협업 명세](docs/specs/collaboration-specification/README.ko.md)
+- [아키텍처 문서](docs/architecture/README.ko.md)
+- [사용자 매뉴얼](docs/manual/README.ko.md)
 
-See [LICENSE](LICENSE) file for details.
+## 라이선스
+
+자세한 내용은 [LICENSE](LICENSE) 파일을 참고하십시오.

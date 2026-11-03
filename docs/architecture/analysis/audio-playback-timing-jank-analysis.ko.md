@@ -6,6 +6,8 @@
 
 **범위**: 원인 분석, 개선안, 구현 및 검증 결과
 
+**문서 위치**: 2026-11-03에 `docs/specs/`에서 `docs/architecture/analysis/`로 이동 (명세가 아닌 설계 분석 문서)
+
 ## 결론
 
 분석 결과, 현상의 주원인은 수정 전 **오디오 스케줄러가 UI용 재생 시간을 기준으로 매 주기마다 오디오 시계를 다시 맞추던 구조**일 가능성이 높았다. 메인 스레드가 멈추면 UI용 시간이 오래된 값으로 남고, 이후 노트가 그만큼 늦은 `AudioContext` 시각에 예약될 수 있었다. 이 경우 소리는 끊기기보다 노트가 뒤로 끌리며 박자가 밀리는 형태로 들린다.
@@ -56,11 +58,11 @@ Web Worker는 시간 숫자를 생성하지만, 메시지 수신·`requestAnimat
 
 | 우선순위 | 판정 | 수정 전 근거와 영향 | 처리 결과 |
 |---|---|---|---|
-| P0 | 가능성 높음 | `PlaybackController`가 UI용 `getPlaybackTime()`을 읽고 매 윈도우마다 `audioOffset`을 다시 계산해, 렉 직후 이후 노트까지 늦은 오디오 시각에 매핑할 수 있었다. | [`PlaybackController`](../../src/core/audio/PlaybackController.ts)가 고정 `PlaybackAnchor`에서 타임라인과 노트 예약 시각을 계산하도록 변경했다. |
+| P0 | 가능성 높음 | `PlaybackController`가 UI용 `getPlaybackTime()`을 읽고 매 윈도우마다 `audioOffset`을 다시 계산해, 렉 직후 이후 노트까지 늦은 오디오 시각에 매핑할 수 있었다. | [`PlaybackController`](../../../src/core/audio/PlaybackController.ts)가 고정 `PlaybackAnchor`에서 타임라인과 노트 예약 시각을 계산하도록 변경했다. |
 | P0 | 확정 | `playbackTimeStore`의 캐시된 표시 시간이 오디오 스케줄러 입력으로 사용되어, 메인 스레드 정지 후 오래된 UI 시간이 예약 기준에 유입됐다. | UI 표시 시계와 오디오 예약 시계를 분리했다. |
-| P0 | 확정 | 같은 pitch class의 겹친 보이스 수만큼 기본 3ms를 누적해 10보이스에서 최대 27ms까지 onset이 벌어질 수 있었다. | [`AudioEngine`](../../src/core/audio/AudioEngine.ts)의 기본값을 0ms로 바꾸고 활성화 시에도 설정 상한을 넘지 않도록 제한했다. |
-| P1 | 확정 | UI Worker 클록이 먼저 시작되고 샘플 prefetch 완료를 기다리지 않아, 콜드 스타트에서 화면이 소리보다 먼저 진행할 수 있었다. | [`TransportControls`](../../src/components/Toolbar/TransportControls.tsx)가 오디오 준비 및 앵커 생성을 기다린 뒤 같은 lead로 Worker 클록을 시작한다. |
-| P1 | 가능성 높음 | 트랙·마스터 레벨 조회마다 2048 길이 배열을 좌우로 새로 만들고 각 미터가 별도 rAF와 React 상태 갱신을 수행했다. | 배열을 재사용하고 [`audioLevelStore`](../../src/utils/audioLevelStore.ts)의 중앙 30Hz 갱신으로 통합했다. |
+| P0 | 확정 | 같은 pitch class의 겹친 보이스 수만큼 기본 3ms를 누적해 10보이스에서 최대 27ms까지 onset이 벌어질 수 있었다. | [`AudioEngine`](../../../src/core/audio/AudioEngine.ts)의 기본값을 0ms로 바꾸고 활성화 시에도 설정 상한을 넘지 않도록 제한했다. |
+| P1 | 확정 | UI Worker 클록이 먼저 시작되고 샘플 prefetch 완료를 기다리지 않아, 콜드 스타트에서 화면이 소리보다 먼저 진행할 수 있었다. | [`TransportControls`](../../../src/components/Toolbar/TransportControls.tsx)가 오디오 준비 및 앵커 생성을 기다린 뒤 같은 lead로 Worker 클록을 시작한다. |
+| P1 | 가능성 높음 | 트랙·마스터 레벨 조회마다 2048 길이 배열을 좌우로 새로 만들고 각 미터가 별도 rAF와 React 상태 갱신을 수행했다. | 배열을 재사용하고 [`audioLevelStore`](../../../src/utils/audioLevelStore.ts)의 중앙 30Hz 갱신으로 통합했다. |
 | P1 | 확정 | lookahead 0.5초와 메인 스레드 `setInterval` 100ms 조합은 약 0.5초를 넘는 정지에 취약했다. | 기본값을 0.75초/50ms로 조정하고, 늦은 노트가 다음 이벤트 기준 시각을 밀지 않도록 했다. |
 | P2 | 확정 | BUF 설정이 Worker 틱과 `latencyHint`를 함께 바꿨지만 오디오 스케줄러 간격에는 직접 작용하지 않았다. | 이번 변경 범위에서는 유지했다. 사용자 프리셋과 진단 정보 분리는 후속 과제다. |
 
@@ -210,7 +212,7 @@ BUF를 크게 하는 것은 오디오 렌더링 underrun이나 출력 끊김에�
 - `baseLatency`, `outputLatency`, `AudioContext.state`
 - 활성 source 수와 한 윈도우에서 생성한 source 수
 
-Long Tasks API는 50ms 이상 UI 스레드를 독점하는 작업을 관측하므로, 기존 [`longTaskLogger`](../../src/utils/longTaskLogger.ts)와 오디오 deadline 로그를 같은 타임라인으로 비교하면 원인 상관관계를 확인할 수 있다.
+Long Tasks API는 50ms 이상 UI 스레드를 독점하는 작업을 관측하므로, 기존 [`longTaskLogger`](../../../src/utils/longTaskLogger.ts)와 오디오 deadline 로그를 같은 타임라인으로 비교하면 원인 상관관계를 확인할 수 있다.
 
 ### 자동 테스트 현황
 
@@ -264,7 +266,10 @@ Long Tasks API는 50ms 이상 UI 스레드를 독점하는 작업을 관측하�
 
 ## 기존 문서와의 관계
 
-- [`Lookahead 스케줄링`](../architecture/optimization-design/implementation-level/lookahead-scheduling.ko.md)은 선행 예약 방향은 맞지만, UI 시간과 오디오 시간의 재매핑 위험 및 underrun 복구 정책을 추가해야 한다.
-- [`워커 기반 재생 클록`](../architecture/optimization-design/architecture-level/worker-playback-clock.ko.md)은 UI 시간 생성 분리에는 유효하지만, Web Worker가 Web Audio 렌더링 스레드를 대신하지 않는다는 한계를 명시해야 한다.
-- [`오디오 버퍼 사이즈`](../architecture/optimization-design/implementation-level/audio-buffer-size.ko.md)는 실제 버퍼 크기가 아니라 브라우저 latency hint와 UI tick 설정이라는 점을 사용자 노출 명칭에도 반영해야 한다.
-- [`같은 음계 간섭 방지`](../architecture/optimization-design/implementation-level/pitch-class-interference-prevention.ko.md)는 리듬 정확성과 충돌하므로 기본 정책을 재검토해야 한다.
+아래 문서에 이 분석 결과를 반영했다 (2026-11-03).
+
+- [`Lookahead 스케줄링`](../optimization-design/implementation-level/lookahead-scheduling.ko.md): 고정 오디오 앵커 기준, 조절 가능한 lookahead, 늦은 노트 처리와 진단 로그를 명시했다. 고갈 반복 시 복구 정책은 후속 과제로 남아 있다.
+- [`워커 기반 재생 클록`](../optimization-design/architecture-level/worker-playback-clock.ko.md): UI 표시 전용이며 Web Audio 렌더링 스레드를 대신하지 않는다는 한계와 시작 lead(`delayMs`)를 명시했다.
+- [`Drift 보정 시스템`](../optimization-design/implementation-level/drift-correction.ko.md): UI 표시 시간에만 적용되며 오디오 예약에 영향을 주지 않음을 명시했다.
+- [`오디오 버퍼 사이즈`](../optimization-design/implementation-level/audio-buffer-size.ko.md): 실제 버퍼 크기가 아니라 `latencyHint` 선호값과 UI 틱 간격 설정임을 명시했다. 사용자 노출 명칭(`BUF`) 변경은 코드 변경이 필요한 후속 과제다.
+- [`같은 음계 간섭 방지`](../optimization-design/implementation-level/pitch-class-interference-prevention.ko.md): 기본 비활성화 상태와 리듬 정확성과의 충돌을 명시했다.

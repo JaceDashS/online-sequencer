@@ -1,5 +1,14 @@
 # 관리자 인증 및 룸 관리 보안 설계
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-11-03
+
+> **상태: 계획 (클라이언트 미반영)**
+> - 이 문서는 목표 설계입니다. 현재 `dev` 브랜치의 클라이언트는 2장 "현재 구현과 문제점"의 방식(`POST /api/auth/verify-password` + 로컬 `isAdminMode`)으로 동작합니다.
+> - 서버 측 구현과 클라이언트 리팩토링의 진행 상황은 [인증·인가 리팩토링 작업 상태](../worklog/auth-refactoring-status.ko.md)를 참고하십시오.
+> - 반영 후에는 [협업 서버 API](./collaboration-specification/server-api.ko.md)와 [보안 고려사항](./collaboration-specification/security.ko.md)의 인증 관련 내용을 함께 갱신해야 합니다.
+
 ## 1. 목적
 
 Developer Panel에서 관리자 비밀번호를 입력한 뒤 룸 목록을 조회하거나 룸을 강제로 삭제하는 기능을 안전하게 제공한다.

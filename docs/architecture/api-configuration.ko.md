@@ -1,29 +1,26 @@
-# API 설정 변경
+# API 설정
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-23
+**Last Updated**: 2026-11-03
 
-**카테고리**: 구현 수준 - 설정 관리
+**카테고리**: 설정 관리 (2026-11-03에 `optimization-design/implementation-level/`에서 이동)
 
 ---
 
 ## 개요
 
-API 베이스 URL 설정 방식을 변경하여 더 유연한 환경 변수 구성을 지원합니다.
+협업 시그널링 서버의 HTTP API와 WebSocket URL을 환경 변수로 구성하는 방식을 정의합니다. 모든 API 요청 URL은 `buildApiUrl()`, WebSocket URL은 `buildWebSocketUrl()`로 생성합니다.
 
 ---
 
-## 변경 사항
+## 설정 우선순위
 
-### 이전 방식
-- `VITE_API_BASE_URL` 환경 변수만 사용
-- 전체 API 베이스 URL을 직접 지정
+1. `VITE_API_BASE_URL`이 있으면 이 값을 사용합니다.
+2. 없으면 `VITE_BASE_URL` + `VITE_API_PATH` 조합을 사용합니다.
+3. 둘 다 없으면 `getApiBaseUrl()`이 에러를 던집니다.
 
-### 새로운 방식
-- `VITE_API_BASE_URL` 우선 사용 (기존 호환성 유지)
-- `VITE_BASE_URL` + `VITE_API_PATH` 조합 지원
-- WebSocket URL 변환 로직 개선
+값은 Vite의 `import.meta.env`에서 먼저 읽고, 없으면 Node `process.env`에서 읽습니다 (스크립트 테스트 실행용).
 
 ---
 
@@ -52,9 +49,10 @@ API 베이스 URL 설정 방식을 변경하여 더 유연한 환경 변수 구�
 
 ```typescript
 export function getApiBaseUrl(): string {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  const baseUrl = import.meta.env.VITE_BASE_URL;
-  const apiPath = import.meta.env.VITE_API_PATH;
+  // getEnvValue: import.meta.env 우선, 없으면 process.env
+  const apiBaseUrl = getEnvValue('VITE_API_BASE_URL');
+  const baseUrl = getEnvValue('VITE_BASE_URL');
+  const apiPath = getEnvValue('VITE_API_PATH');
 
   // VITE_API_BASE_URL이 있으면 우선 사용
   if (apiBaseUrl) {
@@ -117,7 +115,7 @@ export function buildWebSocketUrl(path: string, queryParams?: Record<string, str
 }
 ```
 
-### WebSocket URL 변환 로직 개선
+### WebSocket URL 변환 규칙
 - HTTP → WS, HTTPS → WSS 자동 변환
 - 경로 정규화 (앞뒤 슬래시 처리)
 - 쿼리 파라미터 지원
@@ -152,23 +150,16 @@ const roomUrl = buildApiUrl('/rooms/1234');
 const wsUrl = buildWebSocketUrl('/signaling', { clientId: '123' });
 ```
 
----
+### 예외: 관리자 비밀번호 확인 API
 
-## 마이그레이션 가이드
-
-### 기존 설정 유지
-- `VITE_API_BASE_URL`만 사용하는 경우 변경 불필요
-
-### 새로운 설정으로 전환
-- `VITE_BASE_URL`과 `VITE_API_PATH`를 설정하여 더 유연한 구성 가능
-- 여러 환경에서 다른 API 경로를 사용하는 경우 유용
+`src/components/Inspector/PasswordModal.tsx`는 `/api/auth/verify-password`가 협업 API 하위 경로가 아니므로, `buildApiUrl('')` 결과에서 문자열 `/api/online-sequencer`를 제거한 뒤 `/api/auth/verify-password`를 붙입니다. 따라서 API 베이스 URL이 `/api/online-sequencer`로 끝나는 서버 구성을 전제로 합니다. 관리자 인증 개편 계획은 [관리자 인증 설계](../specs/admin-authentication.ko.md)를 참고하십시오.
 
 ---
 
 ## 참고사항
 
 ### URL 정규화
-- 모든 URL에서 끝의 슬래시 제거
+- API 베이스 URL 끝의 슬래시 제거
 - 경로는 항상 `/`로 시작하도록 정규화
 
 ### 에러 처리
@@ -177,7 +168,4 @@ const wsUrl = buildWebSocketUrl('/signaling', { clientId: '123' });
 
 ---
 
-**작성일**: 2026-01-23  
-**버전**: 1.0  
-**상태**: 최신
-
+**Last Updated**: 2026-11-03

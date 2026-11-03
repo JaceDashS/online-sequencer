@@ -1,8 +1,8 @@
 # 최적화 설계 문서
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-11-03
 
 ---
 
@@ -47,34 +47,38 @@ graph TB
     subgraph "아키텍처 수준"
         A1[렌더링 아키텍처]
         A2[리소스 관리]
-        
+
         A1 --> A1a[rAF 기반<br/>재생헤드 업데이트]
         A1 --> A1b[워커 기반<br/>재생 클록]
-        
+
         A2 --> A2a[리소스 생명주기<br/>관리]
     end
-    
+
     subgraph "구현 수준"
         B1[오디오 재생]
+        B4[재생 클록·표시]
         B2[UI 최적화]
         B3[데이터 접근]
-        
+
         B1 --> B1a[Lookahead<br/>스케줄링]
-        B1 --> B1b[Drift 보정]
-        B1 --> B1c[오디오 버퍼<br/>사이즈]
         B1 --> B1d[음계 간섭<br/>방지]
         B1 --> B1e[배치 샘플<br/>로딩]
-        
+
+        B4 --> B4a[Drift 보정]
+        B4 --> B4b[오디오 버퍼<br/>사이즈 BUF]
+
         B2 --> B2a[스크롤<br/>동기화]
+        B2 --> B2c[타임라인 가시 범위<br/>렌더링]
         B2 --> B2b[React 렌더링<br/>최적화]
-        
+
         B3 --> B3a[데이터<br/>인덱싱]
         B3 --> B3b[시간 변환<br/>캐싱]
     end
-    
+
     style A1 fill:#ffebee
     style A2 fill:#ffebee
     style B1 fill:#f3e5f5
+    style B4 fill:#f3e5f5
     style B2 fill:#f3e5f5
     style B3 fill:#f3e5f5
 ```
@@ -100,24 +104,27 @@ graph TB
 
 #### 오디오 재생 최적화
 - [Lookahead 스케줄링](./implementation-level/lookahead-scheduling.ko.md)
-  - 오디오 이벤트를 미리 스케줄링하여 재생 안정성 확보
-
-- [Drift 보정 시스템](./implementation-level/drift-correction.ko.md)
-  - 워커 틱과 UI 간의 타이밍 오차를 부드럽게 보정
-
-- [조절 가능한 오디오 버퍼 사이즈](./implementation-level/audio-buffer-size.ko.md)
-  - 재생 클럭 tick 간격 조절 (Web Audio API 버퍼 크기는 고정 128 프레임)
-  - UI에서 audioBufferSize 설정으로 재생 타이밍 정밀도 조절
+  - `AudioContext.currentTime` 고정 앵커 기준으로 오디오 이벤트를 미리 예약
 
 - [같은 음계 간섭 방지](./implementation-level/pitch-class-interference-prevention.ko.md)
-  - 같은 샘플 소스에서 파생된 오디오의 위상 간섭을 시간 오프셋으로 분산
+  - 같은 샘플 소스에서 파생된 오디오의 위상 간섭을 시간 오프셋으로 분산 (기본 0ms, 비활성화)
 
 - [배치 샘플 로딩](./implementation-level/batch-sample-loading.ko.md)
   - 오디오 샘플 로딩 시 메인 스레드 블로킹 방지
 
+#### 재생 클록·표시
+- [Drift 보정 시스템](./implementation-level/drift-correction.ko.md)
+  - 워커 틱과 UI 표시 시간 간의 오차를 부드럽게 보정 (오디오 예약에는 사용하지 않음)
+
+- [조절 가능한 오디오 버퍼 사이즈 (BUF)](./implementation-level/audio-buffer-size.ko.md)
+  - 재생 클록 tick 간격과 `AudioContext` `latencyHint` 선호값 설정 (실제 렌더링 버퍼 크기 아님)
+
 #### UI 최적화
 - [MIDI 에디터 스크롤 동기화](./implementation-level/scroll-synchronization.ko.md)
   - 레인 영역과 벨로시티 영역의 가로 스크롤을 즉시 동기화
+
+- [타임라인 가시 범위 렌더링](./implementation-level/timeline-visible-range-rendering.ko.md)
+  - 화면에 보이는 범위와 오버스캔 범위의 파트·노트·마디 마커만 렌더링
 
 - [React 컴포넌트 렌더링 최적화](./data-access/indexing.ko.md#ui-컴포넌트-최적화)
   - 인덱스 함수를 활용한 데이터 접근 최적화
@@ -153,7 +160,6 @@ graph TB
 ### 사용자 경험 개선
 - 부드러운 재생헤드 움직임
 - 대형 프로젝트에서도 안정적인 재생
-- 시스템 성능에 따른 유연한 조절
 - MIDI 에디터에서 레인 영역과 벨로시티 영역의 완벽한 스크롤 동기화
 - 빠른 데이터 조회 응답 시간
 - 이벤트 디스플레이, 타임라인 뷰, 인스펙터 등에서 즉시 데이터 접근
@@ -166,21 +172,21 @@ graph TB
 
 ### 아키텍처 문서
 - [`docs/architecture/README.ko.md`](../README.ko.md) - 아키텍처 문서 개요
+- [`오디오 재생 타이밍 분석`](../analysis/audio-playback-timing-jank-analysis.ko.md) - 오디오 앵커 도입 배경과 재생 타이밍 개선 결과
 
 ---
 
 ## 향후 개선 아이디어
 
 ### 아키텍처 수준
-- EventDisplay 가상화 (뷰포트 범위만 렌더)
 - MIDI 클립 레이아웃 계산을 Web Worker로 이동
 
 ### 구현 수준
-- 동적 lookahead 윈도우 크기 조절
+- 측정 기반 동적 lookahead 윈도우 크기 조절 (현재는 개발자 패널에서 수동 조절)
 - 드리프트 보정 알고리즘 파라미터 자동 튜닝
 - 샘플 로딩 우선순위 큐
 - LRU 캐시 도입으로 캐시 크기 제한
 
 ---
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-11-03

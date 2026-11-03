@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-11-03
 
 **카테고리**: 아키텍처 수준 - 렌더링 아키텍처
 
@@ -18,7 +18,15 @@
 
 - 메인 스레드와 시간 생성 로직 분리
 - 독립적인 시간 틱 생성으로 메인 스레드 부하 감소
-- 버퍼 사이즈에 따른 유연한 스케줄링
+- 버퍼 사이즈(BUF) 설정에 따른 UI 틱 간격 조절
+
+---
+
+## 적용 범위와 한계
+
+- Worker 클록은 **UI 표시용 재생 시간**만 생성합니다. 오디오 노트·메트로놈 예약은 `PlaybackController`가 `AudioContext.currentTime` 기반 고정 앵커로 계산하며, Worker 틱을 사용하지 않습니다.
+- Web Worker는 Web Audio 렌더링 스레드를 대신하지 않습니다. 메인 스레드가 멈추면 Worker 틱의 전달(`postMessage` 수신)도 늦어질 수 있습니다.
+- 상세 근거는 [오디오 재생 타이밍 분석](../../analysis/audio-playback-timing-jank-analysis.ko.md)을 참고하십시오.
 
 ---
 
@@ -70,7 +78,20 @@ graph TB
 `playbackClock.worker.ts`가 독립적인 시간 생성 모듈로 동작합니다.
 
 ### 버퍼 사이즈 연동
-버퍼 사이즈에 따라 틱 간격을 조절하여 유연한 스케줄링을 제공합니다.
+버퍼 사이즈(BUF)에 따라 UI 틱 간격을 조절합니다. 기본 간격은 33ms이며, 메인 스레드가 계산한 `intervalMs`로 덮어씁니다.
+
+### 명령
+
+| 명령 | 동작 |
+|---|---|
+| `start { time, delayMs }` | `time`에서 시작. `delayMs` 동안은 시간이 진행하지 않음 |
+| `pause` | 현재 시간을 보존하고 틱 중지 |
+| `stop { time? }` | 틱 중지, 시간을 `time`(기본 0)으로 설정 |
+| `seek { time, delayMs }` | 시간 이동. 재생 중이면 `delayMs` 후 진행 재개 |
+| `setInterval { intervalMs }` | 틱 간격 변경(최소 1ms). 재생 중이면 타이머 재시작 |
+
+### 오디오와의 시작 동기화
+재생 시작과 seek 시 `TransportControls`는 오디오 앵커의 시작 지연(`getAnchorStartDelaySeconds`, 기본 lead 75ms)을 `delayMs`로 전달합니다. 이로써 UI 재생헤드가 첫 음보다 먼저 진행하지 않습니다.
 
 ---
 
@@ -151,7 +172,7 @@ setPlaybackClockInterval(intervalMs);
 ### 성능 개선
 - 메인 스레드 CPU 사용량 감소
 - 시간 생성 로직의 독립성 확보
-- 버퍼 사이즈 조절에 따른 유연한 스케줄링
+- 버퍼 사이즈 조절에 따른 UI 틱 간격 조절
 
 ### 사용자 경험
 - 메인 스레드가 다른 작업(UI 업데이트 등)에 집중 가능
@@ -163,8 +184,10 @@ setPlaybackClockInterval(intervalMs);
 
 - [`rAF 기반 재생헤드 업데이트`](./raf-playback-head.ko.md)
 - [`조절 가능한 오디오 버퍼 사이즈`](../implementation-level/audio-buffer-size.ko.md)
+- [`Drift 보정 시스템`](../implementation-level/drift-correction.ko.md)
+- [`Lookahead 스케줄링`](../implementation-level/lookahead-scheduling.ko.md)
 
 ---
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-11-03
 

@@ -1,85 +1,100 @@
 # 아키텍처 문서
 
-**Document Version**: 1.0  
+**Document Version**: 2.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-11-03
 
 ---
 
 ## 문서 구조
 
-### 최적화 설계
-- [`optimization-design/index.ko.md`](./optimization-design/index.ko.md) - 성능 최적화 기법 카테고리별 정리
-  - **아키텍처 수준**: 렌더링 아키텍처 최적화
-  - **구현 수준**: 오디오 재생, UI, 데이터 접근 최적화
+| 구분 | 문서 | 내용 |
+|---|---|---|
+| 설정 | [`api-configuration.ko.md`](./api-configuration.ko.md) | API·WebSocket URL 환경 변수 구성 |
+| 최적화 설계 | [`optimization-design/index.ko.md`](./optimization-design/index.ko.md) | 성능 최적화 기법 전체 목록 |
+| 설계 분석 | [`analysis/audio-playback-timing-jank-analysis.ko.md`](./analysis/audio-playback-timing-jank-analysis.ko.md) | 재생 렉에 따른 노트 타이밍 지연 원인 분석과 개선 결과 |
+
+---
+
+## 재생 타이밍 구조 요약
+
+재생 관련 문서는 아래 시계 분리를 전제로 합니다. 상세 근거는 [오디오 재생 타이밍 분석](./analysis/audio-playback-timing-jank-analysis.ko.md)을 참고하십시오.
+
+```mermaid
+graph LR
+    A[AudioContext.currentTime] -->|고정 앵커| B[PlaybackController<br/>오디오 예약]
+    C[Web Worker 재생 클록] -->|틱| D[playbackTimeStore<br/>Drift 보정]
+    D --> E[rAF 재생헤드 / UI]
+    B -.같은 시작 lead.-> C
+```
+
+- **오디오 예약**: `AudioContext.currentTime` 기반 고정 앵커(`PlaybackAnchor`)로 노트·메트로놈 시각을 계산합니다. UI 재생 시간(`playbackTimeStore`)을 사용하지 않습니다.
+- **UI 재생 시간**: Worker 클록 틱을 `playbackTimeStore`가 Drift 보정하여 재생헤드에 제공합니다. 표시 전용입니다.
+- **시작 동기화**: 샘플 준비 후 오디오 앵커와 Worker 클록을 같은 lead(75ms)로 시작합니다.
 
 ---
 
 ## 최적화 설계 문서
 
-최적화 설계 문서는 카테고리별로 분리되어 있습니다:
-
 ```mermaid
 graph TD
     A[최적화 설계] --> B[아키텍처 수준]
     A --> C[구현 수준]
-    
-    B --> B1[렌더링 아키텍처]
-    B --> B2[리소스 관리]
-    
-    B1 --> B1a[rAF 기반<br/>재생헤드 업데이트]
-    B1 --> B1b[워커 기반<br/>재생 클록]
-    
-    B2 --> B2a[리소스 생명주기<br/>관리]
-    
+    A --> D[데이터 접근]
+
+    B --> B1[rAF 기반<br/>재생헤드 업데이트]
+    B --> B2[워커 기반<br/>재생 클록]
+    B --> B3[리소스 생명주기<br/>관리]
+
     C --> C1[오디오 재생]
-    C --> C2[UI 최적화]
-    C --> C3[데이터 접근]
-    
+    C --> C2[재생 클록·표시]
+    C --> C3[UI 렌더링]
+
     C1 --> C1a[Lookahead<br/>스케줄링]
-    C1 --> C1b[Drift 보정]
-    C1 --> C1c[오디오 버퍼<br/>사이즈]
-    C1 --> C1d[음계 간섭<br/>방지]
-    C1 --> C1e[배치 샘플<br/>로딩]
-    
-    C2 --> C2a[스크롤<br/>동기화]
-    
-    C3 --> C3a[데이터<br/>인덱싱]
-    C3 --> C3b[시간 변환<br/>캐싱]
-    
+    C1 --> C1b[음계 간섭<br/>방지]
+    C1 --> C1c[배치 샘플<br/>로딩]
+
+    C2 --> C2a[Drift 보정]
+    C2 --> C2b[오디오 버퍼<br/>사이즈 BUF]
+
+    C3 --> C3a[스크롤<br/>동기화]
+    C3 --> C3b[타임라인 가시 범위<br/>렌더링]
+
+    D --> D1[데이터<br/>인덱싱]
+    D --> D2[시간 변환<br/>캐싱]
+
     style A fill:#e1f5ff
     style B fill:#fff4e1
     style C fill:#e8f5e9
-    style B1 fill:#ffebee
-    style B2 fill:#ffebee
-    style C1 fill:#f3e5f5
-    style C2 fill:#f3e5f5
-    style C3 fill:#f3e5f5
+    style D fill:#f3e5f5
 ```
 
-### 아키텍처 수준 최적화
+### 아키텍처 수준
 - [rAF 기반 재생헤드 업데이트](./optimization-design/architecture-level/raf-playback-head.ko.md)
 - [워커 기반 재생 클록](./optimization-design/architecture-level/worker-playback-clock.ko.md)
+- [리소스 생명주기 관리](./optimization-design/architecture-level/resource-lifecycle-management.ko.md)
 
-### 구현 수준 최적화
+### 구현 수준
 
-#### 오디오 재생 최적화
+#### 오디오 재생
 - [Lookahead 스케줄링](./optimization-design/implementation-level/lookahead-scheduling.ko.md)
-- [Drift 보정 시스템](./optimization-design/implementation-level/drift-correction.ko.md)
-- [조절 가능한 오디오 버퍼 사이즈](./optimization-design/implementation-level/audio-buffer-size.ko.md)
-- [같은 음계 간섭 방지](./optimization-design/implementation-level/pitch-class-interference-prevention.ko.md)
+- [같은 음계 간섭 방지](./optimization-design/implementation-level/pitch-class-interference-prevention.ko.md) (기본 비활성화)
 - [배치 샘플 로딩](./optimization-design/implementation-level/batch-sample-loading.ko.md)
 
-#### UI 최적화
-- [MIDI 에디터 스크롤 동기화](./optimization-design/implementation-level/scroll-synchronization.ko.md)
+#### 재생 클록·표시
+- [Drift 보정 시스템](./optimization-design/implementation-level/drift-correction.ko.md)
+- [오디오 버퍼 사이즈 (BUF)](./optimization-design/implementation-level/audio-buffer-size.ko.md)
 
-#### 데이터 접근 최적화
+#### UI 렌더링
+- [MIDI 에디터 스크롤 동기화](./optimization-design/implementation-level/scroll-synchronization.ko.md)
+- [타임라인 가시 범위 렌더링](./optimization-design/implementation-level/timeline-visible-range-rendering.ko.md)
+
+### 데이터 접근
 - [데이터 인덱싱](./optimization-design/data-access/indexing.ko.md)
 - [시간 변환 캐싱](./optimization-design/data-access/timing-cache.ko.md)
 
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 2.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
-
+**Last Updated**: 2026-11-03

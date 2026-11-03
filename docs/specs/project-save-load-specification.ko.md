@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-11-03
 
 ---
 
@@ -97,8 +97,7 @@ interface Track {
 ```typescript
 {
   version: number;        // 프로젝트 포맷 버전 (현재: 2)
-  savedAt?: string;       // ISO 8601 형식의 저장 시간 (선택적)
-  savedBy?: string;       // 저장한 사용자 정보 (선택적)
+  // savedAt, savedBy: 현재 구현에서 저장·사용하지 않음
 }
 ```
 

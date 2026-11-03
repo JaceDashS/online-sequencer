@@ -2,7 +2,9 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-08-30
+**Last Updated**: 2026-11-03
+
+**상태**: 기본 비활성화 (`pitchOffsetMaxMs = 0`). 개발자 메뉴에서 값을 올린 경우에만 동작합니다.
 
 **카테고리**: 구현 수준 - 오디오 재생 최적화
 
@@ -14,12 +16,14 @@
 
 이 기능은 시간 오프셋(time offset)을 적용하여 같은 음계의 노트가 동시에 재생될 때 위상 간섭을 분산시킵니다.
 
+**리듬 정확성과의 충돌**: 시간 오프셋은 같은 시각의 MIDI 노트에 서로 다른 onset을 부여하므로 박자 정확성을 해칩니다. 이 때문에 2026-08-29 변경에서 기본값을 0ms로 바꾸고, 활성화하더라도 총 오프셋이 설정값을 넘지 않도록 제한했습니다. 피크 문제는 게인 조정으로 해결하는 방향이 권장됩니다. 근거는 [오디오 재생 타이밍 분석](../../analysis/audio-playback-timing-jank-analysis.ko.md)을 참고하십시오.
+
 ---
 
 ## 목표
 
 - 같은 샘플 소스에서 파생된 오디오의 위상 간섭 완화
-- 피크 문제 해결
+- 피크 문제 완화 (기능 활성화 시)
 - 피치 변경 없이 자연스러운 사운드 유지
 - 사용자가 필요에 따라 오프셋 값 조절 가능
 
@@ -58,7 +62,7 @@ const pitchClass = note.midi % 12; // 0-11 (C=0, C#=1, ..., B=11)
 
 ### 2. 활성 노트 추적
 
-각 pitch class별로 현재 재생 중인 노트의 시간 범위를 추적합니다:
+`pitchOffsetMaxMs > 0`인 피아노 노트에 한해, 각 pitch class별로 현재 재생 중인 노트의 시간 범위를 추적합니다. 기본값 0ms에서는 추적하지 않습니다:
 
 ```typescript
 activeNotesByPitchClass: Map<number, Array<{
@@ -81,7 +85,7 @@ const overlappingNotes = activeNotes.filter(active =>
 
 ### 4. 시간 오프셋 계산 및 적용
 
-겹치는 노트가 있으면, 겹치는 노트의 개수에 비례하여 오프셋을 적용합니다:
+겹치는 노트가 있으면 오프셋을 적용합니다. 계산식은 겹친 개수를 곱하지만 결과를 `pitchOffsetMaxMs`로 제한하므로, 겹친 노트가 1개 이상이면 오프셋은 항상 `pitchOffsetMaxMs`와 같습니다 (`src/core/audio/playbackTimeline.ts`의 `getBoundedPitchOffsetSeconds`):
 
 ```typescript
 if (overlappingNotes.length > 0) {
@@ -121,7 +125,9 @@ if (index !== -1) {
 
 ## 동작 예시
 
-### 예시 1: 기본 케이스 (pitchOffsetMaxMs = 3ms)
+아래 예시는 개발자 메뉴에서 `pitchOffsetMaxMs`를 3ms로 **활성화한 경우**입니다. 기본값(0ms)에서는 모든 예시에서 오프셋이 없습니다.
+
+### 예시 1: 활성화 시 기본 케이스 (pitchOffsetMaxMs = 3ms)
 
 **시나리오**: C4 재생 중, C5 시작
 
@@ -183,7 +189,7 @@ sequenceDiagram
 ### 제한사항
 
 1. **피아노만 적용**: 드럼 등 다른 악기는 오프셋 없음
-2. **시간 지연**: 오프셋이 클수록 노트 시작이 지연될 수 있음 (최대 20ms)
+2. **시간 지연**: 오프셋이 클수록 노트 시작이 지연됨 (최대 20ms). 리듬 정확성과 충돌하므로 기본 비활성화
 3. **겹침 기반 감지**: 재생 시간 구간이 겹치면 시간 차이가 있어도 동시에 재생되는 것으로 처리됨
 
 ---
@@ -360,6 +366,7 @@ case 'SET_PITCH_OFFSET_MAX_MS': {
 
 - [`docs/architecture/optimization-design/implementation-level/audio-buffer-size.ko.md`](./audio-buffer-size.ko.md) - 오디오 버퍼 사이즈 최적화
 - [`docs/architecture/optimization-design/implementation-level/lookahead-scheduling.ko.md`](./lookahead-scheduling.ko.md) - Lookahead 스케줄링
+- [`docs/architecture/analysis/audio-playback-timing-jank-analysis.ko.md`](../../analysis/audio-playback-timing-jank-analysis.ko.md) - 오디오 재생 타이밍 분석
 
 ---
 
@@ -372,4 +379,4 @@ case 'SET_PITCH_OFFSET_MAX_MS': {
 
 ---
 
-**Last Updated**: 2026-08-30
+**Last Updated**: 2026-11-03

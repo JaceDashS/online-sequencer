@@ -1,159 +1,92 @@
 # Online DAW 문서
 
-**Document Version**: 1.0  
+**Document Version**: 2.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-08-28
+**Last Updated**: 2026-11-03
 
 ---
 
-이 폴더는 Online DAW 프로젝트의 모든 문서를 포함합니다.
-
-테스트 운영 기준은 [`testing.ko.md`](testing.ko.md)를 참고하십시오.
+이 폴더는 Online DAW 프로젝트의 문서를 포함합니다. 문서는 한국어로만 관리합니다.
 
 ## 폴더 구조
 
 ```mermaid
 graph TB
-    A[docs/] --> B[specs/]
-    A --> C[architecture/]
-    A --> D[manual/]
-    
-    B --> B1[MIDI 관련]
-    B --> B2[기능 명세서]
-    
-    B1 --> B1a[midi-standard-compliance]
-    
-    B2 --> B2a[collaboration-specification]
-    B2 --> B2b[project-save-load-specification]
-    
-    C --> C1[README]
+    A[docs/] --> B[specs/<br/>명세]
+    A --> C[architecture/<br/>설계]
+    A --> D[manual/<br/>사용자 매뉴얼]
+    A --> E[worklog/<br/>작업 기록]
+    A --> F[testing.ko.md<br/>테스트 전략]
+
+    B --> B1[midi-standard-compliance]
+    B --> B2[project-save-load-specification]
+    B --> B3[collaboration-specification/]
+    B --> B4[admin-authentication<br/>계획]
+
+    C --> C1[api-configuration]
     C --> C2[optimization-design/]
-    
-    C2 --> C2a[architecture-level/]
-    C2 --> C2b[implementation-level/]
-    C2 --> C2c[data-access/]
-    
-    D --> D1[사용자 매뉴얼]
-    D1 --> D1a[README.ko.md]
-    D1 --> D1b[README.en.md]
-    
+    C --> C3[analysis/]
+
+    E --> E1[TODO]
+    E --> E2[auth-refactoring-status]
+
     style A fill:#e1f5ff
     style B fill:#fff4e1
     style C fill:#e8f5e9
     style D fill:#f3e5f5
+    style E fill:#eeeeee
 ```
 
-### `/specs`
-프로젝트 구현 명세서 및 표준 준수 문서
+| 폴더 | 성격 | 기준 |
+|---|---|---|
+| `specs/` | 기능의 동작, 포맷, 프로토콜, API 계약 | 현재 코드와 일치해야 함. 미구현 설계는 상단에 상태 명시 |
+| `architecture/` | 구조, 설정, 최적화 기법, 설계 분석 | 현재 코드와 일치해야 함 |
+| `manual/` | 사용자 관점의 사용법 | 현재 UI 동작과 일치해야 함 |
+| `worklog/` | 검토 결과, Todo, 작업 인계 메모 | 작성 시점 기준 기록. 현재 코드와 다를 수 있음 |
 
-#### MIDI 관련
-- `midi-standard-compliance.ko.md` - MIDI 표준 준수 스펙 (한국어)
-- `midi-standard-compliance.en.md` - MIDI Standard Compliance Specification (English)
+## 명세서 (`specs/`)
 
-#### 기능 명세서
-- `collaboration-specification.ko.md` - 콜라보레이션 기능 명세서 (서버 API, P2P 통신, 예외 처리 포함) (한국어)
-- `collaboration-specification.en.md` - Collaboration Feature Specification (English)
-- `project-save-load-specification.ko.md` - 프로젝트 저장/로드 명세서 (한국어)
-- `project-save-load-specification.en.md` - Project Save/Load Specification (English)
+- [`midi-standard-compliance.ko.md`](./specs/midi-standard-compliance.ko.md) - MIDI 표준(SMF, MIDI 1.0) 준수 사양
+- [`project-save-load-specification.ko.md`](./specs/project-save-load-specification.ko.md) - 프로젝트 저장/불러오기 포맷
+- [`collaboration-specification/`](./specs/collaboration-specification/README.ko.md) - 실시간 협업 명세 (서버 API, P2P 프로토콜, 예외 처리)
+- [`admin-authentication.ko.md`](./specs/admin-authentication.ko.md) - 관리자 인증·룸 관리 보안 설계 (**계획: 클라이언트 미반영**)
 
-### `/architecture`
-시스템 아키텍처 및 설계 문서
+## 아키텍처 (`architecture/`)
 
-#### 주요 문서
-- [`README.ko.md`](./architecture/README.ko.md) - 아키텍처 문서 개요 (한국어)
-- [`README.en.md`](./architecture/README.en.md) - Architecture Documentation Overview (English)
+- [`README.ko.md`](./architecture/README.ko.md) - 아키텍처 문서 개요
+- [`api-configuration.ko.md`](./architecture/api-configuration.ko.md) - API·WebSocket URL 환경 변수 구성
+- [`optimization-design/index.ko.md`](./architecture/optimization-design/index.ko.md) - 성능 최적화 기법 (아키텍처 수준 / 구현 수준 / 데이터 접근)
+- [`analysis/audio-playback-timing-jank-analysis.ko.md`](./architecture/analysis/audio-playback-timing-jank-analysis.ko.md) - 오디오 재생 렉과 노트 타이밍 지연 분석 및 개선 결과
 
-#### 최적화 설계
-- [`optimization-design/index.ko.md`](./architecture/optimization-design/index.ko.md) - 성능 최적화 기법 카테고리별 정리 (한국어)
-  - **아키텍처 수준**: 렌더링 아키텍처, 리소스 관리
-  - **구현 수준**: 오디오 재생, UI, 데이터 접근 최적화
+## 사용자 매뉴얼 (`manual/`)
 
-### `/manual`
-사용자 매뉴얼 및 가이드 문서
+- [`README.ko.md`](./manual/README.ko.md) - 시작하기, 단축키, MIDI 편집, 트랙 관리, 재생, 저장/불러오기, 협업, 문제 해결
 
-#### 사용자 매뉴얼
-- [`README.ko.md`](./manual/README.ko.md) - 사용자 매뉴얼 (한국어)
-  - 시작하기, 기본 조작, 키보드 단축키
-  - MIDI 편집, 트랙 관리, 재생 및 녹음
-  - 프로젝트 저장/로드, 콜라보레이션, 문제 해결
-- [`README.en.md`](./manual/README.en.md) - User Manual (English)
+## 테스트
+
+- [`testing.ko.md`](./testing.ko.md) - 통합 테스트 전략 (스크립트 → 브라우저 → 사용자 직접 확인)
+- [`../case-tests/README.md`](../case-tests/README.md) - QA 고정 데이터와 상세 케이스 대응표
+
+## 작업 기록 (`worklog/`)
+
+명세가 아닌 작업 기록입니다. 작성 시점의 HEAD·작업 상태를 기준으로 하며 현재 코드와 다를 수 있습니다.
+
+- [`TODO.ko.md`](./worklog/TODO.ko.md) - 프로젝트 검토 결과와 개선 Todo (구현 대기)
+- [`auth-refactoring-status.ko.md`](./worklog/auth-refactoring-status.ko.md) - 인증·인가 리팩토링 작업 상태와 재개 절차
 
 ---
 
 ## 문서 작성 규칙
 
-1. **언어**: 한국어와 영어 버전 모두 제공 (가능한 경우)
+1. **언어**: 한국어. 파일명은 `*.ko.md` 형식을 유지
 2. **형식**: Markdown (.md)
-3. **버전 관리**: 문서 상단에 버전 정보 명시
+3. **버전 정보**: 명세·아키텍처·매뉴얼 문서는 상단에 `Document Version`, `Software Version`, `Last Updated`를 명시
 4. **링크**: 상대 경로 사용
-
----
-
-## 문서 카테고리별 설명
-
-```mermaid
-mindmap
-  root((Online DAW<br/>Documentation))
-    명세서
-      MIDI 표준 준수
-      기능 명세
-        콜라보레이션
-        프로젝트 저장/로드
-    아키텍처
-      최적화 설계
-        아키텍처 수준
-        구현 수준
-        데이터 접근
-      리소스 관리
-    사용자 매뉴얼
-      시작하기
-      키보드 단축키
-      MIDI 편집
-      트랙 관리
-      콜라보레이션
-```
-
-### 명세서 (Specifications)
-기능의 동작 방식, API, 프로토콜 등을 명확히 정의한 문서입니다.
-- MIDI 표준 준수 사항
-- 파일 포맷 정의
-- API 스펙
-- 프로토콜 정의
-
-### 아키텍처 문서 (Architecture)
-시스템의 구조, 설계 결정, 최적화 기법 등을 설명한 문서입니다.
-- 모듈 경계 및 의존성
-- 최적화 기법
-- 리소스 관리
+5. **코드와의 관계**: 명세·아키텍처 문서는 현재 코드를 기준으로 작성. 미구현 설계는 문서 상단에 상태를 명시
+6. **작업 기록 분리**: 검토 메모, Todo, 인계 메모는 `worklog/`에 둠
 
 ---
 
 ## 관련 문서
 
-### 프로젝트 루트
-- `README.md` - 프로젝트 개요 (English)
-- `README.ko.md` - 프로젝트 개요 (한국어)
-
----
-
-## 테스트
-
-### 스크립트 통합 테스트
-- `npm test`: unit, store, history, sync, MIDI 묶음을 큰 단위로 순차 실행
-- `npm run test:unit`: 실제 소스를 불러오는 핵심 정합성 테스트
-- `npm run test:midi-all`: 실제 MIDI 변환·마이그레이션·경계값 회귀 테스트
-- `npm run test:history`: 히스토리 undo/redo 회귀 테스트
-- `npm run test:store`: store 모듈 검증 테스트
-- `npm run test:sync`: 협업 상태 동기화 모듈 검증 테스트
-
-### 브라우저 및 사용자 통합 테스트
-- `npm run qa`: 개발 서버를 시작하고 `/qa` 통합 테스트 화면 열기
-- Codex 브라우저 기준: Chromium 1280×720
-- 사용자 확인 범위: 실제 청취·장치·외부망·Electron·Firefox
-- 상세 정책: [`testing.ko.md`](testing.ko.md)
-
----
-
-**Document Version**: 1.0  
-**Software Version**: 0.1.0  
-**Last Updated**: 2026-08-28
+- [`../README.md`](../README.md) - 프로젝트 개요

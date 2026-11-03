@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
-**Last Updated**: 2026-01-14
+**Last Updated**: 2026-11-03
 
 ---
 
@@ -211,6 +211,22 @@ WebSocket 메시지 (서버 → 모든 클라이언트)
 - 30분 전 (5시간 30분 경과)
 - 5분 전 (5시간 55분 경과)
 - 1분 전 (5시간 59분 경과)
+
+### 6. 개발자 패널 관리자 기능이 호출하는 API (현재 클라이언트 기준)
+
+개발자 패널의 룸 목록 관리(`src/components/Inspector/RoomsListModal.tsx`)와 비밀번호 확인(`src/components/Inspector/PasswordModal.tsx`)이 호출하는 API입니다. QA 화면(`src/pages/QaPage.tsx`)도 서버 도달 여부 확인에 `GET /rooms`를 사용합니다.
+
+```
+GET /rooms                 // 룸 목록 조회 (인증 헤더 없음)
+GET /rooms/:roomCode       // 룸 상세 조회 (인증 헤더 없음)
+DELETE /rooms/:roomCode    // 룸 강제 삭제 (인증 헤더 없음)
+POST {origin}/api/auth/verify-password   // 비밀번호 확인, 응답 { "valid": boolean }
+```
+
+- `verify-password`의 URL은 API base URL에서 `/api/online-sequencer`를 제거해 만듭니다. 상세는 [API 설정](../../architecture/api-configuration.ko.md)을 참고하십시오.
+- 위 요청에는 관리자 자격 증명이 포함되지 않습니다. 관리자 상태는 클라이언트 로컬 상태로만 관리됩니다.
+- `DELETE /rooms/:roomCode`는 3장 명세상 `X-Client-Id`가 필요하지만 관리자 삭제 요청은 이 헤더를 보내지 않습니다. 서버가 3장 명세대로 동작하면 403이 반환될 수 있습니다.
+- 서버 세션 기반으로 바꾸는 계획은 [관리자 인증 설계](../admin-authentication.ko.md)에 있습니다 (**클라이언트 미반영**).
 
 ## WebSocket API
 
