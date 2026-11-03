@@ -9,6 +9,7 @@ import type { ITransport, IWebSocket } from '../../transport';
 import { buildApiUrl, buildWebSocketUrl } from '../../utils/apiConfig';
 import { withJaceAuth } from '../auth/jaceSession';
 import { readRoomApiError } from './roomApiErrors';
+import { clearHostRoom, clearHostRoomIfMatches, loadHostRoom, saveHostRoom } from './hostTokenStore';
 
 /**
  * 상세 로그 출력 여부 확인
@@ -113,7 +114,7 @@ export class SignalingClient {
   /**
    * 호스트 토큰: 새 방을 만들 때 한 번만 받는다.
    * 방 재등록·삭제·조인 허용·강퇴에 Authorization: Bearer로 사용한다.
-   * 메모리에만 보관하며 URL이나 로그에 넣지 않는다.
+   * 같은 탭의 새로고침에 대비해 sessionStorage에도 보관한다(hostTokenStore). URL이나 로그에 넣지 않는다.
    */
   private hostToken: string | null = null;
   private isConnected: boolean = false;
@@ -295,6 +296,14 @@ export class SignalingClient {
    */
   private handleMessage(message: ServerToClientMessage): void {
     verboseLog(`Handling message action: ${message.action}`, message);
+
+    // 방이 종료·만료되면 보관한 호스트 토큰은 더 이상 쓸 수 없다
+    if (message.action === 'room-closed' || message.action === 'room-session-expired') {
+      clearHostRoomIfMatches(message.roomCode);
+      if (message.roomCode && message.roomCode === this.roomCode) {
+        this.hostToken = null;
+      }
+    }
     
     // 특정 액션에 대한 콜백 호출
     const callbacks = this.messageCallbacks.get(message.action);
@@ -374,10 +383,15 @@ export class SignalingClient {
     // 기존 호스트 토큰이 있으면 같은 방 재등록을 시도하고, 거절되면 새 방을 만든다.
     let roomCode: string;
     try {
+      // 새로고침 뒤에는 메모리 토큰이 없으므로 같은 탭에 보관한 토큰을 사용한다 (자동 복구는 하지 않음)
+      if (!this.hostToken) {
+        this.hostToken = loadHostRoom(hostId)?.hostToken ?? null;
+      }
       roomCode = await this.requestRoomRegistration(hostId, this.hostToken);
     } catch (err) {
       if (this.hostToken && err instanceof RoomRegistrationRejectedError) {
         this.hostToken = null;
+        clearHostRoom();
         roomCode = await this.requestRoomRegistration(hostId, null);
       } else {
         throw err;
@@ -455,12 +469,20 @@ export class SignalingClient {
         throw error;
       }
 
-      const data = (await response.json()) as { roomCode?: string; hostToken?: string };
+      const data = (await response.json()) as { roomCode?: string; hostToken?: string | null; expiresAt?: number };
       if (!data.roomCode) {
         throw new Error('Room creation failed: roomCode not returned');
       }
+      // 새 방에서만 토큰 원문이 온다. 재등록 응답의 hostToken=null은 기존 토큰을 덮어쓰지 않는다.
       if (typeof data.hostToken === 'string' && data.hostToken) {
         this.hostToken = data.hostToken;
+      }
+      if (this.hostToken) {
+        const previous = loadHostRoom(hostId);
+        const expiresAt = typeof data.expiresAt === 'number' && Number.isFinite(data.expiresAt)
+          ? data.expiresAt
+          : previous?.roomCode === data.roomCode ? previous.expiresAt : null;
+        saveHostRoom({ hostId, roomCode: data.roomCode, hostToken: this.hostToken, expiresAt });
       }
       return data.roomCode;
     } catch (err) {
@@ -616,6 +638,7 @@ export class SignalingClient {
     // 룸 코드·호스트 토큰 초기화
     this.roomCode = null;
     this.hostToken = null;
+    clearHostRoom();
   }
 
   /**
@@ -722,6 +745,7 @@ export class SignalingClient {
     this.isConnected = false;
     this.roomCode = null;
     this.hostToken = null;
+    clearHostRoom();
   }
 
   /**

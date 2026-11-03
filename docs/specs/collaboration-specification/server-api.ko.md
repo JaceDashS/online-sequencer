@@ -15,7 +15,11 @@
 - **WebSocket**: `wss://api.jace-s.com/online-sequencer/signaling?clientId={client-uuid}`
 - **엔드포인트 표기**: 아래 `/rooms...` 경로는 `{API_URL}/online-sequencer` 기준 상대 경로다.
 - **roomCode**: 4자리 문자열(`0000`~`9999`). 시간 값은 epoch 밀리초.
-- **hostToken**: 새 방을 만들 때 한 번만 받는다. 호스트 전용 요청에 `Authorization: Bearer {hostToken}`으로 보낸다. URL이나 로그에 넣지 않으며 클라이언트 메모리에만 보관한다.
+- **hostToken**: 새 방을 만들 때 한 번만 받는다. 호스트 전용 요청에 `Authorization: Bearer {hostToken}`으로 보낸다. URL이나 로그에 넣지 않는다.
+- **hostToken 보관 (클라이언트)**: 로그인 여부와 관계없이 메모리와 `sessionStorage`(`online-sequencer-host-room`: hostId, roomCode, hostToken, expiresAt)에 보관한다. 서버 측 복구 기능은 없다.
+  - 같은 탭에서 새로고침하면 방을 자동으로 되살리지 않는다. 사용자가 다시 호스팅을 시작하면 보관한 토큰으로 기존 방 재등록을 시도한다(생성 제한 제외, 만료 시각 유지).
+  - 방 삭제, 호스팅 종료(leave), 해당 방의 `room-closed`·`room-session-expired`, `expiresAt` 경과, 재등록 거절(401/403/404) 때 지운다.
+  - 탭을 닫으면 사라지며 다른 탭·기기와 공유하지 않는다. 구현: `src/core/sync/hostTokenStore.ts`
 - **로그인 사용자**: 허용 Origin(`online-sequencer.jace-s.com`)에서 로그인한 경우 변경 요청에 `credentials: 'include'`와 `x-csrf-token`을 붙인다. 틀리면 403 `CSRF_VALIDATION_FAILED`. 비로그인 사용자는 둘 다 보내지 않는다. 상세: [서비스 공지와 로그인 명세](../service-notices-and-login.ko.md)
 - **방 유지 시간**: 로그인 상태로 만든 방 6시간, 비로그인 1시간. 클라이언트는 고정 시간을 가정하지 않고 응답의 `expiresAt`을 쓴다. 재등록은 만료 시각을 연장하지 않는다.
 - **생성 제한**: 성공 생성은 비로그인 IP당 1회·회원 5회/시간, 신원당 활성 방 1개, 실패 생성은 비로그인 3회·회원 10회/15분. 초과 시 429 `RATE_LIMITED`, 활성 방이 이미 있으면 409 `ACTIVE_ROOM_LIMIT`. 호스트 토큰을 가진 기존 방 재등록은 제한에서 제외된다.

@@ -46,7 +46,7 @@ class SignalingClient {
 - API URL은 `src/utils/apiConfig.ts`를 통해 해석한다.
 - API 주소는 `VITE_API_URL`(기본 `https://api.jace-s.com`) 하나로 설정하고, 협업 경로 `/online-sequencer`는 코드가 붙인다. 예전 `VITE_API_BASE_URL`, `VITE_BASE_URL`, `VITE_API_PATH`는 사용하지 않는다.
 - WebSocket URL은 같은 API base에서 `http`/`https`를 `ws`/`wss`로 바꾸고 `/signaling?clientId=...`를 붙여 생성한다.
-- 방 조회는 선택 헤더 `x-client-id`를 보낸다. 호스트 전용 요청(재등록·삭제·조인 허용·강퇴)은 방 생성 때 받은 `hostToken`을 `Authorization: Bearer`로 보낸다. 로그인 상태의 변경 요청에는 `x-csrf-token`을 붙인다.
+- 방 조회는 선택 헤더 `x-client-id`를 보낸다. 호스트 전용 요청(재등록·삭제·조인 허용·강퇴)과 WebSocket `register`는 방 생성 때 받은 `hostToken`을 쓴다(REST는 `Authorization: Bearer`, WebSocket은 `data.hostToken`). 토큰은 같은 탭의 `sessionStorage`에도 보관하며 자동 복구는 하지 않는다. 로그인 상태의 변경 요청에는 `x-csrf-token`을 붙인다.
 
 ## 2. WebRTCManager
 

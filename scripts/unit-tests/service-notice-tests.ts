@@ -12,6 +12,7 @@ import {
 import { getJaceSession, parseSessionPayload, refreshJaceSession, withJaceAuth } from '../../src/core/auth/jaceSession';
 import { SignalingClient } from '../../src/core/sync/SignalingClient';
 import { createRoomApiError } from '../../src/core/sync/roomApiErrors';
+import { clearHostRoomIfMatches, loadHostRoom, saveHostRoom } from '../../src/core/sync/hostTokenStore';
 import { resetTransport, setTransport } from '../../src/transport';
 import { buildApiUrl, buildWebSocketUrl, getApiUrl, getNoticeAppId, getSiteUrl, isLoginAvailable } from '../../src/utils/apiConfig';
 import type { IHttpRequestOptions, IHttpResponse, IWebSocket } from '../../src/transport/types';
@@ -364,6 +365,87 @@ test('rejected creation surfaces ACTIVE_ROOM_LIMIT to the caller', async () => {
   } finally {
     console.error = originalError;
     resetTransport();
+  }
+});
+
+function installSessionStorage(): { store: Map<string, string>; restore: () => void } {
+  const g = globalThis as unknown as { sessionStorage?: unknown };
+  const previous = g.sessionStorage;
+  const store = new Map<string, string>();
+  g.sessionStorage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => { store.set(key, value); },
+    removeItem: (key: string) => { store.delete(key); },
+  };
+  return { store, restore: () => { g.sessionStorage = previous; } };
+}
+
+test('host token survives a reload in the same tab via sessionStorage', async () => {
+  const session = installSessionStorage();
+  const transport = createRoomTransport([
+    { status: 200, body: { success: true, roomCode: '0777', hostToken: 'tab-token', expiresAt: Date.now() + 3600_000 } },
+    { status: 200, body: { success: true, roomCode: '0777', hostToken: null, expiresAt: Date.now() + 3600_000 } },
+  ]);
+  setTransport(transport);
+  try {
+    const before = new SignalingClient();
+    await before.registerRoom('host-uuid');
+    assert.equal(loadHostRoom('host-uuid')?.hostToken, 'tab-token');
+
+    // 새로고침: 메모리 상태가 없는 새 인스턴스. 자동 복구는 없고, 다시 호스팅할 때 보관 토큰으로 재등록
+    const after = new SignalingClient();
+    assert.equal(await after.registerRoom('host-uuid'), '0777');
+    assert.equal(transport.calls[1].headers?.Authorization, 'Bearer tab-token');
+    assert.equal(transport.wsSent[1].data?.hostToken, 'tab-token');
+    assert.equal(loadHostRoom('host-uuid')?.hostToken, 'tab-token');
+
+    await after.deleteRoom('0777');
+    assert.equal(transport.calls[2].headers?.Authorization, 'Bearer tab-token');
+    assert.equal(loadHostRoom('host-uuid'), null);
+  } finally {
+    resetTransport();
+    session.restore();
+  }
+});
+
+test('stored host room is ignored after expiry, for another hostId, and cleared on matching close', () => {
+  const session = installSessionStorage();
+  try {
+    saveHostRoom({ hostId: 'a', roomCode: '0001', hostToken: 't', expiresAt: 1000 });
+    assert.equal(loadHostRoom('a', 999)?.roomCode, '0001');
+    assert.equal(loadHostRoom('b', 999), null);
+    assert.equal(loadHostRoom('a', 1000), null);
+    assert.equal(session.store.size, 0);
+
+    saveHostRoom({ hostId: 'a', roomCode: '0002', hostToken: 't', expiresAt: null });
+    assert.equal(clearHostRoomIfMatches('9999'), false);
+    assert.equal(clearHostRoomIfMatches('0002'), true);
+    assert.equal(loadHostRoom('a'), null);
+  } finally {
+    session.restore();
+  }
+});
+
+test('rejected stored token is cleared and a new room is created', async () => {
+  const session = installSessionStorage();
+  saveHostRoom({ hostId: 'host-uuid', roomCode: '0101', hostToken: 'stale', expiresAt: null });
+  const transport = createRoomTransport([
+    { status: 404, body: { success: false, error: 'ROOM_NOT_FOUND' } },
+    { status: 200, body: { success: true, roomCode: '0202', hostToken: 'fresh', expiresAt: Date.now() + 3600_000 } },
+  ]);
+  setTransport(transport);
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    const client = new SignalingClient();
+    assert.equal(await client.registerRoom('host-uuid'), '0202');
+    assert.equal(transport.calls[0].headers?.Authorization, 'Bearer stale');
+    assert.equal(transport.calls[1].headers?.Authorization, undefined);
+    assert.equal(loadHostRoom('host-uuid')?.hostToken, 'fresh');
+  } finally {
+    console.error = originalError;
+    resetTransport();
+    session.restore();
   }
 });
 
