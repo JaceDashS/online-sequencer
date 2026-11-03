@@ -52,3 +52,11 @@ docs/manual/devPannel.md
 
 # private
 *.private.*
+
+# Local work files
+tmp/
+scripts/debug/
+docs/.agent/
+
+# Separate server repository
+/jace-s/
