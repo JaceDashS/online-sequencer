@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from './PasswordModal.module.css';
-import { buildApiUrl } from '../../utils/apiConfig';
+import { getApiOrigin } from '../../utils/apiConfig';
 
 interface PasswordModalProps {
   isOpen: boolean;
@@ -28,11 +28,9 @@ const PasswordModal: React.FC<PasswordModalProps> = ({ isOpen, onClose, onSucces
     try {
       const requestBody = { password: password.trim() };
       
-      // VITE_API_BASE_URL을 사용하여 API 요청
-      // /api/auth/verify-password는 /api/online-sequencer의 하위 경로가 아니므로
-      // 베이스 URL에서 /api/online-sequencer를 제거하고 /api/auth를 추가
-      const apiBaseUrl = buildApiUrl('').replace('/api/online-sequencer', '');
-      const response = await fetch(`${apiBaseUrl}/api/auth/verify-password`, {
+      // /api/auth/verify-password는 협업 API(/api/online-sequencer) 하위 경로가 아니므로
+      // jace-s API origin(https://api.jace-s.com)을 기준으로 요청한다.
+      const response = await fetch(`${getApiOrigin()}/api/auth/verify-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

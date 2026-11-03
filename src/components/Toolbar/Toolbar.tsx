@@ -7,6 +7,7 @@ import CursorModeButton from './CursorModeButton';
 import ZoomControl from './ZoomControl';
 import TimelinePosition from './TimelinePosition';
 import ThemeToggle from './ThemeToggle';
+import AccountButton from './AccountButton';
 import CollaborationButtons from './CollaborationButtons';
 import SaveLoadButtons from './SaveLoadButtons';
 import PanelToggleButtons from './PanelToggleButtons';
@@ -148,6 +149,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             max={200}
             onChange={onPixelsPerSecondChange}
           />
+          <AccountButton />
           <ThemeToggle />
         </div>
       </div>

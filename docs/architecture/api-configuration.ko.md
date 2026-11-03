@@ -20,6 +20,19 @@
 2. 없으면 `VITE_BASE_URL` + `VITE_API_PATH` 조합을 사용합니다.
 3. 둘 다 없으면 `getApiBaseUrl()`이 에러를 던집니다.
 
+운영 값: `VITE_API_BASE_URL=https://api.jace-s.com/api/online-sequencer` (WebSocket은 `wss://api.jace-s.com/api/online-sequencer/signaling`). 2026-11-03 jace-s API 이전 전의 `https://jace-s.com/api/...`는 전환 기간에만 동작합니다.
+
+### jace-s 공통 주소
+
+| 함수 / 상수 | 환경 변수 | 기본값 | 용도 |
+|---|---|---|---|
+| `getApiOrigin()` | `VITE_API_ORIGIN` | API 베이스 URL의 origin, 없으면 `https://api.jace-s.com` | `/health`, `/notices`, `/api/auth/*` |
+| `getSiteUrl()` | `VITE_SITE_URL` | `https://jace-s.com` | 로그인 화면 `/login` |
+| `getLoginHosts()` | `VITE_LOGIN_HOSTS` (쉼표 구분) | `online-sequencer.jace-s.com` | 로그인 UI를 보여줄 호스트 |
+| `JACE_S_APP_ID` | - | `41` | `/notices?app=41` |
+
+상세 동작은 [서비스 공지와 로그인 명세](../specs/service-notices-and-login.ko.md)를 참고하십시오.
+
 값은 Vite의 `import.meta.env`에서 먼저 읽고, 없으면 Node `process.env`에서 읽습니다 (스크립트 테스트 실행용).
 
 ---
@@ -152,7 +165,7 @@ const wsUrl = buildWebSocketUrl('/signaling', { clientId: '123' });
 
 ### 예외: 관리자 비밀번호 확인 API
 
-`src/components/Inspector/PasswordModal.tsx`는 `/api/auth/verify-password`가 협업 API 하위 경로가 아니므로, `buildApiUrl('')` 결과에서 문자열 `/api/online-sequencer`를 제거한 뒤 `/api/auth/verify-password`를 붙입니다. 따라서 API 베이스 URL이 `/api/online-sequencer`로 끝나는 서버 구성을 전제로 합니다. 관리자 인증 개편 계획은 [관리자 인증 설계](../specs/admin-authentication.ko.md)를 참고하십시오.
+`src/components/Inspector/PasswordModal.tsx`는 `/api/auth/verify-password`가 협업 API 하위 경로가 아니므로 `getApiOrigin()`을 기준으로 `{apiOrigin}/api/auth/verify-password`를 요청합니다. 관리자 인증 개편 계획은 [관리자 인증 설계](../specs/admin-authentication.ko.md)를 참고하십시오.
 
 ---
 

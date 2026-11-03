@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './RoomsListModal.module.css';
 import { buildApiUrl } from '../../utils/apiConfig';
+import { withJaceAuth } from '../../core/auth/jaceSession';
 
 interface Room {
   roomCode: string;
@@ -56,10 +57,12 @@ const RoomsListModal: React.FC<RoomsListModalProps> = ({ isOpen, onClose }) => {
 
     try {
       const response = await fetch(buildApiUrl('/rooms'), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        ...withJaceAuth({
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
       });
 
       if (!response.ok) {
@@ -158,10 +161,12 @@ const RoomsListModal: React.FC<RoomsListModalProps> = ({ isOpen, onClose }) => {
     // 방 상세 정보 가져오기
     try {
       const response = await fetch(buildApiUrl(`/rooms/${room.roomCode}`), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        ...withJaceAuth({
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
       });
 
       if (response.ok) {
@@ -189,10 +194,12 @@ const RoomsListModal: React.FC<RoomsListModalProps> = ({ isOpen, onClose }) => {
     setDeleting(true);
     try {
       const response = await fetch(buildApiUrl(`/rooms/${roomCode}`), {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        ...withJaceAuth({
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
       });
 
       if (response.ok) {

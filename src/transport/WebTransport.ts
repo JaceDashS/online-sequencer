@@ -23,6 +23,8 @@ export class WebTransport implements ITransport {
       headers: options.headers,
       body: options.body,
       signal: options.signal,
+      credentials: options.credentials,
+      cache: options.cache,
     });
 
     return {

@@ -1,6 +1,6 @@
 # Online DAW 문서
 
-**Document Version**: 2.0  
+**Document Version**: 2.1  
 **Software Version**: 0.1.0  
 **Last Updated**: 2026-11-03
 
@@ -22,6 +22,7 @@ graph TB
     B --> B2[project-save-load-specification]
     B --> B3[collaboration-specification/]
     B --> B4[admin-authentication<br/>계획]
+    B --> B5[service-notices-and-login]
 
     C --> C1[api-configuration]
     C --> C2[optimization-design/]
@@ -49,6 +50,7 @@ graph TB
 - [`midi-standard-compliance.ko.md`](./specs/midi-standard-compliance.ko.md) - MIDI 표준(SMF, MIDI 1.0) 준수 사양
 - [`project-save-load-specification.ko.md`](./specs/project-save-load-specification.ko.md) - 프로젝트 저장/불러오기 포맷
 - [`collaboration-specification/`](./specs/collaboration-specification/README.ko.md) - 실시간 협업 명세 (서버 API, P2P 프로토콜, 예외 처리)
+- [`service-notices-and-login.ko.md`](./specs/service-notices-and-login.ko.md) - jace-s 서비스 공지 토스트(`/health`, `/notices`)와 로그인 세션·CSRF
 - [`admin-authentication.ko.md`](./specs/admin-authentication.ko.md) - 관리자 인증·룸 관리 보안 설계 (**계획: 클라이언트 미반영**)
 
 ## 아키텍처 (`architecture/`)

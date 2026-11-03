@@ -7,6 +7,7 @@ import { getOrCreateClientId } from './utils/uuid';
 import { getTransport } from '../../transport';
 import type { ITransport, IWebSocket } from '../../transport';
 import { buildApiUrl, buildWebSocketUrl } from '../../utils/apiConfig';
+import { withJaceAuth } from '../auth/jaceSession';
 
 /**
  * 상세 로그 출력 여부 확인
@@ -360,7 +361,7 @@ export class SignalingClient {
     let roomCode: string;
     
     try {
-      const response = await this.transport.request({
+      const response = await this.transport.request(withJaceAuth({
         url,
         method: 'POST',
         headers: {
@@ -370,7 +371,7 @@ export class SignalingClient {
         },
         body: JSON.stringify({ hostId }),
         signal: controller.signal
-      });
+      }));
       
       clearTimeout(timeoutId);
       
@@ -435,13 +436,13 @@ export class SignalingClient {
    * 룸 정보 조회
    */
   async getRoom(roomCode: string): Promise<RoomInfo> {
-    const response = await this.transport.request({
+    const response = await this.transport.request(withJaceAuth({
       url: buildApiUrl(`/rooms/${roomCode}`),
       method: 'GET',
       headers: {
         'X-Client-Id': this.clientId
       }
-    });
+    }));
 
     if (!response.ok) {
       const error = (await response.json().catch(() => ({ error: 'Failed to get room' }))) as { error?: string };
@@ -455,7 +456,7 @@ export class SignalingClient {
    * 조인 허용 활성화 (호스트)
    */
   async allowJoin(roomCode: string, duration: number = 60): Promise<void> {
-    const response = await this.transport.request({
+    const response = await this.transport.request(withJaceAuth({
       url: buildApiUrl(`/rooms/${roomCode}/allow-join`),
       method: 'POST',
       headers: {
@@ -463,7 +464,7 @@ export class SignalingClient {
         'X-Client-Id': this.clientId
       },
       body: JSON.stringify({ duration })
-    });
+    }));
 
     if (!response.ok) {
       const error = (await response.json().catch(() => ({ error: 'Failed to allow join' }))) as { error?: string };
@@ -534,7 +535,7 @@ export class SignalingClient {
    * 참가자 강퇴 (호스트)
    */
   async kickParticipant(roomCode: string, participantId: string): Promise<void> {
-    const response = await this.transport.request({
+    const response = await this.transport.request(withJaceAuth({
       url: buildApiUrl(`/rooms/${roomCode}/kick`),
       method: 'POST',
       headers: {
@@ -542,7 +543,7 @@ export class SignalingClient {
         'X-Client-Id': this.clientId
       },
       body: JSON.stringify({ participantId })
-    });
+    }));
 
     if (!response.ok) {
       const error = (await response.json().catch(() => ({ error: 'Failed to kick participant' }))) as { error?: string };
@@ -554,13 +555,13 @@ export class SignalingClient {
    * 룸 삭제 (호스트)
    */
   async deleteRoom(roomCode: string): Promise<void> {    
-    const response = await this.transport.request({
+    const response = await this.transport.request(withJaceAuth({
       url: buildApiUrl(`/rooms/${roomCode}`),
       method: 'DELETE',
       headers: {
         'X-Client-Id': this.clientId
       }
-    });
+    }));
 
     if (!response.ok) {
       const error = (await response.json().catch(() => ({ error: 'Failed to delete room' }))) as { error?: string };

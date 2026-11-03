@@ -64,6 +64,8 @@ input[type="radio"]:focus {
   --text-quaternary: #a0a0a0;
   --border-color: #3a3a3a;
   --border-hover: #5a5a5a;
+  --color-warning: #ff9800;
+  --toast-shadow-color: rgba(0, 0, 0, 0.45);
 }
 
 /* Dark theme (default) */
@@ -89,6 +91,8 @@ input[type="radio"]:focus {
   --text-quaternary: #666666;
   --border-color: #d0d0d0;
   --border-hover: #b0b0b0;
+  --color-warning: #e67e00;
+  --toast-shadow-color: rgba(0, 0, 0, 0.18);
   color: var(--text-primary);
   background-color: var(--bg-primary);
 }

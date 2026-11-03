@@ -9,7 +9,15 @@ type NodeProcessWithEnv = {
   env?: Record<string, string | undefined>;
 };
 
-function getEnvValue(key: 'VITE_API_BASE_URL' | 'VITE_BASE_URL' | 'VITE_API_PATH'): string | undefined {
+type EnvKey =
+  | 'VITE_API_BASE_URL'
+  | 'VITE_BASE_URL'
+  | 'VITE_API_PATH'
+  | 'VITE_API_ORIGIN'
+  | 'VITE_SITE_URL'
+  | 'VITE_LOGIN_HOSTS';
+
+function getEnvValue(key: EnvKey): string | undefined {
   const viteEnv = import.meta.env as unknown as Record<string, string | undefined> | undefined;
   const viteValue = viteEnv?.[key];
   if (viteValue) {
@@ -100,4 +108,77 @@ export function buildWebSocketUrl(path: string, queryParams?: Record<string, str
   }
   
   return url;
+}
+
+/** jace-s에 등록된 Online Sequencer 앱 ID */
+export const JACE_S_APP_ID = 41;
+
+/** jace-s API 기본 주소 (health, notices, auth) */
+export const DEFAULT_API_ORIGIN = 'https://api.jace-s.com';
+
+/** jace-s 화면(로그인 페이지) 기본 주소 */
+export const DEFAULT_SITE_URL = 'https://jace-s.com';
+
+/** 로그인 쿠키를 사용할 수 있는(서버 허용 Origin) 호스트 기본값 */
+export const DEFAULT_LOGIN_HOSTS = ['online-sequencer.jace-s.com'];
+
+function getOrigin(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * jace-s API origin을 가져옵니다.
+ *
+ * 우선순위: VITE_API_ORIGIN → API 베이스 URL의 origin → DEFAULT_API_ORIGIN
+ */
+export function getApiOrigin(): string {
+  const explicit = getOrigin(getEnvValue('VITE_API_ORIGIN'));
+  if (explicit) return explicit;
+
+  try {
+    const fromBase = getOrigin(getApiBaseUrl());
+    if (fromBase) return fromBase;
+  } catch {
+    // API 베이스 URL 미설정: 기본값 사용
+  }
+  return DEFAULT_API_ORIGIN;
+}
+
+/**
+ * jace-s 화면 주소(로그인 페이지 등)를 가져옵니다.
+ */
+export function getSiteUrl(): string {
+  return getOrigin(getEnvValue('VITE_SITE_URL')) ?? DEFAULT_SITE_URL;
+}
+
+/**
+ * 로그인 UI를 보여줄 호스트 목록을 가져옵니다. (VITE_LOGIN_HOSTS: 쉼표 구분)
+ */
+export function getLoginHosts(): string[] {
+  const raw = getEnvValue('VITE_LOGIN_HOSTS');
+  if (!raw) return DEFAULT_LOGIN_HOSTS;
+  return raw
+    .split(',')
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/**
+ * 현재 페이지에서 jace-s 로그인을 쓸 수 있는지 확인합니다.
+ *
+ * 로그인 쿠키는 jace-s API에만 있고, 서버는 허용 Origin에만 credentials를 허용합니다.
+ * 따라서 허용 호스트(online-sequencer.jace-s.com)의 브라우저에서만 로그인을 사용합니다.
+ * vercel.app, localhost, Electron(file://)에서는 로그인 UI를 숨깁니다.
+ */
+export function isLoginAvailable(location: Pick<Location, 'protocol' | 'hostname'> | undefined =
+  typeof window !== 'undefined' ? window.location : undefined): boolean {
+  if (!location) return false;
+  if (location.protocol !== 'https:' && location.protocol !== 'http:') return false;
+  if (typeof window !== 'undefined' && window.__ELECTRON__) return false;
+  return getLoginHosts().includes(location.hostname.toLowerCase());
 }

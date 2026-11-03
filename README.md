@@ -36,6 +36,7 @@ MIDI 편집 기능과 클라이언트 측 실시간 협업 기능을 제공합�
 - **시그널링 클라이언트**: `VITE_API_BASE_URL`(또는 `VITE_BASE_URL` + `VITE_API_PATH`) 기반 HTTP 및 WebSocket API 연동 ([API 설정](docs/architecture/api-configuration.ko.md))
 - **P2P 전송**: WebRTC DataChannel
 - **토폴로지**: 호스트 중심 Star Topology
+- **jace-s 연동**: 서비스 공지 토스트(`/health`, `/notices?app=41`), `online-sequencer.jace-s.com`에서 jace-s 로그인 ([명세](docs/specs/service-notices-and-login.ko.md))
 
 ## 프로젝트 구조
 

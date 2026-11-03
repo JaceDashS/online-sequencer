@@ -18,6 +18,13 @@ export interface IHttpRequestOptions {
   body?: string;
   /** AbortSignal (요청 취소용) */
   signal?: AbortSignal;
+  /**
+   * 쿠키 전송 정책 (Web 전용, 기본값: 브라우저 기본 'same-origin').
+   * Electron은 Main 프로세스에서 요청하므로 무시합니다.
+   */
+  credentials?: 'omit' | 'same-origin' | 'include';
+  /** 캐시 정책 (Web 전용) */
+  cache?: RequestCache;
 }
 
 /**
