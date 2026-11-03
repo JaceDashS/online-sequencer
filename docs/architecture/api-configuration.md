@@ -28,15 +28,18 @@ flowchart LR
 
 전체 예시: 저장소 루트 `.env.example`
 
-| 변수 | 기본값 | 용도 | 운영(Vercel Production) |
-|---|---|---|---|
-| `VITE_API_URL` | `https://api.jace-s.com` | 모든 API 주소. origin만 사용하며 경로에 `/api`를 붙이지 않음 | 생략 가능 (기본값과 같음) |
-| `VITE_SITE_URL` | `https://jace-s.com` | 로그인 `/login`, 계정 `/account` 화면 | 생략 가능 |
-| `VITE_NOTICE_APP_ID` | `41` | 공지 조회 `/notices?app=41` | 생략 가능 |
-| `VITE_LOGIN_HOSTS` | **없음** | 로그인 UI를 보여줄 호스트 (쉼표 구분, 스킴·포트 없이) | **필수**: `online-sequencer.jace-s.com` |
-| `VITE_TURN_SERVER_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL` | 없음 | (선택) TURN 서버. 없으면 공개 STUN만 사용 | 필요할 때만 |
-| `ENABLE_DEVTOOLS` | `false` | (Electron main 전용) 개발자 도구 | 웹에는 해당 없음 |
+코드 기본값은 없습니다. 모든 값은 배포 환경 변수로 정합니다.
 
+| 변수 | 운영(Vercel Production) 값 | 없을 때 |
+|---|---|---|
+| `VITE_API_URL` | `https://api.jace-s.com` (경로에 `/api` 없음, origin만 사용) | 협업 요청 시 "VITE_API_URL is not configured" 오류. 공지·서버 상태 조회와 로그인도 꺼짐 |
+| `VITE_SITE_URL` | `https://jace-s.com` | 로그인·계정 화면을 열 수 없어 로그인 꺼짐 |
+| `VITE_NOTICE_APP_ID` | `41` | 공지를 조회하지 않음(서버 생존 확인만) |
+| `VITE_LOGIN_HOSTS` | `online-sequencer.jace-s.com` | 로그인 UI·세션 확인 꺼짐. 운영 개발자 패널도 안 보임. 로컬 개발에서는 비우는 것이 정상 |
+| `VITE_TURN_SERVER_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL` | 필요할 때만 | 공개 STUN만 사용 |
+| `ENABLE_DEVTOOLS` | (Electron main 전용) | 개발자 도구 끔 |
+
+- 빠진 필수 값은 프로덕션 빌드(`vite build`)에서 경고합니다(`vite.config.ts`의 `check-required-env`, 빌드는 계속). 실행 중에는 빠진 값마다 콘솔에 한 번 `[apiConfig] … is not configured` 오류를 남깁니다.
 - `VITE_LOGIN_HOSTS`는 jace-s 서버의 허용 Origin(운영자가 서버 환경 변수로 관리)과 같은 호스트만 넣습니다. 설정하지 않으면 어느 주소에서도 로그인 UI가 숨겨지고 세션 확인 요청도 보내지 않습니다. 이 경우 개발자 패널도 운영에서는 보이지 않습니다.
 - `VITE_` 변수는 빌드 시점에 번들에 들어가 누구나 볼 수 있습니다. 비밀값을 넣지 않습니다. 값을 바꾸면 다시 배포해야 반영됩니다.
 - 값은 Vite의 `import.meta.env`에서 먼저 읽고, 없으면 Node `process.env`에서 읽습니다 (스크립트 테스트용).
@@ -49,12 +52,12 @@ flowchart LR
 
 | 함수 | 결과 |
 |---|---|
-| `getApiUrl()` | `https://api.jace-s.com` |
-| `buildApiUrl('/rooms')` | `https://api.jace-s.com/online-sequencer/rooms` |
+| `getApiUrl()` | `VITE_API_URL`의 origin, 없으면 `null` |
+| `buildApiUrl('/rooms')` | `https://api.jace-s.com/online-sequencer/rooms` (API 주소 없으면 `ApiConfigError`) |
 | `buildWebSocketUrl('/signaling', { clientId })` | `wss://api.jace-s.com/online-sequencer/signaling?clientId=...` |
-| `getSiteUrl()` | `https://jace-s.com` |
-| `getNoticeAppId()` | `41` |
-| `isLoginAvailable()` | 브라우저(Electron 제외)이고 호스트가 `VITE_LOGIN_HOSTS`에 있으면 true. 변수가 없으면 항상 false |
+| `getSiteUrl()` | `VITE_SITE_URL`의 origin, 없으면 `null` |
+| `getNoticeAppId()` | `VITE_NOTICE_APP_ID`(양의 정수), 없으면 `null` |
+| `isLoginAvailable()` | 브라우저(Electron 제외)이고 호스트가 `VITE_LOGIN_HOSTS`에 있으며 API·화면 주소가 모두 있으면 true |
 
 - `http://` → `ws://`, `https://` → `wss://`로 변환합니다.
 - 엔드포인트 앞의 `/`가 없으면 붙입니다.

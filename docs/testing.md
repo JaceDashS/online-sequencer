@@ -55,7 +55,7 @@ npm run qa
 
 ## 서버 장애 정책
 
-QA 화면은 시작할 때 jace-s API(`VITE_API_URL`, 기본 `https://api.jace-s.com`)의 `/health`에 3초 제한으로 요청합니다. HTTP 상태 코드와 관계없이 응답을 받으면 서버에 도달한 것으로 판단합니다.
+QA 화면은 시작할 때 jace-s API(`VITE_API_URL`, 운영 `https://api.jace-s.com`)의 `/health`에 3초 제한으로 요청합니다. `VITE_API_URL`이 없으면 서버 의존 시나리오를 `BLOCKED`(NOT CONFIGURED)로 둡니다. HTTP 상태 코드와 관계없이 응답을 받으면 서버에 도달한 것으로 판단합니다.
 
 - 연결 실패 또는 3초 초과: 서버 의존 시나리오를 `BLOCKED`
 - 서버 응답 있음: 자동 `BLOCKED`를 해제하고 실행 가능 상태로 복원

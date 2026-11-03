@@ -16,7 +16,7 @@
 
 import type { IHttpRequestOptions } from '../../transport/types';
 import { getTransport } from '../../transport';
-import { getApiUrl, getSiteUrl, isDevBuild, isLoginAvailable } from '../../utils/apiConfig';
+import { getSiteUrl, isDevBuild, isLoginAvailable, requireApiUrl } from '../../utils/apiConfig';
 
 export type JaceSessionStatus = 'unavailable' | 'unknown' | 'checking' | 'signed-in' | 'signed-out';
 
@@ -157,7 +157,7 @@ export function refreshJaceSession(): Promise<JaceSessionState> {
     const timer = setTimeout(() => controller.abort(), SESSION_TIMEOUT_MS);
     try {
       const response = await getTransport().request({
-        url: `${getApiUrl()}/auth/session`,
+        url: `${requireApiUrl()}/auth/session`,
         method: 'GET',
         credentials: 'include',
         cache: 'no-store',
@@ -193,7 +193,9 @@ export function refreshJaceSession(): Promise<JaceSessionState> {
 function openJaceWindow(path: '/login' | '/account'): void {
   if (!isLoginAvailable() || typeof window === 'undefined') return;
 
-  const loginWindow = window.open(`${getSiteUrl()}${path}`, `jace-s${path.replace('/', '-')}`);
+  const siteUrl = getSiteUrl();
+  if (!siteUrl) return;
+  const loginWindow = window.open(`${siteUrl}${path}`, `jace-s${path.replace('/', '-')}`);
 
   let finished = false;
   let poll: ReturnType<typeof setInterval> | undefined;

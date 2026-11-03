@@ -18,7 +18,10 @@ import { resetTransport, setTransport } from '../../src/transport';
 import { buildApiUrl, buildWebSocketUrl, getApiUrl, getNoticeAppId, getSiteUrl, isLoginAvailable } from '../../src/utils/apiConfig';
 import type { IHttpRequestOptions, IHttpResponse, IWebSocket } from '../../src/transport/types';
 
-// 로그인 허용 호스트는 환경 변수로만 정한다 (운영 값과 같게 설정)
+// 코드 기본값이 없으므로 운영 값과 같은 환경 변수를 설정한다
+process.env.VITE_API_URL = 'https://api.jace-s.com';
+process.env.VITE_SITE_URL = 'https://jace-s.com';
+process.env.VITE_NOTICE_APP_ID = '41';
 process.env.VITE_LOGIN_HOSTS = 'online-sequencer.jace-s.com';
 
 type TestFn = () => void | Promise<void>;
@@ -55,7 +58,7 @@ const NOTICES_PATH = `/notices?app=${getNoticeAppId()}`;
 console.log('Service notice unit tests\n');
 console.log('='.repeat(60));
 
-test('default addresses follow the api.jace-s.com contract (no /api prefix)', () => {
+test('configured addresses follow the api.jace-s.com contract (no /api prefix)', () => {
   assert.equal(getNoticeAppId(), 41);
   assert.equal(getApiUrl(), 'https://api.jace-s.com');
   assert.equal(getSiteUrl(), 'https://jace-s.com');
@@ -198,6 +201,34 @@ test('admin access follows jace-s levels (none < read < write) per menu', () => 
   assert.equal(hasAdminAccess(usageOnly, 'notices'), false);
   assert.equal(hasAdminAccess({ ...admin, status: 'signed-out' }, 'notices'), false);
   assert.equal(hasAdminAccess({ ...admin, isAdmin: false }, 'notices'), false);
+});
+
+test('missing settings disable features instead of falling back to defaults', async () => {
+  const saved = { ...process.env };
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    delete process.env.VITE_API_URL;
+    delete process.env.VITE_SITE_URL;
+    delete process.env.VITE_NOTICE_APP_ID;
+    assert.equal(getApiUrl(), null);
+    assert.equal(getSiteUrl(), null);
+    assert.equal(getNoticeAppId(), null);
+    assert.throws(() => buildApiUrl('/rooms'), /VITE_API_URL is not configured/);
+    assert.throws(() => buildWebSocketUrl('/signaling'), /VITE_API_URL is not configured/);
+    // API·화면 주소가 없으면 허용 호스트여도 로그인 불가
+    assert.equal(isLoginAvailable({ protocol: 'https:', hostname: 'online-sequencer.jace-s.com' }), false);
+    process.env.VITE_NOTICE_APP_ID = 'abc';
+    assert.equal(getNoticeAppId(), null);
+    // 앱 ID가 없으면 공지는 조회하지 않고 생존 확인만
+    const transport = createTransport({ '/health': { status: 200 } });
+    const snapshot = await loadServiceStatus(transport, ORIGIN, null);
+    assert.deepEqual(snapshot, { connected: true, announcements: [] });
+    assert.deepEqual(transport.calls.map((call) => new URL(call.url).pathname), ['/health']);
+  } finally {
+    console.error = originalError;
+    Object.assign(process.env, saved);
+  }
 });
 
 test('login hosts come only from VITE_LOGIN_HOSTS (no code default)', () => {

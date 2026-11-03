@@ -9,6 +9,7 @@
  * - 로그인 화면: https://jace-s.com/login (SITE_URL)
  *
  * 주소는 이 파일의 설정값으로만 만든다. 코드 곳곳에 주소를 직접 쓰지 않는다.
+ * 코드 기본값은 없다. 모든 값은 배포 환경 변수로 정한다(.env.example 참고).
  */
 
 type EnvKey = 'VITE_API_URL' | 'VITE_SITE_URL' | 'VITE_NOTICE_APP_ID' | 'VITE_LOGIN_HOSTS';
@@ -28,18 +29,32 @@ function getEnvValue(key: EnvKey): string | undefined {
   return nodeProcess?.env?.[key];
 }
 
-/** jace-s API 기본 주소 */
-export const DEFAULT_API_URL = 'https://api.jace-s.com';
-
-/** jace-s 화면(로그인·계정) 기본 주소 */
-export const DEFAULT_SITE_URL = 'https://jace-s.com';
-
-/** jace-s에 등록된 Online Sequencer 앱 ID (공지 조회용) */
-export const DEFAULT_NOTICE_APP_ID = 41;
-
-
 /** 협업(시그널링) API 경로 */
 const COLLABORATION_PATH = '/online-sequencer';
+
+/**
+ * 필수 설정값. 코드 기본값은 없으며 배포 환경 변수로만 정한다.
+ * 빠지면 해당 기능(협업·공지·로그인)을 끄고 콘솔에 한 번 알린다.
+ */
+export const REQUIRED_ENV_KEYS = ['VITE_API_URL', 'VITE_SITE_URL', 'VITE_NOTICE_APP_ID', 'VITE_LOGIN_HOSTS'] as const;
+
+export class ApiConfigError extends Error {
+  readonly key: EnvKey;
+
+  constructor(key: EnvKey) {
+    super(`${key} is not configured. Set it in the deployment environment variables.`);
+    this.name = 'ApiConfigError';
+    this.key = key;
+  }
+}
+
+const reportedMissing = new Set<EnvKey>();
+
+function reportMissing(key: EnvKey): void {
+  if (reportedMissing.has(key)) return;
+  reportedMissing.add(key);
+  console.error(`[apiConfig] ${key} is not configured; the related feature is disabled.`);
+}
 
 function getOrigin(url: string | undefined): string | null {
   if (!url) return null;
@@ -51,48 +66,63 @@ function getOrigin(url: string | undefined): string | null {
 }
 
 /**
- * jace-s API 주소 (VITE_API_URL, 기본 https://api.jace-s.com). origin만 사용한다.
+ * jace-s API 주소 (VITE_API_URL, origin만 사용). 없거나 잘못되면 null
  */
-export function getApiUrl(): string {
-  return getOrigin(getEnvValue('VITE_API_URL')) ?? DEFAULT_API_URL;
+export function getApiUrl(): string | null {
+  const value = getOrigin(getEnvValue('VITE_API_URL'));
+  if (!value) reportMissing('VITE_API_URL');
+  return value;
 }
 
 /**
- * jace-s 화면 주소 (VITE_SITE_URL, 기본 https://jace-s.com)
+ * jace-s 화면 주소 (VITE_SITE_URL). 없거나 잘못되면 null
  */
-export function getSiteUrl(): string {
-  return getOrigin(getEnvValue('VITE_SITE_URL')) ?? DEFAULT_SITE_URL;
+export function getSiteUrl(): string | null {
+  const value = getOrigin(getEnvValue('VITE_SITE_URL'));
+  if (!value) reportMissing('VITE_SITE_URL');
+  return value;
 }
 
 /**
- * 공지 조회용 앱 ID (VITE_NOTICE_APP_ID, 기본 41)
+ * 공지 조회용 앱 ID (VITE_NOTICE_APP_ID, 양의 정수). 없거나 잘못되면 null
  */
-export function getNoticeAppId(): number {
+export function getNoticeAppId(): number | null {
   const raw = getEnvValue('VITE_NOTICE_APP_ID');
   const parsed = raw ? Number(raw) : NaN;
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_NOTICE_APP_ID;
+  if (Number.isInteger(parsed) && parsed > 0) return parsed;
+  reportMissing('VITE_NOTICE_APP_ID');
+  return null;
 }
 
 /**
- * 협업 API 엔드포인트 URL을 생성합니다.
+ * 필수 API 주소를 돌려줍니다. 없으면 ApiConfigError를 던집니다(협업 요청용).
+ */
+export function requireApiUrl(): string {
+  const value = getApiUrl();
+  if (!value) throw new ApiConfigError('VITE_API_URL');
+  return value;
+}
+
+/**
+ * 협업 API 엔드포인트 URL을 생성합니다. VITE_API_URL이 없으면 ApiConfigError
  *
  * @param endpoint - 협업 경로 기준 엔드포인트 (예: '/rooms', '/rooms/1234')
  * @returns {API_URL}/online-sequencer{endpoint}
  */
 export function buildApiUrl(endpoint: string): string {
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${getApiUrl()}${COLLABORATION_PATH}${normalizedEndpoint}`;
+  return `${requireApiUrl()}${COLLABORATION_PATH}${normalizedEndpoint}`;
 }
 
 /**
- * 협업 WebSocket URL을 생성합니다.
+ * 협업 WebSocket URL을 생성합니다. VITE_API_URL이 없으면 ApiConfigError
  *
  * @param path - 협업 경로 기준 WebSocket 경로 (예: '/signaling')
  * @param queryParams - 쿼리 파라미터 (선택)
  * @returns wss://{API host}/online-sequencer{path}?...
  */
 export function buildWebSocketUrl(path: string, queryParams?: Record<string, string>): string {
-  const wsBaseUrl = getApiUrl()
+  const wsBaseUrl = requireApiUrl()
     .replace(/^http:\/\//, 'ws://')
     .replace(/^https:\/\//, 'wss://');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -112,6 +142,7 @@ export function buildWebSocketUrl(path: string, queryParams?: Record<string, str
  *
  * 코드 기본값은 없다. jace-s 서버가 credentials를 허용하는 Origin의 호스트만 넣는다
  * (운영: online-sequencer.jace-s.com). 설정하지 않으면 어느 주소에서도 로그인 UI를 숨긴다.
+ * 로컬 개발처럼 로그인을 쓰지 않는 환경에서는 비워 두는 것이 정상이므로 경고하지 않는다.
  */
 export function getLoginHosts(): string[] {
   const raw = getEnvValue('VITE_LOGIN_HOSTS');
@@ -134,7 +165,9 @@ export function isLoginAvailable(location: Pick<Location, 'protocol' | 'hostname
   if (!location) return false;
   if (location.protocol !== 'https:' && location.protocol !== 'http:') return false;
   if (typeof window !== 'undefined' && window.__ELECTRON__) return false;
-  return getLoginHosts().includes(location.hostname.toLowerCase());
+  if (!getLoginHosts().includes(location.hostname.toLowerCase())) return false;
+  // 세션 확인(API)과 로그인 화면(SITE) 주소가 모두 있어야 로그인을 쓸 수 있다
+  return getApiUrl() !== null && getSiteUrl() !== null;
 }
 
 /**

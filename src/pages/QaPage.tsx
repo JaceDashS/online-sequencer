@@ -6,7 +6,7 @@ import styles from './QaPage.module.css';
 
 type QaStatus = 'not-run' | 'pass' | 'fail' | 'blocked';
 type ResultSource = 'manual' | 'preflight';
-type ServerState = 'unchecked' | 'checking' | 'online' | 'offline';
+type ServerState = 'unchecked' | 'checking' | 'online' | 'offline' | 'unconfigured';
 
 interface QaResult {
   status: QaStatus;
@@ -19,7 +19,7 @@ interface ServerCheck {
   state: ServerState;
   message: string;
   checkedAt: string | null;
-  baseUrl: string;
+  baseUrl: string | null;
 }
 
 interface ViewportInfo {
@@ -44,6 +44,7 @@ const serverLabels: Record<ServerState, string> = {
   checking: 'CHECKING',
   online: 'ONLINE',
   offline: 'OFFLINE',
+  unconfigured: 'NOT CONFIGURED',
 };
 
 const executorLabels: Record<QaExecutor, string> = {
@@ -213,8 +214,14 @@ function QaPage() {
       message: '협업 API 응답을 기다리는 중입니다.',
     }));
 
-    // jace-s API 생존 확인 (기본 https://api.jace-s.com/health)
+    // jace-s API 생존 확인 ({VITE_API_URL}/health). 코드 기본값이 없으므로 미설정이면 서버 시나리오를 보류한다
     const baseUrl = getApiUrl();
+    if (!baseUrl) {
+      const reason = 'VITE_API_URL이 설정되지 않아 서버 테스트를 실행할 수 없습니다.';
+      setServer({ state: 'unconfigured', message: reason, checkedAt: new Date().toISOString(), baseUrl: null });
+      applyServerAvailability(false, reason);
+      return;
+    }
 
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 3000);
@@ -392,7 +399,7 @@ function QaPage() {
                 {serverLabels[server.state]}
               </span>
             </div>
-            <strong>{server.baseUrl}</strong>
+            <strong>{server.baseUrl ?? 'VITE_API_URL 미설정'}</strong>
             <p>{server.message} · {formatTime(server.checkedAt)}</p>
             <button
               type="button"

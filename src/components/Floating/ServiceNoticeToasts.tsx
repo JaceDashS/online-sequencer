@@ -15,11 +15,18 @@ import styles from './ServiceNoticeToasts.module.css';
 /**
  * 앱 진입 때 한 번만 조회합니다. (StrictMode 이중 effect, 재마운트에서도 요청을 반복하지 않음)
  */
-let statusPromise: Promise<ServiceStatusSnapshot> | null = null;
+let statusPromise: Promise<ServiceStatusSnapshot | null> | null = null;
 
-function loadOnce(): Promise<ServiceStatusSnapshot> {
+/**
+ * VITE_API_URL이 없으면 서버 상태를 알 수 없으므로 조회하지 않고 토스트도 띄우지 않는다
+ * (설정 누락은 콘솔에 알림). VITE_NOTICE_APP_ID가 없으면 공지 없이 생존 확인만 한다.
+ */
+function loadOnce(): Promise<ServiceStatusSnapshot | null> {
   if (!statusPromise) {
-    statusPromise = loadServiceStatus(getTransport(), getApiUrl(), getNoticeAppId());
+    const apiUrl = getApiUrl();
+    statusPromise = apiUrl
+      ? loadServiceStatus(getTransport(), apiUrl, getNoticeAppId())
+      : Promise.resolve(null);
   }
   return statusPromise;
 }
@@ -74,7 +81,7 @@ const ServiceNoticeToasts: React.FC = () => {
 
     loadOnce()
       .then((snapshot) => {
-        if (cancelled) return;
+        if (cancelled || !snapshot) return;
         showToasts(resolveServiceNoticeToasts(snapshot), 'append');
       })
       .catch(() => {

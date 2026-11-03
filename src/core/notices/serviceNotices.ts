@@ -170,12 +170,13 @@ export function resolveServiceNoticeToasts(snapshot: ServiceStatusSnapshot): Ser
 export async function loadServiceStatus(
   transport: Fetcher,
   apiOrigin: string,
-  appId: number,
+  appId: number | null,
   timeoutMs = SERVICE_REQUEST_TIMEOUT_MS
 ): Promise<ServiceStatusSnapshot> {
+  // 앱 ID가 설정되지 않으면 공지는 조회하지 않고(공지 없음) 생존 확인만 한다
   const [connected, announcements] = await Promise.all([
     checkServiceHealth(transport, apiOrigin, timeoutMs),
-    fetchServiceNotices(transport, apiOrigin, appId, timeoutMs),
+    appId === null ? Promise.resolve([]) : fetchServiceNotices(transport, apiOrigin, appId, timeoutMs),
   ]);
   return { connected, announcements };
 }

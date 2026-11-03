@@ -70,7 +70,7 @@
 
 ## 클라이언트 설정
 
-`src/utils/apiConfig.ts`는 `VITE_API_URL`(기본 `https://api.jace-s.com`) 하나로 API 주소를 정하고, 협업 경로 `/online-sequencer`를 붙인다. 경로에 `/api`는 붙이지 않는다.
+`src/utils/apiConfig.ts`는 `VITE_API_URL`(코드 기본값 없음, 운영 `https://api.jace-s.com`) 하나로 API 주소를 정하고, 협업 경로 `/online-sequencer`를 붙인다. 경로에 `/api`는 붙이지 않는다.
 
 ```env
 VITE_API_URL=https://api.jace-s.com
