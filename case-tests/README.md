@@ -1,5 +1,11 @@
 # 통합 테스트 참고 자료
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-11-03
+
+---
+
 현재 실행 진입점은 터미널 메뉴가 아니라 개발 전용 `/qa` 화면입니다.
 
 실행 순서, 판정(`PASS`·`FAIL`·`BLOCKED`·`NOT RUN`), 서버 장애 정책은 [통합 테스트 전략](../docs/testing.md)을 따릅니다. 이 문서는 고정 데이터와 상세 케이스 대응표만 다룹니다.

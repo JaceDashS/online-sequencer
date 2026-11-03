@@ -77,17 +77,17 @@ graph TD
 ### 구현 수준
 
 #### 오디오 재생
-- [Lookahead 스케줄링](./optimization-design/implementation-level/lookahead-scheduling.md)
-- [같은 음계 간섭 방지](./optimization-design/implementation-level/pitch-class-interference-prevention.md) (기본 비활성화)
-- [배치 샘플 로딩](./optimization-design/implementation-level/batch-sample-loading.md)
+- [Lookahead 스케줄링](./optimization-design/implementation-level/audio-playback/lookahead-scheduling.md)
+- [같은 음계 간섭 방지](./optimization-design/implementation-level/audio-playback/pitch-class-interference-prevention.md) (기본 비활성화)
+- [배치 샘플 로딩](./optimization-design/implementation-level/audio-playback/batch-sample-loading.md)
 
 #### 재생 클록·표시
-- [Drift 보정 시스템](./optimization-design/implementation-level/drift-correction.md)
-- [오디오 버퍼 사이즈 (BUF)](./optimization-design/implementation-level/audio-buffer-size.md)
+- [Drift 보정 시스템](./optimization-design/implementation-level/playback-clock/drift-correction.md)
+- [오디오 버퍼 사이즈 (BUF)](./optimization-design/implementation-level/playback-clock/audio-buffer-size.md)
 
 #### UI 렌더링
-- [MIDI 에디터 스크롤 동기화](./optimization-design/implementation-level/scroll-synchronization.md)
-- [타임라인 가시 범위 렌더링](./optimization-design/implementation-level/timeline-visible-range-rendering.md)
+- [MIDI 에디터 스크롤 동기화](./optimization-design/implementation-level/ui-rendering/scroll-synchronization.md)
+- [타임라인 가시 범위 렌더링](./optimization-design/implementation-level/ui-rendering/timeline-visible-range-rendering.md)
 
 ### 데이터 접근
 - [데이터 인덱싱](./optimization-design/data-access/indexing.md)

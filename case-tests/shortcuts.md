@@ -1,5 +1,11 @@
 # 단축키 케이스 테스트
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-07-26
+
+---
+
 ## 범위
 - 편집 및 모드 전환 단축키
 - 실행 취소/다시 실행 단축키

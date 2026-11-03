@@ -268,8 +268,8 @@ Long Tasks API는 50ms 이상 UI 스레드를 독점하는 작업을 관측하�
 
 아래 문서에 이 분석 결과를 반영했다 (2026-11-03).
 
-- [`Lookahead 스케줄링`](../optimization-design/implementation-level/lookahead-scheduling.md): 고정 오디오 앵커 기준, 조절 가능한 lookahead, 늦은 노트 처리와 진단 로그를 명시했다. 고갈 반복 시 복구 정책은 후속 과제로 남아 있다.
+- [`Lookahead 스케줄링`](../optimization-design/implementation-level/audio-playback/lookahead-scheduling.md): 고정 오디오 앵커 기준, 조절 가능한 lookahead, 늦은 노트 처리와 진단 로그를 명시했다. 고갈 반복 시 복구 정책은 후속 과제로 남아 있다.
 - [`워커 기반 재생 클록`](../optimization-design/architecture-level/worker-playback-clock.md): UI 표시 전용이며 Web Audio 렌더링 스레드를 대신하지 않는다는 한계와 시작 lead(`delayMs`)를 명시했다.
-- [`Drift 보정 시스템`](../optimization-design/implementation-level/drift-correction.md): UI 표시 시간에만 적용되며 오디오 예약에 영향을 주지 않음을 명시했다.
-- [`오디오 버퍼 사이즈`](../optimization-design/implementation-level/audio-buffer-size.md): 실제 버퍼 크기가 아니라 `latencyHint` 선호값과 UI 틱 간격 설정임을 명시했다. 사용자 노출 명칭(`BUF`) 변경은 코드 변경이 필요한 후속 과제다.
-- [`같은 음계 간섭 방지`](../optimization-design/implementation-level/pitch-class-interference-prevention.md): 기본 비활성화 상태와 리듬 정확성과의 충돌을 명시했다.
+- [`Drift 보정 시스템`](../optimization-design/implementation-level/playback-clock/drift-correction.md): UI 표시 시간에만 적용되며 오디오 예약에 영향을 주지 않음을 명시했다.
+- [`오디오 버퍼 사이즈`](../optimization-design/implementation-level/playback-clock/audio-buffer-size.md): 실제 버퍼 크기가 아니라 `latencyHint` 선호값과 UI 틱 간격 설정임을 명시했다. 사용자 노출 명칭(`BUF`) 변경은 코드 변경이 필요한 후속 과제다.
+- [`같은 음계 간섭 방지`](../optimization-design/implementation-level/audio-playback/pitch-class-interference-prevention.md): 기본 비활성화 상태와 리듬 정확성과의 충돌을 명시했다.

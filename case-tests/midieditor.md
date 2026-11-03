@@ -1,5 +1,11 @@
 # MIDI 에디터 케이스 테스트
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-08-29
+
+---
+
 ## 범위
 - Split/Merge 모드 단축키 동작
 - Split/Merge 실행 및 Undo/Redo

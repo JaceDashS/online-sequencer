@@ -1,5 +1,11 @@
 # 룰러 케이스 테스트
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-07-26
+
+---
+
 ## 범위
 - 마디/비트 마커 표시
 - 플레이헤드 이동/드래그

@@ -197,7 +197,7 @@ sequenceDiagram
 
 ## 관련 문서
 
-- [`src/core/audio/AudioEngine.ts`](../../../../src/core/audio/AudioEngine.ts)
+- [`src/core/audio/AudioEngine.ts`](../../../../../src/core/audio/AudioEngine.ts)
 
 ---
 

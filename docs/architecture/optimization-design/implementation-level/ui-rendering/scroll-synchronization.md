@@ -142,8 +142,8 @@ onWheel={(e) => {
 
 ## 관련 문서
 
-- [`src/components/MidiEditor/PianoRoll.tsx`](../../../../src/components/MidiEditor/PianoRoll.tsx)
-- [`src/components/MidiEditor/EditorFooter.tsx`](../../../../src/components/MidiEditor/EditorFooter.tsx)
+- [`src/components/MidiEditor/PianoRoll.tsx`](../../../../../src/components/MidiEditor/PianoRoll.tsx)
+- [`src/components/MidiEditor/EditorFooter.tsx`](../../../../../src/components/MidiEditor/EditorFooter.tsx)
 
 ---
 

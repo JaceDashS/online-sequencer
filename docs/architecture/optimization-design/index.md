@@ -42,6 +42,8 @@ graph LR
 
 ## 문서 구조
 
+폴더: `architecture-level/`(아키텍처 수준), `implementation-level/audio-playback/`(오디오 재생), `implementation-level/playback-clock/`(재생 클록·표시), `implementation-level/ui-rendering/`(UI 렌더링), `data-access/`(데이터 접근). 2026-11-03에 구현 수준 문서를 분류별 하위 폴더로 나눴습니다.
+
 ```mermaid
 graph TB
     subgraph "아키텍처 수준"
@@ -103,28 +105,28 @@ graph TB
 ### 구현 수준 최적화
 
 #### 오디오 재생 최적화
-- [Lookahead 스케줄링](./implementation-level/lookahead-scheduling.md)
+- [Lookahead 스케줄링](./implementation-level/audio-playback/lookahead-scheduling.md)
   - `AudioContext.currentTime` 고정 앵커 기준으로 오디오 이벤트를 미리 예약
   - 예약 고갈 시 lookahead 자동 보정 (최대 2초)
 
-- [같은 음계 간섭 방지](./implementation-level/pitch-class-interference-prevention.md)
+- [같은 음계 간섭 방지](./implementation-level/audio-playback/pitch-class-interference-prevention.md)
   - 같은 샘플 소스에서 파생된 오디오의 위상 간섭을 시간 오프셋으로 분산 (기본 0ms, 비활성화)
 
-- [배치 샘플 로딩](./implementation-level/batch-sample-loading.md)
+- [배치 샘플 로딩](./implementation-level/audio-playback/batch-sample-loading.md)
   - 오디오 샘플 로딩 시 메인 스레드 블로킹 방지
 
 #### 재생 클록·표시
-- [Drift 보정 시스템](./implementation-level/drift-correction.md)
+- [Drift 보정 시스템](./implementation-level/playback-clock/drift-correction.md)
   - 워커 틱과 UI 표시 시간 간의 오차를 부드럽게 보정 (오디오 예약에는 사용하지 않음)
 
-- [조절 가능한 오디오 버퍼 사이즈 (BUF)](./implementation-level/audio-buffer-size.md)
+- [조절 가능한 오디오 버퍼 사이즈 (BUF)](./implementation-level/playback-clock/audio-buffer-size.md)
   - 재생 클록 tick 간격과 `AudioContext` `latencyHint` 선호값 설정 (실제 렌더링 버퍼 크기 아님)
 
 #### UI 최적화
-- [MIDI 에디터 스크롤 동기화](./implementation-level/scroll-synchronization.md)
+- [MIDI 에디터 스크롤 동기화](./implementation-level/ui-rendering/scroll-synchronization.md)
   - 레인 영역과 벨로시티 영역의 가로 스크롤을 즉시 동기화
 
-- [타임라인 가시 범위 렌더링](./implementation-level/timeline-visible-range-rendering.md)
+- [타임라인 가시 범위 렌더링](./implementation-level/ui-rendering/timeline-visible-range-rendering.md)
   - 화면에 보이는 범위와 오버스캔 범위의 파트·노트·마디 마커만 렌더링
 
 - [React 컴포넌트 렌더링 최적화](./data-access/indexing.md#ui-컴포넌트-최적화)

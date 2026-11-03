@@ -12,7 +12,7 @@
 
 워커 틱과 UI 간의 타이밍 오차를 부드럽게 보정하는 시스템입니다.
 
-**적용 범위**: 이 보정은 UI 표시 시간(`playbackTimeStore`)에만 적용됩니다. 오디오 노트·메트로놈 예약은 `AudioContext.currentTime` 기반 고정 앵커를 사용하므로 이 값의 영향을 받지 않습니다. 근거는 [오디오 재생 타이밍 분석](../../analysis/audio-playback-timing-jank-analysis.md)을 참고하십시오.
+**적용 범위**: 이 보정은 UI 표시 시간(`playbackTimeStore`)에만 적용됩니다. 오디오 노트·메트로놈 예약은 `AudioContext.currentTime` 기반 고정 앵커를 사용하므로 이 값의 영향을 받지 않습니다. 근거는 [오디오 재생 타이밍 분석](../../../analysis/audio-playback-timing-jank-analysis.md)을 참고하십시오.
 
 ---
 
@@ -159,9 +159,9 @@ sequenceDiagram
 
 ## 관련 문서
 
-- [`워커 기반 재생 클록`](../architecture-level/worker-playback-clock.md)
+- [`워커 기반 재생 클록`](../../architecture-level/worker-playback-clock.md)
 - [`조절 가능한 오디오 버퍼 사이즈`](./audio-buffer-size.md)
-- [`Lookahead 스케줄링`](./lookahead-scheduling.md)
+- [`Lookahead 스케줄링`](../audio-playback/lookahead-scheduling.md)
 
 ---
 

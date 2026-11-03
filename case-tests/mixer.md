@@ -1,5 +1,11 @@
 # 믹서 케이스 테스트
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-07-26
+
+---
+
 ## 범위
 - 채널 볼륨/팬 조절
 - 마스터 채널 조절

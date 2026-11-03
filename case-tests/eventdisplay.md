@@ -1,5 +1,11 @@
 # 이벤트 디스플레이 케이스 테스트
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-08-29
+
+---
+
 ## 범위
 - 이벤트 디스플레이의 MIDI 파트 생성/편집
 - 더블클릭 및 히스토리(Undo/Redo) 동작

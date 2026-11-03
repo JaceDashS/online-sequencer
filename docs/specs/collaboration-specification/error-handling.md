@@ -12,6 +12,25 @@
 > - 클라이언트에 만료 경고 타이머(9장 예시)는 없습니다. 대신 서버 `room-expiring`(30·5·1분 전)을 받으면 경고 토스트를 10초 표시합니다(2026-11-03).
 > - `room-session-expired`를 받으면 보관한 호스트 토큰을 지우고, 연결을 끊고, 호스팅·참가 화면을 닫은 뒤 "The room has expired." 토스트를 표시합니다(2026-11-03).
 > - 강퇴 REST 경로는 WebSocket `kicked`를 직접 보내지 않습니다(서버 계약).
+> - 본문 예시의 안내 문구 35개는 코드에 없습니다. 실제 문구는 아래 표와 `src/core/sync/roomApiErrors.ts`, `CollaborationButtons.tsx`를 따릅니다.
+
+## 구현 현황 (2026-11-03, 코드 기준)
+
+| 장 | 실제 동작 |
+|---|---|
+| 1. 네트워크 연결 실패 | WebSocket 연결 10초 제한. 끊기면 최대 5회, 1초부터 지수 백오프로 재연결. 재연결되면 호스트는 재등록, 게스트는 재참가 시도 |
+| 2. 룸 코드 중복 | 룸 코드는 서버가 비어 있는 값으로 생성. 고갈 시 409 `NO_AVAILABLE_ROOM_CODES` → "No room codes are available right now…" |
+| 3. 호스트 연결 끊김 | 게스트의 호스트 연결 상태가 끊김·실패·닫힘으로 바뀌면 "Host disconnected" 표시 후 종료 |
+| 4. 참가자 연결 끊김·강퇴 | `participant-left`로 목록에서 제거. 강퇴는 REST kick(Bearer) 후 즉시 목록에서 제거. 게스트는 `kicked`를 받으면 "You have been kicked from the session"(서버가 항상 보내지는 않음). 재참가는 403 `KICKED` |
+| 5. NAT/방화벽 | 공개 STUN 2개 + 선택 TURN(환경 변수). 별도 진단 UI 없음 |
+| 6. 동시 편집 충돌 | `ConflictResolver`: 같은 대상 변경은 Last-Write-Wins(타임스탬프, 같으면 clientId 사전순). OT·3-way merge는 미구현 |
+| 7. 데이터 손실·순서 | 메시지 ID(`messageIdentity.ts`)로 중복 수신 무시. 순서 번호·재전송은 미구현 |
+| 8. 서버 과부하 | 서버 생성 제한: 429 `RATE_LIMITED` → "Too many room requests…". 자동 재시도 없음 |
+| 8-1. 서버 중단 | 방은 서버 메모리에만 있어 재시작 시 사라짐. 재연결 후 호스트 재등록이 거절되면 새 방 생성(룸 코드 바뀜, 게스트는 새 코드로 다시 참가) |
+| 9. 조인 허용·방 만료 | 조인 허용 60초(최대 3600초). `room-expiring` 경고 토스트, `room-session-expired` 시 연결 종료·화면 초기화 |
+| 10. 룸 나가기 | [연결 플로우 4장](./connection-flow.md#4-룸-나가기) 참고 |
+| 11. 브라우저 호환성 | WebRTC 지원 여부를 미리 검사하는 코드 없음. 폭 1120px 이하 화면은 미지원 안내 |
+| 12. P2P 소프트웨어 충돌 | LWW 충돌 해결과 메시지 중복 제거만 구현. 버전 번호 기반 상태 비교, 순환 참조 검사, 협업 중 Undo 정책은 미구현 |
 
 ---
 

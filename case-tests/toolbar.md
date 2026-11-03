@@ -1,5 +1,11 @@
 # 툴바 케이스 테스트
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-07-26
+
+---
+
 ## 범위
 - BPM 및 박자표 변경
 - Quantize/Metronome 토글

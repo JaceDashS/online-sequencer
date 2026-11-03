@@ -184,8 +184,8 @@ sequenceDiagram
 
 ## 관련 문서
 
-- [`조절 가능한 오디오 버퍼 사이즈`](./audio-buffer-size.md)
-- [`오디오 재생 타이밍 분석`](../../analysis/audio-playback-timing-jank-analysis.md)
+- [`조절 가능한 오디오 버퍼 사이즈`](../playback-clock/audio-buffer-size.md)
+- [`오디오 재생 타이밍 분석`](../../../analysis/audio-playback-timing-jank-analysis.md)
 
 ---
 

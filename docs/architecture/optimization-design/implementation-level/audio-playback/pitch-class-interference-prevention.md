@@ -16,7 +16,7 @@
 
 이 기능은 시간 오프셋(time offset)을 적용하여 같은 음계의 노트가 동시에 재생될 때 위상 간섭을 분산시킵니다.
 
-**리듬 정확성과의 충돌**: 시간 오프셋은 같은 시각의 MIDI 노트에 서로 다른 onset을 부여하므로 박자 정확성을 해칩니다. 이 때문에 2026-08-29 변경에서 기본값을 0ms로 바꾸고, 활성화하더라도 총 오프셋이 설정값을 넘지 않도록 제한했습니다. 피크 문제는 게인 조정으로 해결하는 방향이 권장됩니다. 근거는 [오디오 재생 타이밍 분석](../../analysis/audio-playback-timing-jank-analysis.md)을 참고하십시오.
+**리듬 정확성과의 충돌**: 시간 오프셋은 같은 시각의 MIDI 노트에 서로 다른 onset을 부여하므로 박자 정확성을 해칩니다. 이 때문에 2026-08-29 변경에서 기본값을 0ms로 바꾸고, 활성화하더라도 총 오프셋이 설정값을 넘지 않도록 제한했습니다. 피크 문제는 게인 조정으로 해결하는 방향이 권장됩니다. 근거는 [오디오 재생 타이밍 분석](../../../analysis/audio-playback-timing-jank-analysis.md)을 참고하십시오.
 
 ---
 
@@ -364,9 +364,9 @@ case 'SET_PITCH_OFFSET_MAX_MS': {
 
 ## 관련 문서
 
-- [`docs/architecture/optimization-design/implementation-level/audio-buffer-size.md`](./audio-buffer-size.md) - 오디오 버퍼 사이즈 최적화
-- [`docs/architecture/optimization-design/implementation-level/lookahead-scheduling.md`](./lookahead-scheduling.md) - Lookahead 스케줄링
-- [`docs/architecture/analysis/audio-playback-timing-jank-analysis.md`](../../analysis/audio-playback-timing-jank-analysis.md) - 오디오 재생 타이밍 분석
+- [`playback-clock/audio-buffer-size.md`](../playback-clock/audio-buffer-size.md) - 오디오 버퍼 사이즈 최적화
+- [`audio-playback/lookahead-scheduling.md`](./lookahead-scheduling.md) - Lookahead 스케줄링
+- [`analysis/audio-playback-timing-jank-analysis.md`](../../../analysis/audio-playback-timing-jank-analysis.md) - 오디오 재생 타이밍 분석
 
 ---
 

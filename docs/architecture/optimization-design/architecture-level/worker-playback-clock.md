@@ -183,9 +183,9 @@ setPlaybackClockInterval(intervalMs);
 ## 관련 문서
 
 - [`rAF 기반 재생헤드 업데이트`](./raf-playback-head.md)
-- [`조절 가능한 오디오 버퍼 사이즈`](../implementation-level/audio-buffer-size.md)
-- [`Drift 보정 시스템`](../implementation-level/drift-correction.md)
-- [`Lookahead 스케줄링`](../implementation-level/lookahead-scheduling.md)
+- [`조절 가능한 오디오 버퍼 사이즈`](../implementation-level/playback-clock/audio-buffer-size.md)
+- [`Drift 보정 시스템`](../implementation-level/playback-clock/drift-correction.md)
+- [`Lookahead 스케줄링`](../implementation-level/audio-playback/lookahead-scheduling.md)
 
 ---
 

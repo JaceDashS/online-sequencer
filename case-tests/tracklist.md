@@ -1,5 +1,11 @@
 # 트랙 리스트 케이스 테스트
 
+**Document Version**: 1.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-07-26
+
+---
+
 ## 범위
 - 트랙 리스트 패널 UI 및 리사이즈
 - 트랙 추가/삭제
