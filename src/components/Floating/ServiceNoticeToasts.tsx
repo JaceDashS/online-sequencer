@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getTransport } from '../../transport';
-import { getApiOrigin, JACE_S_APP_ID } from '../../utils/apiConfig';
+import { getApiUrl, getNoticeAppId } from '../../utils/apiConfig';
 import {
   loadServiceStatus,
   resolveServiceNoticeToasts,
@@ -17,7 +17,7 @@ let statusPromise: Promise<ServiceStatusSnapshot> | null = null;
 
 function loadOnce(): Promise<ServiceStatusSnapshot> {
   if (!statusPromise) {
-    statusPromise = loadServiceStatus(getTransport(), getApiOrigin(), JACE_S_APP_ID);
+    statusPromise = loadServiceStatus(getTransport(), getApiUrl(), getNoticeAppId());
   }
   return statusPromise;
 }

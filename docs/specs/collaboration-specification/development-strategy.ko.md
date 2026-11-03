@@ -56,7 +56,7 @@
    └─ Web과 Electron 트랜스포트 호환성 유지
 
 3. 외부 서버 연동
-   ├─ VITE_API_BASE_URL 설정
+   ├─ VITE_API_URL 설정
    ├─ HTTP 룸 API 검증
    ├─ WebSocket 시그널링 검증
    └─ WebRTC 연결 수립 검증
@@ -70,18 +70,13 @@
 
 ## 클라이언트 설정
 
-`src/utils/apiConfig.ts`는 콜라보레이션 API URL을 다음 순서로 해석한다.
-
-1. `VITE_API_BASE_URL`
-2. `VITE_BASE_URL` + `VITE_API_PATH`
-
-`VITE_API_BASE_URL`에는 콜라보레이션 서버가 사용하는 전체 API base path를 포함한다.
+`src/utils/apiConfig.ts`는 `VITE_API_URL`(기본 `https://api.jace-s.com`) 하나로 API 주소를 정하고, 협업 경로 `/online-sequencer`를 붙인다. 경로에 `/api`는 붙이지 않는다.
 
 ```env
-VITE_API_BASE_URL=https://example.com/api/online-sequencer
+VITE_API_URL=https://api.jace-s.com
 ```
 
-클라이언트는 여기에 `/rooms`, `/rooms/:roomCode`, `/rooms/:roomCode/allow-join`, `/rooms/:roomCode/kick`, `/signaling` 같은 경로를 붙인다.
+클라이언트는 `{VITE_API_URL}/online-sequencer`에 `/rooms`, `/rooms/:roomCode`, `/rooms/:roomCode/allow-join`, `/rooms/:roomCode/kick`, `/signaling` 같은 경로를 붙인다. 상세는 [API 설정](../../architecture/api-configuration.ko.md)을 참고한다.
 
 ## 서버 호환성 체크리스트
 
@@ -99,7 +94,7 @@ VITE_API_BASE_URL=https://example.com/api/online-sequencer
 - [ ] 룸 만료, 종료, 참가자 변경 이벤트를 전송함
 
 **클라이언트 연동:**
-- [ ] `VITE_API_BASE_URL`이 콜라보레이션 엔드포인트를 포함한 API base를 가리킴
+- [ ] `VITE_API_URL`이 jace-s API 주소(`https://api.jace-s.com`)를 가리킴
 - [ ] HTTP와 WebSocket URL이 같은 API base에서 파생됨
 - [ ] Browser와 Electron 트랜스포트가 모두 연결 가능함
 
@@ -112,7 +107,6 @@ VITE_API_BASE_URL=https://example.com/api/online-sequencer
 **문서화:**
 - [ ] 서버 계약이 변경되면 [server-api.ko.md](server-api.ko.md) 갱신
 - [ ] `src/core/sync` 동작이 변경되면 클라이언트 구현 문서 갱신
-- [ ] 한국어/영어 문서 쌍의 구조 유지
 
 ## 주의사항
 
@@ -125,8 +119,7 @@ VITE_API_BASE_URL=https://example.com/api/online-sequencer
    - 서버 내부 구현이 바뀌어도 클라이언트 변경은 최소화한다.
 
 3. **설정 호환성**
-   - 전체 콜라보레이션 API base에는 `VITE_API_BASE_URL` 사용을 우선한다.
-   - base URL을 분리해 조합해야 할 때만 `VITE_BASE_URL`과 `VITE_API_PATH`를 사용한다.
+   - API 주소는 `VITE_API_URL` 하나로 관리한다. 주소를 코드 곳곳에 직접 쓰지 않는다.
 
 4. **백엔드 스택을 단정하지 않음**
    - 해당 계층의 코드가 추가되지 않는 한 Express, `ws`, Redis, 데이터베이스를 현재 저장소 구현처럼 설명하지 않는다.

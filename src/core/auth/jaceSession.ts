@@ -1,18 +1,21 @@
 /**
  * jace-s 로그인 세션
  *
- * - 로그인 쿠키는 jace-s API origin(https://api.jace-s.com)에만 있다.
- * - 세션 확인: GET {apiOrigin}/api/auth/session, credentials: 'include'
+ * - 로그인 쿠키는 jace-s API(https://api.jace-s.com)에만 있다.
+ * - 세션 확인: GET {API_URL}/auth/session, credentials: 'include'
  *   200 → { user, csrfToken, ... }, 401 → 로그아웃
- * - 변경 요청(POST/PUT/PATCH/DELETE): credentials: 'include' + 헤더 x-csrf-token
+ * - 로그인 상태의 변경 요청(POST/PUT/PATCH/DELETE): credentials: 'include' + 헤더 x-csrf-token
+ *   (CSRF가 없거나 틀리면 403 CSRF_VALIDATION_FAILED)
+ * - 비로그인 사용자는 쿠키와 CSRF 헤더 없이 요청한다.
  *   (쿠키는 이 페이지에서 읽을 수 없으므로 세션 응답 본문의 csrfToken을 쓴다)
- * - 로그인 화면: {siteUrl}/login 을 새 창으로 열고, 창이 닫히거나 포커스가 돌아오면 세션을 다시 확인
+ * - 로그인 화면: {SITE_URL}/login 을 새 창으로 열고, 창이 닫히거나 포커스가 돌아오면 세션을 다시 확인
+ * - 로그아웃은 {SITE_URL}/account 화면에서 한다.
  * - 로그인은 서버 허용 Origin(online-sequencer.jace-s.com)에서만 동작하므로 그 밖에서는 비활성화한다.
  */
 
 import type { IHttpRequestOptions } from '../../transport/types';
 import { getTransport } from '../../transport';
-import { getApiOrigin, getSiteUrl, isLoginAvailable } from '../../utils/apiConfig';
+import { getApiUrl, getSiteUrl, isLoginAvailable } from '../../utils/apiConfig';
 
 export type JaceSessionStatus = 'unavailable' | 'unknown' | 'checking' | 'signed-in' | 'signed-out';
 
@@ -104,7 +107,7 @@ export function refreshJaceSession(): Promise<JaceSessionState> {
     const timer = setTimeout(() => controller.abort(), SESSION_TIMEOUT_MS);
     try {
       const response = await getTransport().request({
-        url: `${getApiOrigin()}/api/auth/session`,
+        url: `${getApiUrl()}/auth/session`,
         method: 'GET',
         credentials: 'include',
         cache: 'no-store',
@@ -134,13 +137,13 @@ export function refreshJaceSession(): Promise<JaceSessionState> {
 }
 
 /**
- * jace-s 로그인 화면을 새 창으로 엽니다.
+ * jace-s 화면(로그인·계정)을 새 창으로 엽니다.
  * 창이 닫히거나 이 페이지로 포커스가 돌아오면 세션을 다시 확인합니다.
  */
-export function openJaceLoginWindow(): void {
+function openJaceWindow(path: '/login' | '/account'): void {
   if (!isLoginAvailable() || typeof window === 'undefined') return;
 
-  const loginWindow = window.open(`${getSiteUrl()}/login`, 'jace-s-login');
+  const loginWindow = window.open(`${getSiteUrl()}${path}`, `jace-s${path.replace('/', '-')}`);
 
   let finished = false;
   let poll: ReturnType<typeof setInterval> | undefined;
@@ -161,18 +164,28 @@ export function openJaceLoginWindow(): void {
   }
 }
 
+/** jace-s 로그인 화면({SITE_URL}/login)을 새 창으로 엽니다. */
+export function openJaceLoginWindow(): void {
+  openJaceWindow('/login');
+}
+
+/** jace-s 계정 화면({SITE_URL}/account, 로그아웃 포함)을 새 창으로 엽니다. */
+export function openJaceAccountWindow(): void {
+  openJaceWindow('/account');
+}
+
 /**
  * jace-s API 요청에 로그인 쿠키와 CSRF 토큰을 붙입니다.
  *
- * 로그인 사용 가능한 Origin에서만 credentials를 포함합니다.
- * (그 밖의 Origin은 서버 허용 목록에 없어 credentials 요청이 CORS로 거부될 수 있음)
+ * 허용 Origin에서 로그인한 상태일 때만 credentials를 포함하고, 변경 요청에는 x-csrf-token을 붙입니다.
+ * 비로그인 상태나 허용 Origin 밖에서는 요청을 바꾸지 않습니다.
  */
 export function withJaceAuth<T extends Pick<IHttpRequestOptions, 'method' | 'headers' | 'credentials'>>(options: T): T {
-  if (!isLoginAvailable()) return options;
+  if (!isLoginAvailable() || state.status !== 'signed-in' || !state.csrfToken) return options;
 
   const method = (options.method || 'GET').toUpperCase();
   const headers = { ...(options.headers || {}) };
-  if (MUTATING_METHODS.has(method) && state.status === 'signed-in' && state.csrfToken) {
+  if (MUTATING_METHODS.has(method)) {
     headers['x-csrf-token'] = state.csrfToken;
   }
   return { ...options, credentials: 'include', headers };

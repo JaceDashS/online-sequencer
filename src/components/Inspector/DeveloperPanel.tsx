@@ -3,16 +3,9 @@ import styles from './DeveloperPanel.module.css';
 import { useUIState } from '../../store/uiStore';
 import { playbackController } from '../../core/audio/PlaybackController';
 import { AUDIO_BUFFER_CONSTANTS } from '../../constants/ui';
-import { isPartyTimeEnabled, subscribePartyTime } from '../../utils/partyTime';
-import PasswordModal from './PasswordModal';
-import RoomsListModal from './RoomsListModal';
 
 const DeveloperPanel: React.FC = () => {
   const ui = useUIState();
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showRoomsModal, setShowRoomsModal] = useState(false);
-  const [isPartyTimeActive, setIsPartyTimeActive] = useState(() => isPartyTimeEnabled());
   const [driftInput, setDriftInput] = useState(String(ui.playbackDriftMs));
   const [pitchOffsetInput, setPitchOffsetInput] = useState(String(ui.pitchOffsetMaxMs));
   const [lookaheadInput, setLookaheadInput] = useState(String(ui.scheduleLookaheadSeconds));
@@ -24,8 +17,6 @@ const DeveloperPanel: React.FC = () => {
   const isEditingPitchOffsetRef = useRef(false);
   const isEditingLookaheadRef = useRef(false);
   const isEditingOverscanRef = useRef(false);
-  const devClickCountRef = useRef(0);
-  const lastClickTimeRef = useRef(0);
   
   // 초기값 설정 및 값 변경 시 AudioEngine에 반영
   useEffect(() => {
@@ -37,14 +28,6 @@ const DeveloperPanel: React.FC = () => {
     if (!ui.devModeEnabled) return;
     playbackController.setScheduleLookaheadSeconds(ui.scheduleLookaheadSeconds);
   }, [ui.devModeEnabled, ui.scheduleLookaheadSeconds]);
-
-  // 파티타임 상태 구독
-  useEffect(() => {
-    const unsubscribe = subscribePartyTime((isActive) => {
-      setIsPartyTimeActive(isActive);
-    });
-    return unsubscribe;
-  }, []);
 
   if (!ui.devModeEnabled) return null;
 
@@ -163,64 +146,11 @@ const DeveloperPanel: React.FC = () => {
     { label: '600', value: 600 },
   ];
 
-  const handleHeaderClick = () => {
-    // 파티타임이 활성화된 상태에서만 작동
-    if (!isPartyTimeActive) {
-      return;
-    }
-
-    const now = Date.now();
-    // 5초 내에 연속 클릭이 아니면 카운터 리셋
-    if (now - lastClickTimeRef.current > 5000) {
-      devClickCountRef.current = 0;
-    }
-
-    devClickCountRef.current += 1;
-    lastClickTimeRef.current = now;
-
-    if (devClickCountRef.current >= 10) {
-      setShowPasswordModal(true);
-      devClickCountRef.current = 0;
-    }
-  };
-
-  const handlePasswordSuccess = () => {
-    setIsAdminMode(true);
-  };
-
-  const handleShowRooms = () => {
-    setShowRoomsModal(true);
-  };
-
   return (
     <div className={styles.devPanel}>
       <div className={styles.headerContainer}>
-        <div
-          className={`${styles.header} ${isPartyTimeActive ? styles.clickable : ''}`}
-          onClick={handleHeaderClick}
-          style={{ cursor: isPartyTimeActive ? 'pointer' : 'default' }}
-        >
-          {isAdminMode ? 'admin' : 'DEV'}
-        </div>
-        {isAdminMode && (
-          <button
-            className={styles.roomsButton}
-            onClick={handleShowRooms}
-            title="방 목록 보기"
-          >
-            방 목록
-          </button>
-        )}
+        <div className={styles.header}>DEV</div>
       </div>
-      <PasswordModal
-        isOpen={showPasswordModal}
-        onClose={() => setShowPasswordModal(false)}
-        onSuccess={handlePasswordSuccess}
-      />
-      <RoomsListModal
-        isOpen={showRoomsModal}
-        onClose={() => setShowRoomsModal(false)}
-      />
       <div className={styles.controls}>
         <div className={styles.row}>
           <span className={styles.label}>DRIFT</span>

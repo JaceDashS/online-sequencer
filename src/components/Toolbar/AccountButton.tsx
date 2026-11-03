@@ -3,6 +3,7 @@ import styles from './AccountButton.module.css';
 import {
   getJaceSession,
   getSessionDisplayName,
+  openJaceAccountWindow,
   openJaceLoginWindow,
   refreshJaceSession,
   subscribeJaceSession,
@@ -31,9 +32,14 @@ const AccountButton: React.FC = () => {
   if (session.status === 'signed-in') {
     const name = getSessionDisplayName(session.user);
     return (
-      <span className={styles.account} title={name ? `Signed in as ${name}` : 'Signed in'}>
+      <button
+        type="button"
+        className={styles.account}
+        onClick={openJaceAccountWindow}
+        title={`${name ? `Signed in as ${name}` : 'Signed in'} — open jace-s account (log out)`}
+      >
         {name || 'Signed in'}
-      </span>
+      </button>
     );
   }
 

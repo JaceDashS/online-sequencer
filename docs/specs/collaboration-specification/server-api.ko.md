@@ -1,6 +1,6 @@
 # 서버 API 스펙
 
-**Document Version**: 1.0  
+**Document Version**: 2.0  
 **Software Version**: 0.1.0  
 **Last Updated**: 2026-11-03
 
@@ -8,11 +8,30 @@
 
 ## 기본 정보
 
-- **포트**: 클라이언트에서 고정하지 않는다. 필요한 경우 `VITE_API_BASE_URL`에 호스트와 포트를 포함한다.
-- **프로토콜**: WebSocket (시그널링), HTTP REST (룸 관리)
-- **Base URL**: `VITE_API_BASE_URL` 기준
-- **Fallback Base URL**: `VITE_BASE_URL` + `VITE_API_PATH`
-- **엔드포인트 표기**: 아래 경로는 해석된 API base URL을 기준으로 한 상대 경로다.
+> 계약 원문: jace-s 저장소 `docs/api/apps/online-sequencer/` (`10-client-contract.md`, `20-health.md`, `30-app-contract.md`). 이 문서는 클라이언트 기준 요약이며, 요청·응답 상세와 에러 코드는 원문이 우선한다. 기준: jace-s 커밋 `9416e01` 이후 (2026-11-03 운영 반영).
+
+- **API 주소**: `https://api.jace-s.com` (`VITE_API_URL`). 경로에 `/api`를 붙이지 않는다.
+- **협업 REST**: `{API_URL}/online-sequencer/...`
+- **WebSocket**: `wss://api.jace-s.com/online-sequencer/signaling?clientId={client-uuid}`
+- **엔드포인트 표기**: 아래 `/rooms...` 경로는 `{API_URL}/online-sequencer` 기준 상대 경로다.
+- **roomCode**: 4자리 문자열(`0000`~`9999`). 시간 값은 epoch 밀리초.
+- **hostToken**: 새 방을 만들 때 한 번만 받는다. 호스트 전용 요청에 `Authorization: Bearer {hostToken}`으로 보낸다. URL이나 로그에 넣지 않으며 클라이언트 메모리에만 보관한다.
+- **로그인 사용자**: 허용 Origin(`online-sequencer.jace-s.com`)에서 로그인한 경우 변경 요청에 `credentials: 'include'`와 `x-csrf-token`을 붙인다. 틀리면 403 `CSRF_VALIDATION_FAILED`. 비로그인 사용자는 둘 다 보내지 않는다. 상세: [서비스 공지와 로그인 명세](../service-notices-and-login.ko.md)
+- **방 유지 시간**: 로그인 상태로 만든 방 6시간, 비로그인 1시간 (jace-s 핸드오프 기준)
+
+| 방법과 경로 | 입력 | 성공 |
+|---|---|---|
+| `POST /rooms` | `{hostId}`. 기존 방 재등록은 `Authorization: Bearer {hostToken}` | 200 `{success, roomCode, hostId, hostToken, expiresAt, allowJoin, createdAt}` |
+| `GET /rooms/{roomCode}` | 선택 헤더 `x-client-id` | 200 RoomInfo |
+| `DELETE /rooms/{roomCode}` | `Authorization: Bearer {hostToken}` | 200 `{success, roomCode}` |
+| `POST /rooms/{roomCode}/allow-join` | `Authorization: Bearer {hostToken}`, `{duration: 1~3600}`(초) | 200 `{success, allowJoin, allowJoinExpiresAt}` |
+| `POST /rooms/{roomCode}/kick` | `Authorization: Bearer {hostToken}`, `{participantId}` | 200 `{success, message}` |
+
+**없어진 경로**: `GET /online-sequencer/rooms`(방 목록, 예전 관리자용). 클라이언트는 사용하지 않는다. 개발자 패널 관리자 기능(비밀번호 확인·방 목록·강제 삭제)은 2026-11-03에 제거했다.
+
+**예전 주소**: `https://jace-s.com/api/online-sequencer/...`, `https://api.jace-s.com/api/online-sequencer/...`, `wss://jace-s.com/api/online-sequencer/signaling`은 전환 기간에만 동작하며 이후 404가 된다. 클라이언트는 사용하지 않는다.
+
+아래 상세는 기존 명세를 유지한 것이다. 위 표와 다르면 위 표가 우선한다.
 
 ## REST API 엔드포인트
 
@@ -21,7 +40,7 @@
 ```
 POST /rooms
 Content-Type: application/json
-Headers: { "X-Client-Id": "client-uuid", "X-Host-Id": "host-uuid" }
+Headers (재등록 시에만): { "Authorization": "Bearer {hostToken}" }
 
 Request Body:
 {
@@ -33,8 +52,10 @@ Response 200:
   "success": true,
   "roomCode": "1234",  // 서버가 생성한 비어있는 4자리 숫자
   "hostId": "uuid-here",
-  "expiresAt": 1234567890123,  // 6시간 후 (21600000ms)
-  "allowJoin": false  // 초기값: 조인 불가
+  "hostToken": "...",  // 새 방일 때 한 번만 반환
+  "expiresAt": 1234567890123,  // 로그인 6시간, 비로그인 1시간 후
+  "allowJoin": false,  // 초기값: 조인 불가
+  "createdAt": 1234567890000
 }
 
 Response 400:
@@ -58,14 +79,15 @@ Response 200: (호스트가 이미 룸이 있는 경우)
 - 룸 코드는 서버에서 생성하여 반환합니다
 - 서버는 사용 가능한 4자리 숫자(0000-9999) 중 하나를 선택합니다
 - 이미 사용 중인 룸 코드는 제외하고 할당합니다
-- 룸은 6시간 동안 유지됩니다 (21600000ms)
+- 룸 유지 시간: 로그인 상태 6시간, 비로그인 1시간
+- 클라이언트는 재연결 시 보관한 hostToken으로 재등록을 시도하고, 401/403/404로 거절되면 토큰 없이 새 방을 만든다
 - 초기 상태는 allowJoin: false (조인 불가)
 
 ### 2. 룸 조회 (참가자가 조인 시)
 
 ```
 GET /rooms/:roomCode
-Headers: { "X-Client-Id": "client-uuid" }  // 선택사항, 강퇴 확인용
+Headers: { "x-client-id": "client-uuid" }  // 선택사항, 강퇴 확인용
 
 Response 200:
 {
@@ -108,7 +130,7 @@ Response 403:
 
 ```
 POST /rooms/:roomCode/allow-join
-Headers: { "X-Client-Id": "client-uuid" }
+Headers: { "Authorization": "Bearer {hostToken}" }
 Content-Type: application/json
 
 Request Body:
@@ -135,15 +157,16 @@ Response 403:
 - 이미 조인 허용 상태인 경우: 타이머가 재시작되어 60초 연장
 - 호스트는 언제든지 이 API를 호출할 수 있음
 
-### 3. 룸 삭제 (호스트가 "Stop Hosting" 클릭 시, 또는 6시간 후 자동)
+### 3. 룸 삭제 (호스트가 "Stop Hosting" 클릭 시, 또는 만료 시 자동)
 
 ```
 DELETE /rooms/:roomCode
-Headers: { "X-Client-Id": "client-uuid" }
+Headers: { "Authorization": "Bearer {hostToken}" }
 
 Response 200:
 {
-  "success": true
+  "success": true,
+  "roomCode": "1234"
 }
 
 Response 403:
@@ -153,13 +176,13 @@ Response 403:
 }
 ```
 
-**참고:** 6시간 후 서버 룸은 만료되며 만료 이벤트가 전송됩니다. P2P 종료는 클라이언트 처리에 따라 달라집니다.
+**참고:** 만료 시간(로그인 6시간, 비로그인 1시간)이 지나면 서버 룸은 만료되며 만료 이벤트가 전송됩니다. P2P 종료는 클라이언트 처리에 따라 달라집니다.
 
 ### 4. 참가자 강퇴 (호스트가 강퇴 버튼 클릭 시)
 
 ```
 POST /rooms/:roomCode/kick
-Headers: { "X-Client-Id": "client-uuid" }
+Headers: { "Authorization": "Bearer {hostToken}" }
 Content-Type: application/json
 
 Request Body:
@@ -208,33 +231,15 @@ WebSocket 메시지 (서버 → 모든 클라이언트)
 ```
 
 **경고 시점:**
-- 30분 전 (5시간 30분 경과)
-- 5분 전 (5시간 55분 경과)
-- 1분 전 (5시간 59분 경과)
-
-### 6. 개발자 패널 관리자 기능이 호출하는 API (현재 클라이언트 기준)
-
-개발자 패널의 룸 목록 관리(`src/components/Inspector/RoomsListModal.tsx`)와 비밀번호 확인(`src/components/Inspector/PasswordModal.tsx`)이 호출하는 API입니다. QA 화면(`src/pages/QaPage.tsx`)도 서버 도달 여부 확인에 `GET /rooms`를 사용합니다.
-
-```
-GET /rooms                 // 룸 목록 조회 (인증 헤더 없음)
-GET /rooms/:roomCode       // 룸 상세 조회 (인증 헤더 없음)
-DELETE /rooms/:roomCode    // 룸 강제 삭제 (인증 헤더 없음)
-POST {apiOrigin}/api/auth/verify-password   // 비밀번호 확인, 응답 { "valid": boolean }
-```
-
-- `apiOrigin`은 `getApiOrigin()` 값(기본 `https://api.jace-s.com`)입니다. 상세는 [API 설정](../../architecture/api-configuration.ko.md)을 참고하십시오.
-- 위 요청에는 관리자 자격 증명이 포함되지 않습니다. 관리자 상태는 클라이언트 로컬 상태로만 관리됩니다.
-- `online-sequencer.jace-s.com`에서는 jace-s 로그인 쿠키(`credentials: 'include'`)와 변경 요청의 `x-csrf-token`이 함께 전송됩니다. 3장의 협업 REST 요청도 같습니다. 상세는 [서비스 공지와 로그인 명세](../service-notices-and-login.ko.md)를 참고하십시오.
-- `DELETE /rooms/:roomCode`는 3장 명세상 `X-Client-Id`가 필요하지만 관리자 삭제 요청은 이 헤더를 보내지 않습니다. 서버가 3장 명세대로 동작하면 403이 반환될 수 있습니다.
-- 서버 세션 기반으로 바꾸는 계획은 [관리자 인증 설계](../admin-authentication.ko.md)에 있습니다 (**클라이언트 미반영**).
+- 만료 30분 전, 5분 전, 1분 전 (6시간 방 기준 5시간 30분·55분·59분 경과)
+- 비로그인 1시간 방의 경고 시점은 계약 원문(`30-app-contract.md`)을 확인하지 못했다
 
 ## WebSocket API
 
 ### 연결
 
 ```
-ws(s)://<configured-api-host>/<configured-api-base-path>/signaling?clientId=<client-uuid>
+wss://api.jace-s.com/online-sequencer/signaling?clientId=<client-uuid>
 ```
 
 ### 메시지 형식

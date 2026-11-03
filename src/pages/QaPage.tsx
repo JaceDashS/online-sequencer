@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import qaProjectRaw from '../../case-tests/fixtures/qa-project.json?raw';
-import { getApiBaseUrl } from '../utils/apiConfig';
+import { getApiUrl } from '../utils/apiConfig';
 import { qaScenarios, type QaExecutor, type QaScale } from '../qa/qaScenarios';
 import styles from './QaPage.module.css';
 
@@ -214,28 +214,17 @@ function QaPage() {
       message: '협업 API 응답을 기다리는 중입니다.',
     }));
 
-    let baseUrl: string;
-    try {
-      baseUrl = getApiBaseUrl();
-    } catch {
-      const reason = 'API 환경 변수가 없어 서버 테스트를 실행할 수 없습니다.';
-      setServer({
-        state: 'unconfigured',
-        message: reason,
-        checkedAt: new Date().toISOString(),
-        baseUrl: null,
-      });
-      applyServerAvailability(false, reason);
-      return;
-    }
+    // jace-s API 생존 확인 (기본 https://api.jace-s.com/health)
+    const baseUrl = getApiUrl();
 
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 3000);
 
     try {
-      const response = await fetch(`${baseUrl}/rooms`, {
+      const response = await fetch(`${baseUrl}/health`, {
         method: 'GET',
         cache: 'no-store',
+        credentials: 'omit',
         signal: controller.signal,
       });
       const message = `API가 HTTP ${response.status}로 응답했습니다.`;

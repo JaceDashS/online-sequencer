@@ -3,7 +3,7 @@
 **Document Version**: 1.0  
 **Software Version**: 0.1.0  
 **Last Updated**: 2026-01-14  
-**시그널링 API Base**: `VITE_API_BASE_URL`로 설정
+**시그널링 API**: `https://api.jace-s.com/online-sequencer` (`VITE_API_URL` 기준, [API 설정](../../architecture/api-configuration.ko.md))
 
 ---
 

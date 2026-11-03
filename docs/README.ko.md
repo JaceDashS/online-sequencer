@@ -21,7 +21,7 @@ graph TB
     B --> B1[midi-standard-compliance]
     B --> B2[project-save-load-specification]
     B --> B3[collaboration-specification/]
-    B --> B4[admin-authentication<br/>계획]
+    B --> B4[admin-authentication<br/>폐기]
     B --> B5[service-notices-and-login]
 
     C --> C1[api-configuration]
@@ -50,13 +50,13 @@ graph TB
 - [`midi-standard-compliance.ko.md`](./specs/midi-standard-compliance.ko.md) - MIDI 표준(SMF, MIDI 1.0) 준수 사양
 - [`project-save-load-specification.ko.md`](./specs/project-save-load-specification.ko.md) - 프로젝트 저장/불러오기 포맷
 - [`collaboration-specification/`](./specs/collaboration-specification/README.ko.md) - 실시간 협업 명세 (서버 API, P2P 프로토콜, 예외 처리)
-- [`service-notices-and-login.ko.md`](./specs/service-notices-and-login.ko.md) - jace-s 서비스 공지 토스트(`/health`, `/notices`)와 로그인 세션·CSRF
-- [`admin-authentication.ko.md`](./specs/admin-authentication.ko.md) - 관리자 인증·룸 관리 보안 설계 (**계획: 클라이언트 미반영**)
+- [`service-notices-and-login.ko.md`](./specs/service-notices-and-login.ko.md) - jace-s 연동: 서비스 공지 토스트(`/health`, `/notices`)와 로그인 세션·CSRF
+- [`admin-authentication.ko.md`](./specs/admin-authentication.ko.md) - 관리자 인증·룸 관리 보안 설계 (**폐기: 설계 이력**)
 
 ## 아키텍처 (`architecture/`)
 
 - [`README.ko.md`](./architecture/README.ko.md) - 아키텍처 문서 개요
-- [`api-configuration.ko.md`](./architecture/api-configuration.ko.md) - API·WebSocket URL 환경 변수 구성
+- [`api-configuration.ko.md`](./architecture/api-configuration.ko.md) - jace-s API(`api.jace-s.com`)·WebSocket·로그인 화면 주소 설정
 - [`optimization-design/index.ko.md`](./architecture/optimization-design/index.ko.md) - 성능 최적화 기법 (아키텍처 수준 / 구현 수준 / 데이터 접근)
 - [`analysis/audio-playback-timing-jank-analysis.ko.md`](./architecture/analysis/audio-playback-timing-jank-analysis.ko.md) - 오디오 재생 렉과 노트 타이밍 지연 분석 및 개선 결과
 

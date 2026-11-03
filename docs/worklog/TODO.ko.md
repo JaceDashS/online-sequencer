@@ -117,7 +117,7 @@
   - 완료 조건: stash 내용을 검토하여 중복 구현을 피하고 생성→등록→재연결→참가 허용→강퇴→삭제를 양 플랫폼에서 검증한다. 재등록의 null 토큰으로 유효한 기존 토큰을 지우지 않는다. 토큰을 로그·문서에 출력하지 않는다.
 
 - [ ] **C-02 · P1 · 관리자 로그인·룸 API 계약 전환**
-  - 근거: [PasswordModal.tsx](../../src/components/Inspector/PasswordModal.tsx):31~51은 trim과 `{valid:true}` JSON을 기대한다. [verify-password/route.ts](../../jace-s/app/api/auth/verify-password/route.ts):30은 새 로그인(204 + 쿠키)으로 위임한다. [RoomsListModal.tsx](../../src/components/Inspector/RoomsListModal.tsx):58은 410을 반환하는 일반 목록 경로를 호출한다.
+  - 근거: `PasswordModal.tsx`(2026-11-03 삭제):31~51은 trim과 `{valid:true}` JSON을 기대한다. [verify-password/route.ts](../../jace-s/app/api/auth/verify-password/route.ts):30은 새 로그인(204 + 쿠키)으로 위임한다. `RoomsListModal.tsx`(2026-11-03 삭제):58은 410을 반환하는 일반 목록 경로를 호출한다.
   - 판정: 코드상 요청/응답 계약 불일치. 현재 운영 서버 상태는 미확인.
   - 완료 조건: 로그인·세션 확인·로그아웃·관리자 목록/상세/삭제를 새 경로에 연결한다. 쿠키/CSRF/401 처리와 비밀번호 원문 전송을 검증한다. 기존 서버 인증을 다시 만드는 작업이 아니라 클라이언트 전환 작업으로 진행한다.
 

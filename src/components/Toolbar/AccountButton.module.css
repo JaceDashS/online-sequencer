@@ -26,6 +26,11 @@
 }
 
 .account {
+  padding: 4px 6px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -33,4 +38,9 @@
   font-size: 12px;
   color: var(--text-tertiary);
   flex-shrink: 1;
+}
+
+.account:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }

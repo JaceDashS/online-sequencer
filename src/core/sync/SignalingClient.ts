@@ -92,6 +92,16 @@ export interface HostInfo {
 }
 
 /**
+ * 호스트 토큰으로 기존 방 재등록이 거절됨 (새 방 생성으로 대체)
+ */
+class RoomRegistrationRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RoomRegistrationRejectedError';
+  }
+}
+
+/**
  * SignalingClient 클래스
  */
 export class SignalingClient {
@@ -99,6 +109,12 @@ export class SignalingClient {
   private ws: IWebSocket | null = null;
   private clientId: string;
   private roomCode: string | null = null;
+  /**
+   * 호스트 토큰: 새 방을 만들 때 한 번만 받는다.
+   * 방 재등록·삭제·조인 허용·강퇴에 Authorization: Bearer로 사용한다.
+   * 메모리에만 보관하며 URL이나 로그에 넣지 않는다.
+   */
+  private hostToken: string | null = null;
   private isConnected: boolean = false;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
@@ -117,8 +133,8 @@ export class SignalingClient {
     // Transport 인스턴스 가져오기 (플랫폼 자동 감지)
     this.transport = getTransport();
     
-    // VITE_API_BASE_URL은 apiConfig 유틸리티를 통해 직접 사용
-    // 모든 API 요청은 buildApiUrl() 및 buildWebSocketUrl() 함수를 통해 생성됨
+    // 모든 API 요청은 apiConfig의 buildApiUrl() 및 buildWebSocketUrl()로 생성됨
+    // ({VITE_API_URL}/online-sequencer/..., wss://.../online-sequencer/signaling)
     
     this.clientId = getOrCreateClientId();
   }
@@ -169,7 +185,7 @@ export class SignalingClient {
       });
     }
 
-    // VITE_API_BASE_URL을 기반으로 WebSocket URL 생성
+    // wss://{API host}/online-sequencer/signaling?clientId=...
     const wsUrl = buildWebSocketUrl('/signaling', { clientId: this.clientId });
     verboseLog('Connecting to WebSocket:', wsUrl);
     
@@ -354,46 +370,17 @@ export class SignalingClient {
     }
 
     // REST API로 룸 생성 (타임아웃 처리)
-    const url = buildApiUrl('/rooms');
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
-    
+    // 기존 호스트 토큰이 있으면 같은 방 재등록을 시도하고, 거절되면 새 방을 만든다.
     let roomCode: string;
-    
     try {
-      const response = await this.transport.request(withJaceAuth({
-        url,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Client-Id': this.clientId,
-          'X-Host-Id': hostId
-        },
-        body: JSON.stringify({ hostId }),
-        signal: controller.signal
-      }));
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const error = (await response.json().catch(() => ({ error: 'Failed to create room' }))) as { error?: string };
-        console.error('[SignalingClient] Room creation failed:', error);
-        throw new Error(error.error || `HTTP ${response.status}`);
-      }
-
-      const data = (await response.json()) as { roomCode: string };
-      
-      roomCode = data.roomCode;
-
-      if (!roomCode) {
-        throw new Error('Room creation failed: roomCode not returned');
-      }
+      roomCode = await this.requestRoomRegistration(hostId, this.hostToken);
     } catch (err) {
-      clearTimeout(timeoutId);
-      if (err instanceof Error && err.name === 'AbortError') {
-        throw new Error('Server did not respond. Please check your connection and try again.');
+      if (this.hostToken && err instanceof RoomRegistrationRejectedError) {
+        this.hostToken = null;
+        roomCode = await this.requestRoomRegistration(hostId, null);
+      } else {
+        throw err;
       }
-      throw err;
     }
 
     // WebSocket으로 룸 등록
@@ -433,6 +420,62 @@ export class SignalingClient {
   }
 
   /**
+   * POST /online-sequencer/rooms
+   * 성공 시 roomCode를 반환하고, 응답의 hostToken을 보관한다.
+   */
+  private async requestRoomRegistration(hostId: string, hostToken: string | null): Promise<string> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (hostToken) {
+        headers.Authorization = `Bearer ${hostToken}`;
+      }
+      const response = await this.transport.request(withJaceAuth({
+        url: buildApiUrl('/rooms'),
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ hostId }),
+        signal: controller.signal
+      }));
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({ error: 'Failed to create room' }))) as { error?: string };
+        console.error('[SignalingClient] Room creation failed:', response.status, error.error);
+        if (hostToken && [401, 403, 404].includes(response.status) && error.error !== 'CSRF_VALIDATION_FAILED') {
+          throw new RoomRegistrationRejectedError(error.error || `HTTP ${response.status}`);
+        }
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      const data = (await response.json()) as { roomCode?: string; hostToken?: string };
+      if (!data.roomCode) {
+        throw new Error('Room creation failed: roomCode not returned');
+      }
+      if (typeof data.hostToken === 'string' && data.hostToken) {
+        this.hostToken = data.hostToken;
+      }
+      return data.roomCode;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error('Server did not respond. Please check your connection and try again.');
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * 호스트 전용 요청의 Authorization 헤더
+   */
+  private getHostAuthHeaders(): Record<string, string> {
+    return this.hostToken ? { Authorization: `Bearer ${this.hostToken}` } : {};
+  }
+
+  /**
    * 룸 정보 조회
    */
   async getRoom(roomCode: string): Promise<RoomInfo> {
@@ -440,7 +483,7 @@ export class SignalingClient {
       url: buildApiUrl(`/rooms/${roomCode}`),
       method: 'GET',
       headers: {
-        'X-Client-Id': this.clientId
+        'x-client-id': this.clientId
       }
     }));
 
@@ -456,14 +499,15 @@ export class SignalingClient {
    * 조인 허용 활성화 (호스트)
    */
   async allowJoin(roomCode: string, duration: number = 60): Promise<void> {
+    const safeDuration = Math.min(3600, Math.max(1, Math.round(Number.isFinite(duration) ? duration : 60)));
     const response = await this.transport.request(withJaceAuth({
       url: buildApiUrl(`/rooms/${roomCode}/allow-join`),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Client-Id': this.clientId
+        ...this.getHostAuthHeaders()
       },
-      body: JSON.stringify({ duration })
+      body: JSON.stringify({ duration: safeDuration })
     }));
 
     if (!response.ok) {
@@ -540,7 +584,7 @@ export class SignalingClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Client-Id': this.clientId
+        ...this.getHostAuthHeaders()
       },
       body: JSON.stringify({ participantId })
     }));
@@ -559,7 +603,7 @@ export class SignalingClient {
       url: buildApiUrl(`/rooms/${roomCode}`),
       method: 'DELETE',
       headers: {
-        'X-Client-Id': this.clientId
+        ...this.getHostAuthHeaders()
       }
     }));
 
@@ -568,8 +612,9 @@ export class SignalingClient {
       console.error('[SignalingClient] Room deletion failed:', error);
       throw new Error(error.error || `HTTP ${response.status}`);
     }    
-    // 룸 코드 초기화
+    // 룸 코드·호스트 토큰 초기화
     this.roomCode = null;
+    this.hostToken = null;
   }
 
   /**
@@ -674,6 +719,7 @@ export class SignalingClient {
 
     this.isConnected = false;
     this.roomCode = null;
+    this.hostToken = null;
   }
 
   /**

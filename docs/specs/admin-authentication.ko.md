@@ -4,10 +4,11 @@
 **Software Version**: 0.1.0  
 **Last Updated**: 2026-11-03
 
-> **상태: 계획 (클라이언트 미반영)**
-> - 이 문서는 목표 설계입니다. 현재 `dev` 브랜치의 클라이언트는 2장 "현재 구현과 문제점"의 방식(`POST /api/auth/verify-password` + 로컬 `isAdminMode`)으로 동작합니다.
-> - 서버 측 구현과 클라이언트 리팩토링의 진행 상황은 [인증·인가 리팩토링 작업 상태](../worklog/auth-refactoring-status.ko.md)를 참고하십시오.
-> - 반영 후에는 [협업 서버 API](./collaboration-specification/server-api.ko.md)와 [보안 고려사항](./collaboration-specification/security.ko.md)의 인증 관련 내용을 함께 갱신해야 합니다.
+> **상태: 폐기 (2026-11-03)**
+> - jace-s API 이전(`api.jace-s.com`, 커밋 `9416e01` 이후)으로 방 목록 `GET /online-sequencer/rooms`가 없어졌고, `/api/auth/verify-password`는 계약에 없습니다.
+> - 이에 따라 개발자 패널의 관리자 기능(비밀번호 확인·방 목록·강제 삭제)을 클라이언트에서 제거했습니다.
+> - 일반 호스트 권한은 이 문서의 5장 대신 jace-s 계약의 `hostToken`(Bearer) 방식을 따릅니다. [서버 API](./collaboration-specification/server-api.ko.md) 참고.
+> - 이 문서는 설계 이력으로만 남깁니다.
 
 ## 1. 목적
 

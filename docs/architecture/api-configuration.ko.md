@@ -1,183 +1,84 @@
 # API 설정
 
-**Document Version**: 1.1  
+**Document Version**: 2.0  
 **Software Version**: 0.1.0  
 **Last Updated**: 2026-11-03
 
-**카테고리**: 설정 관리 (2026-11-03에 `optimization-design/implementation-level/`에서 이동)
+**카테고리**: 설정 관리
 
 ---
 
 ## 개요
 
-협업 시그널링 서버의 HTTP API와 WebSocket URL을 환경 변수로 구성하는 방식을 정의합니다. 모든 API 요청 URL은 `buildApiUrl()`, WebSocket URL은 `buildWebSocketUrl()`로 생성합니다.
+jace-s API, 협업 WebSocket, 로그인 화면 주소를 설정값으로 관리합니다. 주소는 `src/utils/apiConfig.ts`에서만 만들며 코드 곳곳에 직접 쓰지 않습니다.
 
----
+- 계약 원문: jace-s 저장소 `docs/api/apps/online-sequencer/` (`10-client-contract.md`, `20-health.md`, `30-app-contract.md`)
+- 기준: jace-s 커밋 `9416e01` 이후 (2026-11-03 운영 반영)
 
-## 설정 우선순위
-
-1. `VITE_API_BASE_URL`이 있으면 이 값을 사용합니다.
-2. 없으면 `VITE_BASE_URL` + `VITE_API_PATH` 조합을 사용합니다.
-3. 둘 다 없으면 `getApiBaseUrl()`이 에러를 던집니다.
-
-운영 값: `VITE_API_BASE_URL=https://api.jace-s.com/api/online-sequencer` (WebSocket은 `wss://api.jace-s.com/api/online-sequencer/signaling`). 2026-11-03 jace-s API 이전 전의 `https://jace-s.com/api/...`는 전환 기간에만 동작합니다.
-
-### jace-s 공통 주소
-
-| 함수 / 상수 | 환경 변수 | 기본값 | 용도 |
-|---|---|---|---|
-| `getApiOrigin()` | `VITE_API_ORIGIN` | API 베이스 URL의 origin, 없으면 `https://api.jace-s.com` | `/health`, `/notices`, `/api/auth/*` |
-| `getSiteUrl()` | `VITE_SITE_URL` | `https://jace-s.com` | 로그인 화면 `/login` |
-| `getLoginHosts()` | `VITE_LOGIN_HOSTS` (쉼표 구분) | `online-sequencer.jace-s.com` | 로그인 UI를 보여줄 호스트 |
-| `JACE_S_APP_ID` | - | `41` | `/notices?app=41` |
-
-상세 동작은 [서비스 공지와 로그인 명세](../specs/service-notices-and-login.ko.md)를 참고하십시오.
-
-값은 Vite의 `import.meta.env`에서 먼저 읽고, 없으면 Node `process.env`에서 읽습니다 (스크립트 테스트 실행용).
-
----
-
-## 구현 위치
-
-- `src/utils/apiConfig.ts`: API 설정 유틸리티
+```mermaid
+flowchart LR
+  S["online-sequencer.jace-s.com"] -->|"방, 로그인 확인, 공지"| A["api.jace-s.com"]
+  S -->|"WebSocket"| W["wss://api.jace-s.com/online-sequencer/signaling"]
+  S -->|"로그인·계정 화면 (새 창)"| L["jace-s.com/login, /account"]
+```
 
 ---
 
 ## 환경 변수
 
-### VITE_API_BASE_URL (우선)
-- 전체 API 베이스 URL을 직접 지정
-- 예: `https://api.example.com` 또는 `http://localhost:3000/api`
+| 변수 | 기본값 | 용도 |
+|---|---|---|
+| `VITE_API_URL` | `https://api.jace-s.com` | 모든 API 주소. origin만 사용하며 경로에 `/api`를 붙이지 않음 |
+| `VITE_SITE_URL` | `https://jace-s.com` | 로그인 `/login`, 계정 `/account` 화면 |
+| `VITE_NOTICE_APP_ID` | `41` | 공지 조회 `/notices?app=41` |
+| `VITE_LOGIN_HOSTS` | `online-sequencer.jace-s.com` | 로그인 UI를 보여줄 호스트 (쉼표 구분) |
 
-### VITE_BASE_URL + VITE_API_PATH (대안)
-- `VITE_BASE_URL`: 기본 URL (예: `https://example.com`)
-- `VITE_API_PATH`: API 경로 (예: `/api` 또는 `api`)
-- 조합 결과: `https://example.com/api`
-
----
-
-## API URL 생성
-
-### getApiBaseUrl()
-
-```typescript
-export function getApiBaseUrl(): string {
-  // getEnvValue: import.meta.env 우선, 없으면 process.env
-  const apiBaseUrl = getEnvValue('VITE_API_BASE_URL');
-  const baseUrl = getEnvValue('VITE_BASE_URL');
-  const apiPath = getEnvValue('VITE_API_PATH');
-
-  // VITE_API_BASE_URL이 있으면 우선 사용
-  if (apiBaseUrl) {
-    return apiBaseUrl.replace(/\/$/, '');
-  }
-
-  // VITE_BASE_URL과 VITE_API_PATH 조합
-  if (!baseUrl || !apiPath) {
-    throw new Error(
-      'API base URL is not configured. ' +
-      'Set VITE_API_BASE_URL or set both VITE_BASE_URL and VITE_API_PATH.'
-    );
-  }
-
-  const normalizedBase = baseUrl.replace(/\/$/, '');
-  const normalizedPath = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
-  return `${normalizedBase}${normalizedPath}`.replace(/\/$/, '');
-}
-```
-
-### buildApiUrl()
-
-```typescript
-export function buildApiUrl(endpoint: string): string {
-  const baseUrl = getApiBaseUrl();
-  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${baseUrl}${normalizedEndpoint}`;
-}
-```
+- 값은 Vite의 `import.meta.env`에서 먼저 읽고, 없으면 Node `process.env`에서 읽습니다 (스크립트 테스트용).
+- 예전 변수 `VITE_API_BASE_URL`, `VITE_BASE_URL`, `VITE_API_PATH`는 더 이상 읽지 않습니다. 설정되어 있어도 무시됩니다.
+- 운영 배포에서는 기본값이 계약과 같으므로 변수를 설정하지 않아도 됩니다.
 
 ---
 
-## WebSocket URL 생성
+## 주소 생성
 
-### buildWebSocketUrl()
+| 함수 | 결과 |
+|---|---|
+| `getApiUrl()` | `https://api.jace-s.com` |
+| `buildApiUrl('/rooms')` | `https://api.jace-s.com/online-sequencer/rooms` |
+| `buildWebSocketUrl('/signaling', { clientId })` | `wss://api.jace-s.com/online-sequencer/signaling?clientId=...` |
+| `getSiteUrl()` | `https://jace-s.com` |
+| `getNoticeAppId()` | `41` |
+| `isLoginAvailable()` | 브라우저(Electron 제외)이고 호스트가 `VITE_LOGIN_HOSTS`에 있으면 true |
 
-```typescript
-export function buildWebSocketUrl(path: string, queryParams?: Record<string, string>): string {
-  const apiBaseUrl = getApiBaseUrl();
-  
-  // HTTP/HTTPS를 WS/WSS로 변환
-  const wsBaseUrl = apiBaseUrl
-    .replace(/^http:\/\//, 'ws://')
-    .replace(/^https:\/\//, 'wss://');
-  
-  // 경로 정규화
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  
-  // 쿼리 파라미터 추가
-  let url = `${wsBaseUrl}${normalizedPath}`;
-  if (queryParams) {
-    const params = new URLSearchParams(queryParams);
-    const queryString = params.toString();
-    if (queryString) {
-      url += `?${queryString}`;
-    }
-  }
-  
-  return url;
-}
-```
+- `http://` → `ws://`, `https://` → `wss://`로 변환합니다.
+- 엔드포인트 앞의 `/`가 없으면 붙입니다.
 
-### WebSocket URL 변환 규칙
-- HTTP → WS, HTTPS → WSS 자동 변환
-- 경로 정규화 (앞뒤 슬래시 처리)
-- 쿼리 파라미터 지원
+### 사용처
+
+| 요청 | 주소 | 위치 |
+|---|---|---|
+| 서버 생존 | `{API}/health` | `src/core/notices/serviceNotices.ts` |
+| 공지 | `{API}/notices?app=41` | `src/core/notices/serviceNotices.ts` |
+| 로그인 확인 | `{API}/auth/session` | `src/core/auth/jaceSession.ts` |
+| 협업 REST | `{API}/online-sequencer/rooms...` | `src/core/sync/SignalingClient.ts` |
+| 협업 WebSocket | `wss://{API host}/online-sequencer/signaling` | `src/core/sync/SignalingClient.ts` |
+| QA 서버 확인 (개발 전용) | `{API}/health` | `src/pages/QaPage.tsx` |
 
 ---
 
-## 사용 예시
+## 예전 주소 (사용 금지)
 
-### 환경 변수 설정
+| 예전 | 현재 |
+|---|---|
+| `https://jace-s.com/api/online-sequencer/...` | `https://api.jace-s.com/online-sequencer/...` |
+| `https://api.jace-s.com/api/online-sequencer/...` | `https://api.jace-s.com/online-sequencer/...` |
+| `wss://jace-s.com/api/online-sequencer/signaling` | `wss://api.jace-s.com/online-sequencer/signaling` |
+| `https://jace-s.com/api/auth/session` | `https://api.jace-s.com/auth/session` |
+| `https://jace-s.com/health` (공지 포함) | `https://api.jace-s.com/health` + `/notices?app=41` |
+| `/external/health/...` (prewarm) | 부르지 않음 |
+| `/api/auth/verify-password`, `GET /online-sequencer/rooms` (관리자) | 기능 제거 |
 
-#### 방식 1: VITE_API_BASE_URL 사용
-```env
-VITE_API_BASE_URL=https://api.example.com
-```
-
-#### 방식 2: VITE_BASE_URL + VITE_API_PATH 사용
-```env
-VITE_BASE_URL=https://example.com
-VITE_API_PATH=/api
-```
-
-### 코드에서 사용
-
-```typescript
-import { buildApiUrl, buildWebSocketUrl } from './utils/apiConfig';
-
-// API 엔드포인트 URL 생성
-const roomsUrl = buildApiUrl('/rooms');
-const roomUrl = buildApiUrl('/rooms/1234');
-
-// WebSocket URL 생성
-const wsUrl = buildWebSocketUrl('/signaling', { clientId: '123' });
-```
-
-### 예외: 관리자 비밀번호 확인 API
-
-`src/components/Inspector/PasswordModal.tsx`는 `/api/auth/verify-password`가 협업 API 하위 경로가 아니므로 `getApiOrigin()`을 기준으로 `{apiOrigin}/api/auth/verify-password`를 요청합니다. 관리자 인증 개편 계획은 [관리자 인증 설계](../specs/admin-authentication.ko.md)를 참고하십시오.
-
----
-
-## 참고사항
-
-### URL 정규화
-- API 베이스 URL 끝의 슬래시 제거
-- 경로는 항상 `/`로 시작하도록 정규화
-
-### 에러 처리
-- 환경 변수가 설정되지 않은 경우 명확한 에러 메시지 제공
-- 두 가지 설정 방식 모두 확인 후 에러 발생
+예전 주소는 전환 기간에만 동작하며, jace-s 운영자가 요청이 없어진 것을 확인한 뒤 닫습니다(이후 404).
 
 ---
 

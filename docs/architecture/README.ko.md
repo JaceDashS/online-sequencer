@@ -10,7 +10,7 @@
 
 | 구분 | 문서 | 내용 |
 |---|---|---|
-| 설정 | [`api-configuration.ko.md`](./api-configuration.ko.md) | API·WebSocket URL 환경 변수 구성 |
+| 설정 | [`api-configuration.ko.md`](./api-configuration.ko.md) | jace-s API·WebSocket·로그인 화면 주소 설정 |
 | 최적화 설계 | [`optimization-design/index.ko.md`](./optimization-design/index.ko.md) | 성능 최적화 기법 전체 목록 |
 | 설계 분석 | [`analysis/audio-playback-timing-jank-analysis.ko.md`](./analysis/audio-playback-timing-jank-analysis.ko.md) | 재생 렉에 따른 노트 타이밍 지연 원인 분석과 개선 결과 |
 

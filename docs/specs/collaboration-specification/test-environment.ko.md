@@ -57,11 +57,13 @@ ip addr show
 
 ### 클라이언트 환경 변수 설정
 
+`VITE_API_URL`에는 서버 origin만 넣는다. 클라이언트가 `/online-sequencer/...` 경로를 붙인다. 로컬 서버가 운영과 같은 경로(`/online-sequencer/rooms`, `/online-sequencer/signaling`)로 서비스한다고 가정하며, 로컬 서버의 실제 경로는 확인하지 않았다. 로컬 주소에서는 로그인 UI가 숨겨지므로 비로그인 흐름만 시험할 수 있다.
+
 **`.env.development` 파일:**
 
 ```env
 # 서버 컴퓨터의 로컬 IP 주소 사용
-VITE_API_BASE_URL=http://192.168.0.100:3000/api/online-sequencer
+VITE_API_URL=http://192.168.0.100:3000
 NODE_ENV=development
 VITE_APP_ENV=development
 VITE_ENABLE_DEBUG_LOGS=true
@@ -118,7 +120,7 @@ ngrok http 3000
 
 ```env
 # ngrok URL 사용
-VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-sequencer
+VITE_API_URL=https://abc123.ngrok.io
 ```
 
 **참고:**
@@ -135,7 +137,7 @@ VITE_API_BASE_URL=https://abc123.ngrok.io/api/online-sequencer
 
 ```env
 # 서버 컴퓨터의 로컬 IP 주소 사용
-VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-sequencer
+VITE_API_URL=http://192.168.43.100:3000
 ```
 
 **주의사항:**
@@ -152,7 +154,7 @@ VITE_API_BASE_URL=http://192.168.43.100:3000/api/online-sequencer
 
 ```env
 # 라우터의 공인 IP 주소 사용
-VITE_API_BASE_URL=http://[라우터 공인 IP]:3000/api/online-sequencer
+VITE_API_URL=http://[라우터 공인 IP]:3000
 ```
 
 **주의사항:**

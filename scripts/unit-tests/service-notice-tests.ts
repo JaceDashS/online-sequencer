@@ -10,9 +10,10 @@ import {
   resolveServiceNoticeToasts,
 } from '../../src/core/notices/serviceNotices';
 import { getJaceSession, parseSessionPayload, refreshJaceSession, withJaceAuth } from '../../src/core/auth/jaceSession';
+import { SignalingClient } from '../../src/core/sync/SignalingClient';
 import { resetTransport, setTransport } from '../../src/transport';
-import { getApiOrigin, isLoginAvailable, JACE_S_APP_ID } from '../../src/utils/apiConfig';
-import type { IHttpRequestOptions, IHttpResponse } from '../../src/transport/types';
+import { buildApiUrl, buildWebSocketUrl, getApiUrl, getNoticeAppId, getSiteUrl, isLoginAvailable } from '../../src/utils/apiConfig';
+import type { IHttpRequestOptions, IHttpResponse, IWebSocket } from '../../src/transport/types';
 
 type TestFn = () => void | Promise<void>;
 const tests: Array<{ name: string; fn: TestFn }> = [];
@@ -43,14 +44,21 @@ function createTransport(routes: Record<string, Route>) {
 }
 
 const ORIGIN = 'https://api.jace-s.com';
-const NOTICES_PATH = `/notices?app=${JACE_S_APP_ID}`;
+const NOTICES_PATH = `/notices?app=${getNoticeAppId()}`;
 
 console.log('Service notice unit tests\n');
 console.log('='.repeat(60));
 
-test('app id is 41 and default API origin is api.jace-s.com', () => {
-  assert.equal(JACE_S_APP_ID, 41);
-  assert.equal(getApiOrigin(), 'https://api.jace-s.com');
+test('default addresses follow the api.jace-s.com contract (no /api prefix)', () => {
+  assert.equal(getNoticeAppId(), 41);
+  assert.equal(getApiUrl(), 'https://api.jace-s.com');
+  assert.equal(getSiteUrl(), 'https://jace-s.com');
+  assert.equal(buildApiUrl('/rooms'), 'https://api.jace-s.com/online-sequencer/rooms');
+  assert.equal(buildApiUrl('rooms/1234/kick'), 'https://api.jace-s.com/online-sequencer/rooms/1234/kick');
+  assert.equal(
+    buildWebSocketUrl('/signaling', { clientId: 'abc' }),
+    'wss://api.jace-s.com/online-sequencer/signaling?clientId=abc'
+  );
 });
 
 test('health is connected only on 200 and never reads the body', async () => {
@@ -79,7 +87,7 @@ test('health times out as disconnected', async () => {
 
 test('requests go to api origin without cookies', async () => {
   const transport = createTransport({ '/health': { status: 200 }, [NOTICES_PATH]: { status: 200, body: { schemaVersion: 1, announcements: [] } } });
-  await loadServiceStatus(transport, ORIGIN, JACE_S_APP_ID);
+  await loadServiceStatus(transport, ORIGIN, getNoticeAppId());
   const urls = transport.calls.map((call) => call.url).sort();
   assert.deepEqual(urls, [`${ORIGIN}/health`, `${ORIGIN}/notices?app=41`]);
   for (const call of transport.calls) {
@@ -167,7 +175,7 @@ test('login is only available on the allowed host', () => {
   assert.equal(isLoginAvailable({ protocol: 'file:', hostname: '' }), false);
 });
 
-test('withJaceAuth leaves requests unchanged where login is unavailable', () => {
+test('withJaceAuth leaves requests unchanged where login is unavailable or signed out', () => {
   const options = { method: 'POST', headers: { 'X-Client-Id': 'c' } };
   assert.equal(withJaceAuth(options), options);
 });
@@ -176,12 +184,16 @@ test('signed-in session adds credentials and x-csrf-token to mutating requests o
   const g = globalThis as unknown as { window?: unknown };
   const previousWindow = g.window;
   g.window = { location: { protocol: 'https:', hostname: 'online-sequencer.jace-s.com' } };
-  const transport = createTransport({ '/api/auth/session': { status: 200, body: { user: { name: 'tester' }, csrfToken: 'tok-1' } } });
+  const transport = createTransport({ '/auth/session': { status: 200, body: { user: { name: 'tester' }, csrfToken: 'tok-1' } } });
   setTransport(transport);
   try {
+    // 허용 Origin이지만 아직 로그인 확인 전: 비로그인처럼 요청을 바꾸지 않음
+    const beforeLogin = { method: 'POST', headers: {} };
+    assert.equal(withJaceAuth(beforeLogin), beforeLogin);
+
     await refreshJaceSession();
     assert.equal(getJaceSession().status, 'signed-in');
-    assert.equal(transport.calls[0].url, 'https://api.jace-s.com/api/auth/session');
+    assert.equal(transport.calls[0].url, 'https://api.jace-s.com/auth/session');
     assert.equal(transport.calls[0].credentials, 'include');
 
     const post = withJaceAuth({ method: 'POST', headers: { 'X-Client-Id': 'c' } });
@@ -195,6 +207,107 @@ test('signed-in session adds credentials and x-csrf-token to mutating requests o
     resetTransport();
     g.window = previousWindow;
     await refreshJaceSession(); // 로그인 불가 환경으로 상태 복원
+  }
+});
+
+function createRoomTransport(responses: Array<{ status: number; body: unknown }>) {
+  const calls: IHttpRequestOptions[] = [];
+  const queue = [...responses];
+  const ws: IWebSocket = {
+    readyState: 1,
+    onopen: null,
+    onmessage: null,
+    onerror: null,
+    onclose: null,
+    send(data: string) {
+      const message = JSON.parse(data) as { action: string; roomCode?: string };
+      if (message.action === 'register') {
+        setTimeout(() => ws.onmessage?.({ data: JSON.stringify({ action: 'registered', roomCode: message.roomCode }) }), 0);
+      }
+    },
+    close() {},
+  };
+  return {
+    calls,
+    wsUrls: [] as string[],
+    async request(options: IHttpRequestOptions): Promise<IHttpResponse> {
+      calls.push(options);
+      const next = queue.shift() ?? { status: 200, body: { success: true } };
+      return {
+        ok: next.status >= 200 && next.status < 300,
+        status: next.status,
+        json: async () => next.body,
+        text: async () => JSON.stringify(next.body),
+      };
+    },
+    async connectWebSocket(url: string): Promise<IWebSocket> {
+      this.wsUrls.push(url);
+      return ws;
+    },
+  };
+}
+
+test('host token from room creation is sent as Bearer and never in URLs', async () => {
+  const transport = createRoomTransport([
+    { status: 200, body: { success: true, roomCode: '0420', hostId: 'h', hostToken: 'secret-token', expiresAt: 1, allowJoin: false, createdAt: 0 } },
+  ]);
+  setTransport(transport);
+  try {
+    const client = new SignalingClient();
+    const roomCode = await client.registerRoom('host-uuid');
+    assert.equal(roomCode, '0420');
+    assert.match(transport.wsUrls[0], /^wss:\/\/api\.jace-s\.com\/online-sequencer\/signaling\?clientId=/);
+
+    const create = transport.calls[0];
+    assert.equal(create.url, 'https://api.jace-s.com/online-sequencer/rooms');
+    assert.equal(create.method, 'POST');
+    assert.deepEqual(JSON.parse(create.body ?? '{}'), { hostId: 'host-uuid' });
+    assert.equal(create.headers?.Authorization, undefined);
+
+    await client.allowJoin(roomCode, 99999);
+    await client.kickParticipant(roomCode, 'guest-1');
+    await client.getRoom(roomCode);
+    await client.deleteRoom(roomCode);
+
+    const [, allow, kick, get, del] = transport.calls;
+    assert.equal(allow.url, 'https://api.jace-s.com/online-sequencer/rooms/0420/allow-join');
+    assert.equal(allow.headers?.Authorization, 'Bearer secret-token');
+    assert.deepEqual(JSON.parse(allow.body ?? '{}'), { duration: 3600 });
+    assert.equal(kick.url, 'https://api.jace-s.com/online-sequencer/rooms/0420/kick');
+    assert.equal(kick.headers?.Authorization, 'Bearer secret-token');
+    assert.deepEqual(JSON.parse(kick.body ?? '{}'), { participantId: 'guest-1' });
+    assert.equal(get.method, 'GET');
+    assert.equal(get.headers?.Authorization, undefined);
+    assert.ok(get.headers?.['x-client-id']);
+    assert.equal(del.method, 'DELETE');
+    assert.equal(del.headers?.Authorization, 'Bearer secret-token');
+    for (const call of transport.calls) {
+      assert.ok(!call.url.includes('secret-token'));
+      assert.ok(!call.url.includes('/api/'));
+      assert.equal(call.credentials, undefined);
+    }
+  } finally {
+    resetTransport();
+  }
+});
+
+test('re-registration uses the stored host token and falls back to a new room when rejected', async () => {
+  const transport = createRoomTransport([
+    { status: 200, body: { success: true, roomCode: '1111', hostToken: 'token-1' } },
+    { status: 401, body: { success: false, error: 'INVALID_HOST_TOKEN' } },
+    { status: 200, body: { success: true, roomCode: '2222', hostToken: 'token-2' } },
+  ]);
+  setTransport(transport);
+  try {
+    const client = new SignalingClient();
+    assert.equal(await client.registerRoom('host-uuid'), '1111');
+    assert.equal(await client.registerRoom('host-uuid'), '2222');
+    assert.equal(transport.calls[1].headers?.Authorization, 'Bearer token-1');
+    assert.equal(transport.calls[2].headers?.Authorization, undefined);
+    await client.deleteRoom('2222');
+    assert.equal(transport.calls[3].headers?.Authorization, 'Bearer token-2');
+  } finally {
+    resetTransport();
   }
 });
 
