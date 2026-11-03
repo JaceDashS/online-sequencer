@@ -26,7 +26,7 @@
 
 - Worker 클록은 **UI 표시용 재생 시간**만 생성합니다. 오디오 노트·메트로놈 예약은 `PlaybackController`가 `AudioContext.currentTime` 기반 고정 앵커로 계산하며, Worker 틱을 사용하지 않습니다.
 - Web Worker는 Web Audio 렌더링 스레드를 대신하지 않습니다. 메인 스레드가 멈추면 Worker 틱의 전달(`postMessage` 수신)도 늦어질 수 있습니다.
-- 상세 근거는 [오디오 재생 타이밍 분석](../../analysis/audio-playback-timing-jank-analysis.ko.md)을 참고하십시오.
+- 상세 근거는 [오디오 재생 타이밍 분석](../../analysis/audio-playback-timing-jank-analysis.md)을 참고하십시오.
 
 ---
 
@@ -182,10 +182,10 @@ setPlaybackClockInterval(intervalMs);
 
 ## 관련 문서
 
-- [`rAF 기반 재생헤드 업데이트`](./raf-playback-head.ko.md)
-- [`조절 가능한 오디오 버퍼 사이즈`](../implementation-level/audio-buffer-size.ko.md)
-- [`Drift 보정 시스템`](../implementation-level/drift-correction.ko.md)
-- [`Lookahead 스케줄링`](../implementation-level/lookahead-scheduling.ko.md)
+- [`rAF 기반 재생헤드 업데이트`](./raf-playback-head.md)
+- [`조절 가능한 오디오 버퍼 사이즈`](../implementation-level/audio-buffer-size.md)
+- [`Drift 보정 시스템`](../implementation-level/drift-correction.md)
+- [`Lookahead 스케줄링`](../implementation-level/lookahead-scheduling.md)
 
 ---
 

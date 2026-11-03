@@ -7,7 +7,7 @@
 > **상태: 폐기 (2026-11-03)**
 > - jace-s API 이전(`api.jace-s.com`, 커밋 `9416e01` 이후)으로 방 목록 `GET /online-sequencer/rooms`가 없어졌고, `/api/auth/verify-password`는 계약에 없습니다.
 > - 이에 따라 개발자 패널의 관리자 기능(비밀번호 확인·방 목록·강제 삭제)을 클라이언트에서 제거했습니다.
-> - 일반 호스트 권한은 이 문서의 5장 대신 jace-s 계약의 `hostToken`(Bearer) 방식을 따릅니다. [서버 API](./collaboration-specification/server-api.ko.md) 참고.
+> - 일반 호스트 권한은 이 문서의 5장 대신 jace-s 계약의 `hostToken`(Bearer) 방식을 따릅니다. [서버 API](./collaboration-specification/server-api.md) 참고.
 > - 이 문서는 설계 이력으로만 남깁니다.
 
 ## 1. 목적

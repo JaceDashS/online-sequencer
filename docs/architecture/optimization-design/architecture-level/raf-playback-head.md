@@ -161,7 +161,7 @@ flowchart TD
 
 ## 관련 문서
 
-- [`워커 기반 재생 클록`](./worker-playback-clock.ko.md)
+- [`워커 기반 재생 클록`](./worker-playback-clock.md)
 
 ---
 

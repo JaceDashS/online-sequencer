@@ -86,16 +86,16 @@ graph TB
 ### 아키텍처 수준 최적화
 
 #### 렌더링 아키텍처
-- [rAF 기반 재생헤드 업데이트](./architecture-level/raf-playback-head.ko.md)
+- [rAF 기반 재생헤드 업데이트](./architecture-level/raf-playback-head.md)
   - React 렌더 경로와 재생헤드 업데이트 분리
   - 메인 스레드 부하 감소 및 프레임 드랍 방지
 
-- [워커 기반 재생 클록](./architecture-level/worker-playback-clock.ko.md)
+- [워커 기반 재생 클록](./architecture-level/worker-playback-clock.md)
   - 메인 스레드와 시간 생성 로직 분리
   - 독립적인 시간 틱 생성으로 메인 스레드 부하 감소
 
 #### 리소스 관리
-- [리소스 생명주기 관리](./architecture-level/resource-lifecycle-management.ko.md)
+- [리소스 생명주기 관리](./architecture-level/resource-lifecycle-management.md)
   - AudioEngine 및 Worker의 체계적인 생명주기 관리
   - 메모리 누수 방지 및 페이지 전환 시 안정성 확보
   - 환경별 로깅 제어 및 런타임 로깅 스위치
@@ -103,40 +103,40 @@ graph TB
 ### 구현 수준 최적화
 
 #### 오디오 재생 최적화
-- [Lookahead 스케줄링](./implementation-level/lookahead-scheduling.ko.md)
+- [Lookahead 스케줄링](./implementation-level/lookahead-scheduling.md)
   - `AudioContext.currentTime` 고정 앵커 기준으로 오디오 이벤트를 미리 예약
   - 예약 고갈 시 lookahead 자동 보정 (최대 2초)
 
-- [같은 음계 간섭 방지](./implementation-level/pitch-class-interference-prevention.ko.md)
+- [같은 음계 간섭 방지](./implementation-level/pitch-class-interference-prevention.md)
   - 같은 샘플 소스에서 파생된 오디오의 위상 간섭을 시간 오프셋으로 분산 (기본 0ms, 비활성화)
 
-- [배치 샘플 로딩](./implementation-level/batch-sample-loading.ko.md)
+- [배치 샘플 로딩](./implementation-level/batch-sample-loading.md)
   - 오디오 샘플 로딩 시 메인 스레드 블로킹 방지
 
 #### 재생 클록·표시
-- [Drift 보정 시스템](./implementation-level/drift-correction.ko.md)
+- [Drift 보정 시스템](./implementation-level/drift-correction.md)
   - 워커 틱과 UI 표시 시간 간의 오차를 부드럽게 보정 (오디오 예약에는 사용하지 않음)
 
-- [조절 가능한 오디오 버퍼 사이즈 (BUF)](./implementation-level/audio-buffer-size.ko.md)
+- [조절 가능한 오디오 버퍼 사이즈 (BUF)](./implementation-level/audio-buffer-size.md)
   - 재생 클록 tick 간격과 `AudioContext` `latencyHint` 선호값 설정 (실제 렌더링 버퍼 크기 아님)
 
 #### UI 최적화
-- [MIDI 에디터 스크롤 동기화](./implementation-level/scroll-synchronization.ko.md)
+- [MIDI 에디터 스크롤 동기화](./implementation-level/scroll-synchronization.md)
   - 레인 영역과 벨로시티 영역의 가로 스크롤을 즉시 동기화
 
-- [타임라인 가시 범위 렌더링](./implementation-level/timeline-visible-range-rendering.ko.md)
+- [타임라인 가시 범위 렌더링](./implementation-level/timeline-visible-range-rendering.md)
   - 화면에 보이는 범위와 오버스캔 범위의 파트·노트·마디 마커만 렌더링
 
-- [React 컴포넌트 렌더링 최적화](./data-access/indexing.ko.md#ui-컴포넌트-최적화)
+- [React 컴포넌트 렌더링 최적화](./data-access/indexing.md#ui-컴포넌트-최적화)
   - 인덱스 함수를 활용한 데이터 접근 최적화
   - useMemo 의존성 최적화로 불필요한 재계산 방지
 
 #### 데이터 접근 최적화
-- [데이터 인덱싱](./data-access/indexing.ko.md)
+- [데이터 인덱싱](./data-access/indexing.md)
   - Map 기반 인덱스를 사용한 O(1) 조회 성능
   - UI 컴포넌트에서 인덱스 함수 활용으로 렌더링 성능 개선
 
-- [시간 변환 캐싱](./data-access/timing-cache.ko.md)
+- [시간 변환 캐싱](./data-access/timing-cache.md)
   - 반복적인 시간 변환 계산 결과 캐싱
 
 ---
@@ -172,8 +172,8 @@ graph TB
 ## 관련 문서
 
 ### 아키텍처 문서
-- [`docs/architecture/README.ko.md`](../README.ko.md) - 아키텍처 문서 개요
-- [`오디오 재생 타이밍 분석`](../analysis/audio-playback-timing-jank-analysis.ko.md) - 오디오 앵커 도입 배경과 재생 타이밍 개선 결과
+- [`docs/architecture/README.md`](../README.md) - 아키텍처 문서 개요
+- [`오디오 재생 타이밍 분석`](../analysis/audio-playback-timing-jank-analysis.md) - 오디오 앵커 도입 배경과 재생 타이밍 개선 결과
 
 ---
 

@@ -436,9 +436,9 @@ flowchart LR
 
 ## 추가 리소스
 
-- [프로젝트 명세서](../specs/project-save-load-specification.ko.md)
-- [콜라보레이션 명세서](../specs/collaboration-specification/README.ko.md)
-- [MIDI 표준 준수](../specs/midi-standard-compliance.ko.md)
+- [프로젝트 명세서](../specs/project-save-load-specification.md)
+- [콜라보레이션 명세서](../specs/collaboration-specification/README.md)
+- [MIDI 표준 준수](../specs/midi-standard-compliance.md)
 
 ---
 

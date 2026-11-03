@@ -10,15 +10,15 @@
 
 | 구분 | 문서 | 내용 |
 |---|---|---|
-| 설정 | [`api-configuration.ko.md`](./api-configuration.ko.md) | jace-s API·WebSocket·로그인 화면 주소 설정 |
-| 최적화 설계 | [`optimization-design/index.ko.md`](./optimization-design/index.ko.md) | 성능 최적화 기법 전체 목록 |
-| 설계 분석 | [`analysis/audio-playback-timing-jank-analysis.ko.md`](./analysis/audio-playback-timing-jank-analysis.ko.md) | 재생 렉에 따른 노트 타이밍 지연 원인 분석과 개선 결과 |
+| 설정 | [`api-configuration.md`](./api-configuration.md) | jace-s API·WebSocket·로그인 화면 주소 설정 |
+| 최적화 설계 | [`optimization-design/index.md`](./optimization-design/index.md) | 성능 최적화 기법 전체 목록 |
+| 설계 분석 | [`analysis/audio-playback-timing-jank-analysis.md`](./analysis/audio-playback-timing-jank-analysis.md) | 재생 렉에 따른 노트 타이밍 지연 원인 분석과 개선 결과 |
 
 ---
 
 ## 재생 타이밍 구조 요약
 
-재생 관련 문서는 아래 시계 분리를 전제로 합니다. 상세 근거는 [오디오 재생 타이밍 분석](./analysis/audio-playback-timing-jank-analysis.ko.md)을 참고하십시오.
+재생 관련 문서는 아래 시계 분리를 전제로 합니다. 상세 근거는 [오디오 재생 타이밍 분석](./analysis/audio-playback-timing-jank-analysis.md)을 참고하십시오.
 
 ```mermaid
 graph LR
@@ -70,28 +70,28 @@ graph TD
 ```
 
 ### 아키텍처 수준
-- [rAF 기반 재생헤드 업데이트](./optimization-design/architecture-level/raf-playback-head.ko.md)
-- [워커 기반 재생 클록](./optimization-design/architecture-level/worker-playback-clock.ko.md)
-- [리소스 생명주기 관리](./optimization-design/architecture-level/resource-lifecycle-management.ko.md)
+- [rAF 기반 재생헤드 업데이트](./optimization-design/architecture-level/raf-playback-head.md)
+- [워커 기반 재생 클록](./optimization-design/architecture-level/worker-playback-clock.md)
+- [리소스 생명주기 관리](./optimization-design/architecture-level/resource-lifecycle-management.md)
 
 ### 구현 수준
 
 #### 오디오 재생
-- [Lookahead 스케줄링](./optimization-design/implementation-level/lookahead-scheduling.ko.md)
-- [같은 음계 간섭 방지](./optimization-design/implementation-level/pitch-class-interference-prevention.ko.md) (기본 비활성화)
-- [배치 샘플 로딩](./optimization-design/implementation-level/batch-sample-loading.ko.md)
+- [Lookahead 스케줄링](./optimization-design/implementation-level/lookahead-scheduling.md)
+- [같은 음계 간섭 방지](./optimization-design/implementation-level/pitch-class-interference-prevention.md) (기본 비활성화)
+- [배치 샘플 로딩](./optimization-design/implementation-level/batch-sample-loading.md)
 
 #### 재생 클록·표시
-- [Drift 보정 시스템](./optimization-design/implementation-level/drift-correction.ko.md)
-- [오디오 버퍼 사이즈 (BUF)](./optimization-design/implementation-level/audio-buffer-size.ko.md)
+- [Drift 보정 시스템](./optimization-design/implementation-level/drift-correction.md)
+- [오디오 버퍼 사이즈 (BUF)](./optimization-design/implementation-level/audio-buffer-size.md)
 
 #### UI 렌더링
-- [MIDI 에디터 스크롤 동기화](./optimization-design/implementation-level/scroll-synchronization.ko.md)
-- [타임라인 가시 범위 렌더링](./optimization-design/implementation-level/timeline-visible-range-rendering.ko.md)
+- [MIDI 에디터 스크롤 동기화](./optimization-design/implementation-level/scroll-synchronization.md)
+- [타임라인 가시 범위 렌더링](./optimization-design/implementation-level/timeline-visible-range-rendering.md)
 
 ### 데이터 접근
-- [데이터 인덱싱](./optimization-design/data-access/indexing.ko.md)
-- [시간 변환 캐싱](./optimization-design/data-access/timing-cache.ko.md)
+- [데이터 인덱싱](./optimization-design/data-access/indexing.md)
+- [시간 변환 캐싱](./optimization-design/data-access/timing-cache.md)
 
 ---
 

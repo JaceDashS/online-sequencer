@@ -471,8 +471,8 @@ useEffect(() => {
 
 ## 관련 문서
 
-- [`데이터 인덱싱`](../data-access/indexing.ko.md)
-- [`시간 변환 캐싱`](../data-access/timing-cache.ko.md)
+- [`데이터 인덱싱`](../data-access/indexing.md)
+- [`시간 변환 캐싱`](../data-access/timing-cache.md)
 
 ---
 

@@ -23,7 +23,7 @@
 
 ## 서버 연동 접근 방식
 
-콜라보레이션 서버는 [server-api.ko.md](server-api.ko.md)에 정의된 API 계약을 구현하는 별도 백엔드 서비스로 개발하거나 유지한다.
+콜라보레이션 서버는 [server-api.md](server-api.md)에 정의된 API 계약을 구현하는 별도 백엔드 서비스로 개발하거나 유지한다.
 
 **서버 필수 책임:**
 - 설정된 API base URL 아래 REST 룸 엔드포인트 제공
@@ -76,7 +76,7 @@
 VITE_API_URL=https://api.jace-s.com
 ```
 
-클라이언트는 `{VITE_API_URL}/online-sequencer`에 `/rooms`, `/rooms/:roomCode`, `/rooms/:roomCode/allow-join`, `/rooms/:roomCode/kick`, `/signaling` 같은 경로를 붙인다. 상세는 [API 설정](../../architecture/api-configuration.ko.md)을 참고한다.
+클라이언트는 `{VITE_API_URL}/online-sequencer`에 `/rooms`, `/rooms/:roomCode`, `/rooms/:roomCode/allow-join`, `/rooms/:roomCode/kick`, `/signaling` 같은 경로를 붙인다. 상세는 [API 설정](../../architecture/api-configuration.md)을 참고한다.
 
 ## 서버 호환성 체크리스트
 
@@ -105,7 +105,7 @@ VITE_API_URL=https://api.jace-s.com
 - [ ] DataChannel 기반 프로젝트 상태 동기화 테스트
 
 **문서화:**
-- [ ] 서버 계약이 변경되면 [server-api.ko.md](server-api.ko.md) 갱신
+- [ ] 서버 계약이 변경되면 [server-api.md](server-api.md) 갱신
 - [ ] `src/core/sync` 동작이 변경되면 클라이언트 구현 문서 갱신
 
 ## 주의사항

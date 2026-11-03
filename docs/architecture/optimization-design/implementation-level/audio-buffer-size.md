@@ -15,7 +15,7 @@
 1. UI 재생 클록(Worker)의 틱 간격
 2. `AudioContext` 생성 시 전달하는 `latencyHint` 선호값
 
-**주의**: 이 설정은 Web Audio의 실제 렌더링 버퍼 크기를 바꾸지 않습니다. Web Audio는 고정 128-frame render quantum을 사용하며, `latencyHint`는 브라우저가 해석할 재량이 있는 선호값입니다. 실제 지연은 `AudioContext.baseLatency`/`outputLatency`로 확인해야 합니다. 또한 BUF를 키워도 메인 스레드 렉으로 노트가 늦게 예약되는 문제는 해결되지 않습니다. 이 문제는 [오디오 앵커](../../analysis/audio-playback-timing-jank-analysis.ko.md)로 해결했습니다.
+**주의**: 이 설정은 Web Audio의 실제 렌더링 버퍼 크기를 바꾸지 않습니다. Web Audio는 고정 128-frame render quantum을 사용하며, `latencyHint`는 브라우저가 해석할 재량이 있는 선호값입니다. 실제 지연은 `AudioContext.baseLatency`/`outputLatency`로 확인해야 합니다. 또한 BUF를 키워도 메인 스레드 렉으로 노트가 늦게 예약되는 문제는 해결되지 않습니다. 이 문제는 [오디오 앵커](../../analysis/audio-playback-timing-jank-analysis.md)로 해결했습니다.
 
 ---
 
@@ -166,8 +166,8 @@ latencyHintSeconds = (bufferSize / SAMPLE_RATE) * PERIODS
 
 ## 관련 문서
 
-- [`워커 기반 재생 클록`](../architecture-level/worker-playback-clock.ko.md)
-- [`오디오 재생 타이밍 분석`](../../analysis/audio-playback-timing-jank-analysis.ko.md)
+- [`워커 기반 재생 클록`](../architecture-level/worker-playback-clock.md)
+- [`오디오 재생 타이밍 분석`](../../analysis/audio-playback-timing-jank-analysis.md)
 
 ---
 

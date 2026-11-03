@@ -33,10 +33,10 @@ MIDI 편집 기능과 클라이언트 측 실시간 협업 기능을 제공합�
 - **빌드**: electron-builder (Windows NSIS / Portable, macOS DMG, Linux AppImage)
 
 ### 협업 네트워킹
-- **시그널링 클라이언트**: `https://api.jace-s.com/online-sequencer` REST와 `wss://api.jace-s.com/online-sequencer/signaling` WebSocket 연동 (`VITE_API_URL`, [API 설정](docs/architecture/api-configuration.ko.md))
+- **시그널링 클라이언트**: `https://api.jace-s.com/online-sequencer` REST와 `wss://api.jace-s.com/online-sequencer/signaling` WebSocket 연동 (`VITE_API_URL`, [API 설정](docs/architecture/api-configuration.md))
 - **P2P 전송**: WebRTC DataChannel
 - **토폴로지**: 호스트 중심 Star Topology
-- **jace-s 연동**: 서비스 공지 토스트(`/health`, `/notices?app=41`), `online-sequencer.jace-s.com`에서 jace-s 로그인 ([명세](docs/specs/service-notices-and-login.ko.md))
+- **jace-s 연동**: 서비스 공지 토스트(`/health`, `/notices?app=41`), `online-sequencer.jace-s.com`에서 jace-s 로그인 ([명세](docs/specs/service-notices-and-login.md))
 
 ## 프로젝트 구조
 
@@ -120,17 +120,17 @@ npm run test:midi-all
 npm run qa
 ```
 
-QA 화면은 개발 환경의 `/qa`에서만 제공됩니다. Codex 브라우저 테스트는 1280×720을 기준으로 하며, 서버가 응답하지 않으면 협업 시나리오만 `BLOCKED`로 처리하고 오프라인 시나리오는 계속 진행합니다. 상세한 운영 원칙은 [통합 테스트 전략](docs/testing.ko.md)을 참고하십시오.
+QA 화면은 개발 환경의 `/qa`에서만 제공됩니다. Codex 브라우저 테스트는 1280×720을 기준으로 하며, 서버가 응답하지 않으면 협업 시나리오만 `BLOCKED`로 처리하고 오프라인 시나리오는 계속 진행합니다. 상세한 운영 원칙은 [통합 테스트 전략](docs/testing.md)을 참고하십시오.
 
 ## 문서
 
-문서 목록과 분류 기준은 [`docs/README.ko.md`](docs/README.ko.md)를 참고하십시오.
+문서 목록과 분류 기준은 [`docs/README.md`](docs/README.md)를 참고하십시오.
 
-- [MIDI 표준 준수 사양](docs/specs/midi-standard-compliance.ko.md)
-- [프로젝트 저장/불러오기 포맷](docs/specs/project-save-load-specification.ko.md)
-- [실시간 협업 명세](docs/specs/collaboration-specification/README.ko.md)
-- [아키텍처 문서](docs/architecture/README.ko.md)
-- [사용자 매뉴얼](docs/manual/README.ko.md)
+- [MIDI 표준 준수 사양](docs/specs/midi-standard-compliance.md)
+- [프로젝트 저장/불러오기 포맷](docs/specs/project-save-load-specification.md)
+- [실시간 협업 명세](docs/specs/collaboration-specification/README.md)
+- [아키텍처 문서](docs/architecture/README.md)
+- [사용자 매뉴얼](docs/manual/README.md)
 
 ## 라이선스
 

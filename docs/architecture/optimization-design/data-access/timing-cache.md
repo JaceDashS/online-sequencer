@@ -204,7 +204,7 @@ sequenceDiagram
 
 ## 관련 문서
 
-- [`데이터 인덱싱`](./indexing.ko.md)
+- [`데이터 인덱싱`](./indexing.md)
 
 ---
 
