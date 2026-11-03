@@ -6,6 +6,14 @@
 상태: **전반 검토·Todo 작성 완료 / 개선 구현은 대기**.
 프로젝트 개선 25개와 기존 Todo 기능 초안 8개를 보존한다. 아래 우선순위는 검토 권장 순서이며 사용자 확정 사항이 아니다.
 
+## 상태 표기 규칙 (2026-11-03 추가)
+
+- `[x]` **완료**: 해결한 커밋을 함께 적는다.
+- **무효**: 전제가 사라져 더 이상 할 필요가 없는 항목. 이유를 적는다.
+- **서버 이관**: jace-s 서버 저장소(`JaceDashS/jace-s-platform`)에서 처리할 항목. 이 저장소에서는 추적만 한다.
+- 항목 상태는 그 작업을 끝낸 커밋에서 함께 갱신한다. 끝난 항목은 지우지 않고 기록으로 남긴다.
+- `jace-s/app/...` 경로는 검토 당시의 구 서버 구조다. 현재 서버는 `services/api/...` 구조라 링크로 연결하지 않는다.
+
 ## 중단·재개
 
 - 요청 범위: 프로젝트를 검토하고 최적화·개선 작업을 Todo에 추가한다.
@@ -109,35 +117,38 @@
 
 ## 협업 계약·권한
 
-서버 항목은 `jace-s` 별도 저장소에 속한다. 정상 호스트 토큰·관리자 인증 구현은 이미 서버 커밋에 있으며 현재 클라이언트는 stash 밖의 예전 계약을 사용한다. 이번 검토는 운영 배포 상태를 확인한 것이 아니다.
+서버 항목은 `jace-s` 별도 저장소에 속한다. (2026-11-03 갱신) 클라이언트는 jace-s 계약 `9416e01` 기준으로 호스트 토큰·로그인 세션을 사용한다. 이번 검토는 운영 배포 상태를 확인한 것이 아니다.
 
-- [ ] **C-01 · P1 · 호스트 토큰 계약을 클라이언트에 연결**
-  - 근거: [SignalingClient.ts](../../src/core/sync/SignalingClient.ts):382,400 및 REST 호스트 요청, [signalingService.ts](../../jace-s/app/services/collaboration/signalingService.ts):335.
+- [x] **C-01 · P1 · 호스트 토큰 계약을 클라이언트에 연결** — **완료**
+  - 해결: `b133f62`(REST Bearer, 재등록 null 토큰 보존), `5798d04`(WS `register`의 `data.hostToken`, 로그 마스킹), `1d04f2a`(같은 탭 `sessionStorage` 보관). stash는 복원하지 않고 jace-s 계약(`9416e01`) 기준으로 새로 구현.
+  - 검증: 단위 테스트와 모의 서버 브라우저 확인. 실서버·Electron 확인은 미실시.
+  - 근거: [SignalingClient.ts](../../src/core/sync/SignalingClient.ts):382,400 및 REST 호스트 요청, `jace-s/app/services/collaboration/signalingService.ts`(구 서버 경로):335.
   - 판정: 서버는 hostToken을 검증하나 클라이언트는 생성 응답에서 토큰을 보관하지 않고 WS/REST에 전달하지 않는다. 현재 WS 등록 메시지로 모의 인증 거부 확인.
   - 완료 조건: stash 내용을 검토하여 중복 구현을 피하고 생성→등록→재연결→참가 허용→강퇴→삭제를 양 플랫폼에서 검증한다. 재등록의 null 토큰으로 유효한 기존 토큰을 지우지 않는다. 토큰을 로그·문서에 출력하지 않는다.
 
-- [ ] **C-02 · P1 · 관리자 로그인·룸 API 계약 전환**
-  - 근거: `PasswordModal.tsx`(2026-11-03 삭제):31~51은 trim과 `{valid:true}` JSON을 기대한다. [verify-password/route.ts](../../jace-s/app/api/auth/verify-password/route.ts):30은 새 로그인(204 + 쿠키)으로 위임한다. `RoomsListModal.tsx`(2026-11-03 삭제):58은 410을 반환하는 일반 목록 경로를 호출한다.
+- **C-02 · P1 · 관리자 로그인·룸 API 계약 전환** — **무효**
+  - 이유: jace-s API 이전(`9416e01`)으로 방 목록 경로가 없어졌고, 개발자 패널 관리자 기능(비밀번호 확인·방 목록·강제 삭제)을 `b133f62`에서 제거했다. 관리자 판단은 `/auth/session`의 `isAdmin`·`adminAccess`로 대체(`6e73589`, `54b7c7c`, `21de635`).
+  - 근거: `PasswordModal.tsx`(2026-11-03 삭제):31~51은 trim과 `{valid:true}` JSON을 기대한다. `jace-s/app/api/auth/verify-password/route.ts`(구 서버 경로):30은 새 로그인(204 + 쿠키)으로 위임한다. `RoomsListModal.tsx`(2026-11-03 삭제):58은 410을 반환하는 일반 목록 경로를 호출한다.
   - 판정: 코드상 요청/응답 계약 불일치. 현재 운영 서버 상태는 미확인.
   - 완료 조건: 로그인·세션 확인·로그아웃·관리자 목록/상세/삭제를 새 경로에 연결한다. 쿠키/CSRF/401 처리와 비밀번호 원문 전송을 검증한다. 기존 서버 인증을 다시 만드는 작업이 아니라 클라이언트 전환 작업으로 진행한다.
 
-- [ ] **C-03 · P1 · 중복 clientId의 이전 소켓 권한 회수**
-  - 근거: [signalingService.ts](../../jace-s/app/services/collaboration/signalingService.ts):81,211,252. 연결 Map은 덮어쓰지만 이전 핸들러는 ID로 최신 연결을 조회한다.
+- [ ] **C-03 · P1 · 중복 clientId의 이전 소켓 권한 회수** — **서버 이관** (구 서버 기준 검토. 현재 `jace-s-platform` `services/api`에서 재확인 필요)
+  - 근거: `jace-s/app/services/collaboration/signalingService.ts`(구 서버 경로):81,211,252. 연결 Map은 덮어쓰지만 이전 핸들러는 ID로 최신 연결을 조회한다.
   - 모의 환경 확인: 같은 ID의 이전 소켓 메시지가 최신 호스트 연결의 역할로 처리되어 방에 영향을 줄 수 있다.
   - 완료 조건: 메시지·close·error 처리를 실제 소켓/연결 세대와 결합한다. 중복 연결 시 이전 소켓 메시지·종료가 새 연결이나 방을 변경하지 않아야 한다.
 
-- [ ] **C-04 · P1 · 정원 초과 참가 실패를 원자적으로 처리**
-  - 근거: [signalingService.ts](../../jace-s/app/services/collaboration/signalingService.ts):409의 registerClient가 [roomService.ts](../../jace-s/app/services/collaboration/roomService.ts):204 정원 검사보다 먼저 실행된다.
+- [ ] **C-04 · P1 · 정원 초과 참가 실패를 원자적으로 처리** — **서버 이관** (구 서버 기준 검토. 현재 `jace-s-platform` `services/api`에서 재확인 필요)
+  - 근거: `jace-s/app/services/collaboration/signalingService.ts`(구 서버 경로):409의 registerClient가 `jace-s/app/services/collaboration/roomService.ts`(구 서버 경로):204 정원 검사보다 먼저 실행된다.
   - 모의 환경 확인: Room is full 응답을 받은 소켓의 시그널링 전달 권한이 남는다.
   - 완료 조건: 참가 조건 확인 후 양 저장소 상태를 함께 갱신하거나 실패 시 롤백한다. 거부된 연결이 참가 목록·시그널링 권한 어디에도 남지 않아야 한다.
 
-- [ ] **C-05 · P1 · 강퇴와 소켓 권한·재참가 차단 연동**
-  - 근거: [kick/route.ts](../../jace-s/app/api/online-sequencer/rooms/[roomCode]/kick/route.ts):94와 [signalingService.ts](../../jace-s/app/services/collaboration/signalingService.ts):361.
+- [ ] **C-05 · P1 · 강퇴와 소켓 권한·재참가 차단 연동** — **서버 이관** (구 서버 기준 검토. 현재 `jace-s-platform` `services/api`에서 재확인 필요)
+  - 근거: `jace-s/app/api/online-sequencer/rooms/[roomCode]/kick/route.ts`(구 서버 경로):94와 `jace-s/app/services/collaboration/signalingService.ts`(구 서버 경로):361.
   - 모의 환경 확인: 강퇴는 룸 참가자/차단 목록만 바꾸고 기존 소켓의 전달 권한과 WS 직접 재참가 경로를 차단하지 않는다.
   - 완료 조건: 강퇴 알림·연결 권한 회수·WS 참가 시 차단 검사를 함께 적용한다. 기존 소켓과 같은 ID의 재참가가 모두 거절돼야 한다. 클라이언트 ID 변경까지 막는 사용자 인증 도입은 별도 범위 판단이다.
 
-- [ ] **C-06 · P1 · 참가 허용 만료를 WS에서도 직접 검증**
-  - 근거: [signalingService.ts](../../jace-s/app/services/collaboration/signalingService.ts):400은 allowJoin만 검사한다. [roomCode/route.ts](../../jace-s/app/api/online-sequencer/rooms/[roomCode]/route.ts):58의 REST 조회가 만료 상태를 갱신한다.
+- [ ] **C-06 · P1 · 참가 허용 만료를 WS에서도 직접 검증** — **서버 이관** (구 서버 기준 검토. 현재 `jace-s-platform` `services/api`에서 재확인 필요)
+  - 근거: `jace-s/app/services/collaboration/signalingService.ts`(구 서버 경로):400은 allowJoin만 검사한다. `jace-s/app/api/online-sequencer/rooms/[roomCode]/route.ts`(구 서버 경로):58의 REST 조회가 만료 상태를 갱신한다.
   - 모의 환경 확인: 만료 뒤 REST 조회 없이 WS 참가 요청 시 성공한다.
   - 완료 조건: 참가 시 현재 시각과 만료를 직접 검사한다. REST 조회 여부와 무관하게 만료 경계부터 거절하며 재허용·서버 시각 경계도 테스트한다.
 
@@ -172,7 +183,8 @@
   - 판정: 전체 명령 실패 재현. 서버 자체 설정의 한정 린트는 통과하므로 루트에서 발생한 서버 경고를 제품 결함으로 그대로 취급하지 않는다.
   - 완료 조건: 산출물과 중첩 저장소를 적절히 제외하고 각 저장소의 자체 검사 명령을 유지한다. 룰 비활성화로 통과시키지 않는다.
 
-- [ ] **Q-02 · P3 · 인증 작업 상태 문서와 현재 Git 상태 정합성**
+- **Q-02 · P3 · 인증 작업 상태 문서와 현재 Git 상태 정합성** — **무효**
+  - 이유: 인증 작업 상태 문서를 종료 처리했다(2026-11-03). 클라이언트 인증은 stash가 아니라 jace-s 계약 기준 새 구현으로 대체됐다.
   - 근거: [기존 작업 상태 문서](./auth-refactoring-status.md)는 서버 인증이 미커밋이라고 적지만 서버 이력에는 `cd28d53 [feat] Add server-side admin authorization`가 있다. 현재 23개 미커밋 파일은 주로 주석과 레거시 룸 목록 410 변경이다.
   - 판정: 코드/이력 확인. 원격 push·실배포 여부는 미확인.
   - 완료 조건: 로컬 구현·커밋·원격·배포를 구분하고 검증한 사실과 미확인 상태를 적는다. stash 복원은 고정 번호 대신 메시지·내용·현재 계약을 확인한다.
