@@ -85,7 +85,7 @@ Online Sequencer는 jace-s에 앱 ID **41**로 등록되어 있습니다. 이 �
 | `/health` 200, 공지 1개 | 8초 뒤 닫힘 | 단위 테스트 + 브라우저 확인 |
 | 허용 호스트, 비로그인, 방 만들기 | `POST {API}/online-sequencer/rooms`에 쿠키·CSRF 없음, WebSocket `wss://api.jace-s.com/online-sequencer/signaling` | 브라우저 확인 (모의 서버) |
 | 허용 호스트, 로그인, 방 만들기 | 세션 200·csrfToken, 방 생성 요청에 `x-csrf-token` | 단위 테스트 + 브라우저 확인 (모의 서버) |
-| hostToken | 생성 응답의 토큰을 조인 허용·강퇴·삭제·재등록에 Bearer로 사용, URL에 없음 | 단위 테스트 |
+| hostToken | 생성 응답의 토큰을 WebSocket `register`의 `data.hostToken`과 조인 허용·강퇴·삭제·재등록 Bearer에 사용, URL·로그에 없음 | 단위 테스트 |
 | 예전 주소 | `jace-s.com/api`, `api.jace-s.com/api/`, `jace-s.com/health` 요청 0건 | 브라우저 확인 (모의 서버) |
 | `online-sequencer.vercel.app` 등 | 로그인 UI 없음 | 단위 테스트 + 브라우저 확인 |
 

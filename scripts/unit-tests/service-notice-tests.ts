@@ -11,6 +11,7 @@ import {
 } from '../../src/core/notices/serviceNotices';
 import { getJaceSession, parseSessionPayload, refreshJaceSession, withJaceAuth } from '../../src/core/auth/jaceSession';
 import { SignalingClient } from '../../src/core/sync/SignalingClient';
+import { createRoomApiError } from '../../src/core/sync/roomApiErrors';
 import { resetTransport, setTransport } from '../../src/transport';
 import { buildApiUrl, buildWebSocketUrl, getApiUrl, getNoticeAppId, getSiteUrl, isLoginAvailable } from '../../src/utils/apiConfig';
 import type { IHttpRequestOptions, IHttpResponse, IWebSocket } from '../../src/transport/types';
@@ -212,6 +213,7 @@ test('signed-in session adds credentials and x-csrf-token to mutating requests o
 
 function createRoomTransport(responses: Array<{ status: number; body: unknown }>) {
   const calls: IHttpRequestOptions[] = [];
+  const wsSent: Array<{ action: string; roomCode?: string; data?: { role?: string; hostToken?: string } }> = [];
   const queue = [...responses];
   const ws: IWebSocket = {
     readyState: 1,
@@ -220,7 +222,8 @@ function createRoomTransport(responses: Array<{ status: number; body: unknown }>
     onerror: null,
     onclose: null,
     send(data: string) {
-      const message = JSON.parse(data) as { action: string; roomCode?: string };
+      const message = JSON.parse(data) as { action: string; roomCode?: string; data?: { role?: string; hostToken?: string } };
+      wsSent.push(message);
       if (message.action === 'register') {
         setTimeout(() => ws.onmessage?.({ data: JSON.stringify({ action: 'registered', roomCode: message.roomCode }) }), 0);
       }
@@ -229,6 +232,7 @@ function createRoomTransport(responses: Array<{ status: number; body: unknown }>
   };
   return {
     calls,
+    wsSent,
     wsUrls: [] as string[],
     async request(options: IHttpRequestOptions): Promise<IHttpResponse> {
       calls.push(options);
@@ -263,6 +267,7 @@ test('host token from room creation is sent as Bearer and never in URLs', async 
     assert.equal(create.method, 'POST');
     assert.deepEqual(JSON.parse(create.body ?? '{}'), { hostId: 'host-uuid' });
     assert.equal(create.headers?.Authorization, undefined);
+    assert.deepEqual(transport.wsSent[0].data, { role: 'host', hostToken: 'secret-token' });
 
     await client.allowJoin(roomCode, 99999);
     await client.kickParticipant(roomCode, 'guest-1');
@@ -304,9 +309,60 @@ test('re-registration uses the stored host token and falls back to a new room wh
     assert.equal(await client.registerRoom('host-uuid'), '2222');
     assert.equal(transport.calls[1].headers?.Authorization, 'Bearer token-1');
     assert.equal(transport.calls[2].headers?.Authorization, undefined);
+    // 재등록 성공 응답의 hostToken=null은 기존 토큰을 덮어쓰지 않음 → 새 방 token-2로 WS register
+    assert.equal(transport.wsSent[1].data?.hostToken, 'token-2');
     await client.deleteRoom('2222');
     assert.equal(transport.calls[3].headers?.Authorization, 'Bearer token-2');
   } finally {
+    resetTransport();
+  }
+});
+
+test('re-registration response with hostToken null keeps the stored token', async () => {
+  const transport = createRoomTransport([
+    { status: 200, body: { success: true, roomCode: '3333', hostToken: 'token-a' } },
+    { status: 200, body: { success: true, roomCode: '3333', hostToken: null } },
+  ]);
+  setTransport(transport);
+  const originalLog = console.log;
+  const logged: string[] = [];
+  console.log = (...args: unknown[]) => { logged.push(args.map(String).join(' ')); };
+  try {
+    const client = new SignalingClient();
+    await client.registerRoom('host-uuid');
+    await client.registerRoom('host-uuid');
+    assert.equal(transport.calls[1].headers?.Authorization, 'Bearer token-a');
+    assert.equal(transport.wsSent[1].data?.hostToken, 'token-a');
+    await client.deleteRoom('3333');
+    assert.equal(transport.calls[2].headers?.Authorization, 'Bearer token-a');
+    assert.ok(logged.every((line) => !line.includes('token-a')));
+  } finally {
+    console.log = originalLog;
+    resetTransport();
+  }
+});
+
+test('room API errors map contract codes to readable messages', () => {
+  const active = createRoomApiError(409, { success: false, error: 'ACTIVE_ROOM_LIMIT' } as never, 'Failed');
+  assert.equal(active.code, 'ACTIVE_ROOM_LIMIT');
+  assert.match(active.message, /already have an active room/);
+  assert.equal(createRoomApiError(429, { error: 'RATE_LIMITED' }, 'Failed').code, 'RATE_LIMITED');
+  assert.equal(createRoomApiError(404, { error: 'Not found', code: 'ROOM_NOT_FOUND' }, 'Failed').message, 'Room not found');
+  assert.equal(createRoomApiError(502, null, 'Failed to create room').message, 'Failed to create room (HTTP 502)');
+  assert.equal(createRoomApiError(400, { error: 'Something odd' }, 'Failed').message, 'Something odd');
+});
+
+test('rejected creation surfaces ACTIVE_ROOM_LIMIT to the caller', async () => {
+  const transport = createRoomTransport([{ status: 409, body: { success: false, error: 'ACTIVE_ROOM_LIMIT' } }]);
+  setTransport(transport);
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    const client = new SignalingClient();
+    await assert.rejects(() => client.registerRoom('host-uuid'), /already have an active room/);
+    assert.equal(transport.calls.length, 1);
+  } finally {
+    console.error = originalError;
     resetTransport();
   }
 });

@@ -8,6 +8,7 @@ import { getTransport } from '../../transport';
 import type { ITransport, IWebSocket } from '../../transport';
 import { buildApiUrl, buildWebSocketUrl } from '../../utils/apiConfig';
 import { withJaceAuth } from '../auth/jaceSession';
+import { readRoomApiError } from './roomApiErrors';
 
 /**
  * 상세 로그 출력 여부 확인
@@ -385,15 +386,18 @@ export class SignalingClient {
 
     // WebSocket으로 룸 등록
     this.roomCode = roomCode;
+    // 계약: register의 data.hostToken으로 호스트 소유권을 증명한다 (30-app-contract.md Register Host)
     const registerMessage = {
       action: 'register',
       roomCode,
       clientId: this.clientId,
       data: {
-        role: 'host'
+        role: 'host',
+        hostToken: this.hostToken ?? undefined
       }
     };
-    verboseLog('Sending register message:', JSON.stringify(registerMessage, null, 2));
+    // hostToken은 로그에 남기지 않는다
+    verboseLog('Sending register message:', JSON.stringify({ ...registerMessage, data: { role: 'host', hostToken: registerMessage.data.hostToken ? '[redacted]' : undefined } }, null, 2));
     this.sendWebSocketMessage(registerMessage);
 
     // 등록 확인 대기
@@ -443,12 +447,12 @@ export class SignalingClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const error = (await response.json().catch(() => ({ error: 'Failed to create room' }))) as { error?: string };
-        console.error('[SignalingClient] Room creation failed:', response.status, error.error);
-        if (hostToken && [401, 403, 404].includes(response.status) && error.error !== 'CSRF_VALIDATION_FAILED') {
-          throw new RoomRegistrationRejectedError(error.error || `HTTP ${response.status}`);
+        const error = await readRoomApiError(response, 'Failed to create room');
+        console.error('[SignalingClient] Room creation failed:', response.status, error.code ?? '');
+        if (hostToken && [401, 403, 404].includes(response.status) && error.code !== 'CSRF_VALIDATION_FAILED') {
+          throw new RoomRegistrationRejectedError(error.message);
         }
-        throw new Error(error.error || `HTTP ${response.status}`);
+        throw error;
       }
 
       const data = (await response.json()) as { roomCode?: string; hostToken?: string };
@@ -488,8 +492,7 @@ export class SignalingClient {
     }));
 
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({ error: 'Failed to get room' }))) as { error?: string };
-      throw new Error(error.error || `HTTP ${response.status}`);
+      throw await readRoomApiError(response, 'Failed to get room');
     }
 
     return (await response.json()) as RoomInfo;
@@ -511,8 +514,7 @@ export class SignalingClient {
     }));
 
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({ error: 'Failed to allow join' }))) as { error?: string };
-      throw new Error(error.error || `HTTP ${response.status}`);
+      throw await readRoomApiError(response, 'Failed to allow join');
     }
   }
 
@@ -590,8 +592,7 @@ export class SignalingClient {
     }));
 
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({ error: 'Failed to kick participant' }))) as { error?: string };
-      throw new Error(error.error || `HTTP ${response.status}`);
+      throw await readRoomApiError(response, 'Failed to kick participant');
     }
   }
 
@@ -608,9 +609,9 @@ export class SignalingClient {
     }));
 
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({ error: 'Failed to delete room' }))) as { error?: string };
-      console.error('[SignalingClient] Room deletion failed:', error);
-      throw new Error(error.error || `HTTP ${response.status}`);
+      const error = await readRoomApiError(response, 'Failed to delete room');
+      console.error('[SignalingClient] Room deletion failed:', response.status, error.code ?? '');
+      throw error;
     }    
     // 룸 코드·호스트 토큰 초기화
     this.roomCode = null;
@@ -690,7 +691,8 @@ export class SignalingClient {
     }
 
     const messageStr = JSON.stringify(message);
-    verboseLog('Sending WebSocket message:', messageStr);
+    // hostToken은 로그에 남기지 않는다
+    verboseLog('Sending WebSocket message:', messageStr.replace(/"hostToken":"[^"]*"/g, '"hostToken":"[redacted]"'));
     this.ws.send(messageStr);
   }
 

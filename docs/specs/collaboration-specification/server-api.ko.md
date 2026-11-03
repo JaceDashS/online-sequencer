@@ -8,7 +8,7 @@
 
 ## 기본 정보
 
-> 계약 원문: jace-s 저장소 `docs/api/apps/online-sequencer/` (`10-client-contract.md`, `20-health.md`, `30-app-contract.md`). 이 문서는 클라이언트 기준 요약이며, 요청·응답 상세와 에러 코드는 원문이 우선한다. 기준: jace-s 커밋 `9416e01` 이후 (2026-11-03 운영 반영).
+> 계약 원문: jace-s 저장소(`JaceDashS/jace-s-platform`) `docs/api/apps/online-sequencer/` (`10-client-contract.md`, `20-health.md`, `30-app-contract.md`). 이 문서는 클라이언트 기준 요약이며 원문이 우선한다. 기준: jace-s 커밋 `9416e01` (2026-11-03 원문 대조).
 
 - **API 주소**: `https://api.jace-s.com` (`VITE_API_URL`). 경로에 `/api`를 붙이지 않는다.
 - **협업 REST**: `{API_URL}/online-sequencer/...`
@@ -17,7 +17,11 @@
 - **roomCode**: 4자리 문자열(`0000`~`9999`). 시간 값은 epoch 밀리초.
 - **hostToken**: 새 방을 만들 때 한 번만 받는다. 호스트 전용 요청에 `Authorization: Bearer {hostToken}`으로 보낸다. URL이나 로그에 넣지 않으며 클라이언트 메모리에만 보관한다.
 - **로그인 사용자**: 허용 Origin(`online-sequencer.jace-s.com`)에서 로그인한 경우 변경 요청에 `credentials: 'include'`와 `x-csrf-token`을 붙인다. 틀리면 403 `CSRF_VALIDATION_FAILED`. 비로그인 사용자는 둘 다 보내지 않는다. 상세: [서비스 공지와 로그인 명세](../service-notices-and-login.ko.md)
-- **방 유지 시간**: 로그인 상태로 만든 방 6시간, 비로그인 1시간 (jace-s 핸드오프 기준)
+- **방 유지 시간**: 로그인 상태로 만든 방 6시간, 비로그인 1시간. 클라이언트는 고정 시간을 가정하지 않고 응답의 `expiresAt`을 쓴다. 재등록은 만료 시각을 연장하지 않는다.
+- **생성 제한**: 성공 생성은 비로그인 IP당 1회·회원 5회/시간, 신원당 활성 방 1개, 실패 생성은 비로그인 3회·회원 10회/15분. 초과 시 429 `RATE_LIMITED`, 활성 방이 이미 있으면 409 `ACTIVE_ROOM_LIMIT`. 호스트 토큰을 가진 기존 방 재등록은 제한에서 제외된다.
+- **WebSocket 호스트 인증**: 연결 자체는 인증하지 않고, `register` 메시지의 `data.hostToken`을 검증한다.
+- **에러 형식**: `{success:false, error, code?, details?}`. 클라이언트는 `src/core/sync/roomApiErrors.ts`에서 코드별 문구로 바꿔 보여준다.
+- **재등록 응답**: 같은 hostId로 재등록하면 `hostToken`이 `null`로 온다. 기존 토큰을 덮어쓰지 않는다.
 
 | 방법과 경로 | 입력 | 성공 |
 |---|---|---|
@@ -319,7 +323,8 @@ sequenceDiagram
   "roomCode": "1234",
   "clientId": "host-uuid",
   "data": {
-    "role": "host"
+    "role": "host",
+    "hostToken": "issued-host-token"  // 필수: POST /rooms에서 받은 토큰
   }
 }
 
