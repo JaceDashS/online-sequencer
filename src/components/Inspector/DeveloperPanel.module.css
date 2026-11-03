@@ -130,3 +130,14 @@
   border-color: #666666;
   color: #888888;
 }
+
+.selectWide {
+  width: 110px;
+}
+
+.value {
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: var(--text-secondary);
+  text-align: right;
+}

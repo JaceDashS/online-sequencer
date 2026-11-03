@@ -154,6 +154,21 @@ export class AudioEngine {
   }
 
   /**
+   * 출력 지연 정보 (개발자 패널 표시용)
+   * - hintSeconds: AudioContext 생성 때 전달한 latencyHint 선호값 (브라우저가 무시할 수 있음)
+   * - baseLatency / outputLatency: 브라우저가 실제로 보고한 값. 지원하지 않거나 컨텍스트가 없으면 null
+   */
+  getLatencyInfo(): { hintSeconds: number | null; baseLatency: number | null; outputLatency: number | null } {
+    const context = this.context as (AudioContext & { outputLatency?: number }) | null;
+    const finite = (value: number | undefined) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
+    return {
+      hintSeconds: this.appliedLatencyHintSeconds,
+      baseLatency: finite(context?.baseLatency),
+      outputLatency: finite(context?.outputLatency),
+    };
+  }
+
+  /**
    * AudioContext 인스턴스를 가져옵니다 (메트로놈 등에서 사용)
    */
   getContext(): AudioContext | null {

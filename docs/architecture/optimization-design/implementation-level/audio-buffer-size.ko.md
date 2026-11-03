@@ -30,7 +30,7 @@
 
 - `src/constants/ui.ts`: 상수 정의
 - `src/store/uiStore.tsx`: 상태 관리
-- `src/components/Inspector/DeveloperPanel.tsx`: `BUF` UI 컨트롤 (개발자 패널)
+- `src/components/Inspector/DeveloperPanel.tsx`: `LATENCY HINT` UI 컨트롤과 `ACTUAL`(실제 지연) 표시 (개발자 패널, 이전 명칭 `BUF`)
 - `src/components/Toolbar/TransportControls.tsx`: 틱 간격 계산
 - `src/core/audio/AudioEngine.ts`: AudioContext latencyHint 적용/재생성
 
@@ -130,10 +130,14 @@ latencyHintSeconds = (bufferSize / SAMPLE_RATE) * PERIODS
 - Web Audio API는 고정 128-frame render quantum을 사용하므로 실제 렌더링 블록 크기는 변경 불가
 - `latencyHint` 변경은 컨텍스트 재생성이 필요하며, 재생 중에는 지연 적용됨
 
+### 개발자 패널 표시 (2026-11-03)
+- 라벨을 `BUF`에서 `LATENCY HINT`로 바꾸고, 각 선택지에 계산값을 함께 표시합니다 (예: `512 · 21ms`).
+- `ACTUAL` 행에 브라우저가 보고한 `baseLatency`/`outputLatency`를 표시합니다. 컨텍스트 생성 전이거나 브라우저가 지원하지 않으면 `—`입니다.
+- 이 설정은 개발자 패널에만 있으며 일반 사용자 화면에는 없습니다.
+
 ### 향후 계획
-- 사용자 노출 명칭을 실제 의미에 맞게 정리 (예: `Low latency / Balanced / Stable playback` 프리셋)
-- 진단 정보에 실제 `baseLatency`/`outputLatency` 표시
-- UI 틱 간격을 출력 지연 힌트와 분리
+- 일반 사용자에게 공개할 경우 `Low latency / Balanced / Stable playback` 프리셋으로 정리
+- 측정·실험이 필요하면 UI 틱 간격을 출력 지연 힌트와 분리
 
 ---
 

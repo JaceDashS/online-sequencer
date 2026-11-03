@@ -7,6 +7,10 @@ import {
   getBoundedPitchOffsetSeconds,
   getTimelineTimeAtAudioTime,
   resolveScheduledPlaybackWindow,
+  AUTO_LOOKAHEAD,
+  INITIAL_AUTO_LOOKAHEAD,
+  getEffectiveLookaheadSeconds,
+  nextAutoLookahead,
 } from '../../src/core/audio/playbackTimeline';
 
 type TestFn = () => void;
@@ -81,6 +85,32 @@ test('pitch offsets stay disabled at zero and never exceed the configured maximu
   approxEqual(getBoundedPitchOffsetSeconds(0, 3), 0);
   approxEqual(getBoundedPitchOffsetSeconds(1, 3), 0.003);
   approxEqual(getBoundedPitchOffsetSeconds(12, 3), 0.003);
+});
+
+test('auto lookahead grows one step when scheduled audio runs low', () => {
+  const next = nextAutoLookahead(INITIAL_AUTO_LOOKAHEAD, 0.75, 0.02, 1000, true);
+  approxEqual(next.extraSeconds, AUTO_LOOKAHEAD.STEP_SECONDS);
+  assert.equal(next.increaseCount, 1);
+  approxEqual(getEffectiveLookaheadSeconds(0.75, next), 1);
+});
+
+test('auto lookahead ignores healthy margins, disabled state and the cooldown', () => {
+  assert.equal(nextAutoLookahead(INITIAL_AUTO_LOOKAHEAD, 0.75, 0.3, 1000, true), INITIAL_AUTO_LOOKAHEAD);
+  assert.equal(nextAutoLookahead(INITIAL_AUTO_LOOKAHEAD, 0.75, -0.2, 1000, false), INITIAL_AUTO_LOOKAHEAD);
+  const once = nextAutoLookahead(INITIAL_AUTO_LOOKAHEAD, 0.75, 0, 1000, true);
+  assert.equal(nextAutoLookahead(once, 0.75, 0, 1000 + AUTO_LOOKAHEAD.COOLDOWN_MS - 1, true), once);
+  const twice = nextAutoLookahead(once, 0.75, 0, 1000 + AUTO_LOOKAHEAD.COOLDOWN_MS, true);
+  approxEqual(twice.extraSeconds, AUTO_LOOKAHEAD.STEP_SECONDS * 2);
+});
+
+test('auto lookahead never exceeds the cap or a larger manual setting', () => {
+  let state = INITIAL_AUTO_LOOKAHEAD;
+  for (let i = 0; i < 20; i++) {
+    state = nextAutoLookahead(state, 0.75, 0, i * AUTO_LOOKAHEAD.COOLDOWN_MS, true);
+  }
+  approxEqual(getEffectiveLookaheadSeconds(0.75, state), AUTO_LOOKAHEAD.MAX_TOTAL_SECONDS);
+  assert.equal(nextAutoLookahead(INITIAL_AUTO_LOOKAHEAD, 3, 0, 0, true), INITIAL_AUTO_LOOKAHEAD);
+  approxEqual(getEffectiveLookaheadSeconds(3, INITIAL_AUTO_LOOKAHEAD), 3);
 });
 
 console.log('\n' + '='.repeat(60));

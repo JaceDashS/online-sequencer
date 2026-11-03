@@ -252,7 +252,7 @@ Long Tasks API는 50ms 이상 UI 스레드를 독점하는 작업을 관측하�
 2. **완료 — pitch offset 기본 비활성화와 상한 테스트**: `AudioEngine`, `uiStore`, 관련 문서
 3. **완료 — 레벨 미터 최적화**: `AudioEngine`, `audioLevelStore`, `LevelMeter`
 4. **일부 완료 — 진단 보강**: 늦은 노트 로그를 추가했으며 상세 개발자 패널은 후속 과제다.
-5. **후속 — 측정 기반 lookahead/latency 프리셋 조정**
+5. **일부 완료 (2026-11-03) — 측정 기반 lookahead 자동 보정과 실제 지연 표시**: 예약 고갈 시 lookahead 자동 증가, 개발자 패널에 고갈 횟수·실제 `baseLatency`/`outputLatency` 표시. latency 프리셋은 후속
 6. **후속 — 위 변경 후에도 고갈이 반복되는 경우에만 AudioWorklet 기반 sampler 검토**
 
 `AudioWorklet`은 사용자 코드가 오디오 렌더링 스레드에서 실행될 수 있게 하지만, 샘플러·보이스 관리·메시지 프로토콜을 새로 설계해야 하고 렌더링 deadline을 직접 지켜야 한다. 위 1~5단계 후에도 허용할 수 없는 고갈이 반복될 때 별도 아키텍처 작업으로 다루는 것이 안전하다.

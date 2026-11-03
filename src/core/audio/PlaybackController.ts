@@ -13,7 +13,28 @@ import {
   getAudioTimeForTimelineTime,
   getTimelineTimeAtAudioTime,
   type PlaybackAnchor,
+  getEffectiveLookaheadSeconds,
+  INITIAL_AUTO_LOOKAHEAD,
+  nextAutoLookahead,
+  type AutoLookaheadState,
 } from './playbackTimeline';
+
+export interface ScheduleHealth {
+  /** 수동 설정 lookahead (초) */
+  baseLookaheadSeconds: number;
+  /** 자동 보정이 더한 값 (초) */
+  autoExtraSeconds: number;
+  /** 실제 적용 중인 lookahead (초) */
+  effectiveLookaheadSeconds: number;
+  autoEnabled: boolean;
+  autoIncreaseCount: number;
+  /** 예약 잔량 부족(lookahead_low) 횟수 */
+  lowCount: number;
+  /** 예약 고갈(lookahead_depleted) 횟수 */
+  depletedCount: number;
+  /** 가장 작았던 예약 잔량 (초), 측정 전 null */
+  minRemainingSeconds: number | null;
+}
 
 const DEFAULT_SCHEDULE_LOOKAHEAD_SECONDS = 0.75;
 const SCHEDULE_INTERVAL_MS = 50;
@@ -71,11 +92,48 @@ export class PlaybackController {
     if (!Number.isFinite(seconds)) return;
     this.scheduleLookaheadSeconds = Math.max(0, Math.min(5, seconds));
   }
+
+  /** 예약 고갈 시 lookahead 자동 보정 사용 여부 (기본 사용) */
+  setAutoLookaheadEnabled(enabled: boolean): void {
+    this.autoLookaheadEnabled = enabled;
+    if (!enabled) {
+      this.autoLookahead = INITIAL_AUTO_LOOKAHEAD;
+    }
+  }
+
+  /** 자동 보정값과 측정 통계를 초기화합니다 */
+  resetScheduleHealth(): void {
+    this.autoLookahead = INITIAL_AUTO_LOOKAHEAD;
+    this.lowCount = 0;
+    this.depletedCount = 0;
+    this.minRemainingSeconds = null;
+  }
+
+  /** 예약 상태 측정값 (개발자 패널 표시용) */
+  getScheduleHealth(): ScheduleHealth {
+    return {
+      baseLookaheadSeconds: this.scheduleLookaheadSeconds,
+      autoExtraSeconds: this.autoLookahead.extraSeconds,
+      effectiveLookaheadSeconds: getEffectiveLookaheadSeconds(this.scheduleLookaheadSeconds, this.autoLookahead),
+      autoEnabled: this.autoLookaheadEnabled,
+      autoIncreaseCount: this.autoLookahead.increaseCount,
+      lowCount: this.lowCount,
+      depletedCount: this.depletedCount,
+      minRemainingSeconds: this.minRemainingSeconds,
+    };
+  }
   private isPlaying = false;
   private startToken = 0;
   private scheduleTimer: number | null = null;
   private scheduledUntil = 0;
   private scheduleLookaheadSeconds = DEFAULT_SCHEDULE_LOOKAHEAD_SECONDS;
+  private autoLookaheadEnabled = true;
+  private autoLookahead: AutoLookaheadState = INITIAL_AUTO_LOOKAHEAD;
+  private lowCount = 0;
+  private depletedCount = 0;
+  private minRemainingSeconds: number | null = null;
+  /** 리셋 직후 첫 예약은 잔량 0이 정상이므로 고갈로 세지 않는다 */
+  private skipNextDepletionCheck = false;
   private events: NoteEvent[] = [];
   private eventIndex = 0;
   private projectSnapshot: Project | null = null;
@@ -345,6 +403,7 @@ export class PlaybackController {
     this.events = buildPlaybackEvents(this.projectSnapshot);
     this.eventIndex = this.findStartIndex(this.events, playbackTime);
     this.scheduledUntil = playbackTime;
+    this.skipNextDepletionCheck = true;
 
     this.scheduleLookahead();
     this.startScheduleTimer();
@@ -397,7 +456,12 @@ export class PlaybackController {
       return;
     }
     const remaining = this.scheduledUntil - playbackTime;
-    if (remaining <= 0 && nowPerf - this.lastUnderrunLogAt > LOG_THROTTLE_MS) {
+    const checkDepletion = !this.skipNextDepletionCheck;
+    this.skipNextDepletionCheck = false;
+    if (checkDepletion) {
+      this.recordRemaining(remaining, nowPerf);
+    }
+    if (checkDepletion && remaining <= 0 && nowPerf - this.lastUnderrunLogAt > LOG_THROTTLE_MS) {
       this.lastUnderrunLogAt = nowPerf;
       logScheduleDebug('lookahead_depleted', {
         remainingSeconds: Number(remaining.toFixed(3)),
@@ -405,14 +469,15 @@ export class PlaybackController {
         scheduledUntil: Number(this.scheduledUntil.toFixed(3)),
         lookaheadSeconds: this.scheduleLookaheadSeconds,
       });
-    } else if (remaining > 0 && remaining < LOOKAHEAD_DEPLETION_SECONDS && nowPerf - this.lastUnderrunLogAt > LOG_THROTTLE_MS) {
+    } else if (checkDepletion && remaining > 0 && remaining < LOOKAHEAD_DEPLETION_SECONDS && nowPerf - this.lastUnderrunLogAt > LOG_THROTTLE_MS) {
       this.lastUnderrunLogAt = nowPerf;
       logScheduleDebug('lookahead_low', {
         remainingSeconds: Number(remaining.toFixed(3)),
         lookaheadSeconds: this.scheduleLookaheadSeconds,
       });
     }
-    const windowEnd = playbackTime + this.scheduleLookaheadSeconds;
+    const effectiveLookahead = getEffectiveLookaheadSeconds(this.scheduleLookaheadSeconds, this.autoLookahead);
+    const windowEnd = playbackTime + effectiveLookahead;
     if (windowEnd <= this.scheduledUntil) {
       return;
     }
@@ -438,6 +503,31 @@ export class PlaybackController {
       });
     }
     this.scheduledUntil = windowEnd;
+  }
+
+  /**
+   * 예약 잔량을 기록하고, 고갈 위험이면 lookahead 자동 보정을 적용합니다
+   */
+  private recordRemaining(remaining: number, nowPerf: number): void {
+    if (!Number.isFinite(remaining)) return;
+    if (this.minRemainingSeconds === null || remaining < this.minRemainingSeconds) {
+      this.minRemainingSeconds = remaining;
+    }
+    if (remaining <= 0) {
+      this.depletedCount += 1;
+    } else if (remaining < LOOKAHEAD_DEPLETION_SECONDS) {
+      this.lowCount += 1;
+    }
+    const next = nextAutoLookahead(this.autoLookahead, this.scheduleLookaheadSeconds, remaining, nowPerf, this.autoLookaheadEnabled);
+    if (next !== this.autoLookahead) {
+      this.autoLookahead = next;
+      logScheduleDebug('lookahead_auto_increase', {
+        remainingSeconds: Number(remaining.toFixed(3)),
+        baseLookaheadSeconds: this.scheduleLookaheadSeconds,
+        effectiveLookaheadSeconds: getEffectiveLookaheadSeconds(this.scheduleLookaheadSeconds, next),
+        increaseCount: next.increaseCount,
+      });
+    }
   }
 
   /**

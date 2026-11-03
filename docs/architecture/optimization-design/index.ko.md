@@ -105,6 +105,7 @@ graph TB
 #### 오디오 재생 최적화
 - [Lookahead 스케줄링](./implementation-level/lookahead-scheduling.ko.md)
   - `AudioContext.currentTime` 고정 앵커 기준으로 오디오 이벤트를 미리 예약
+  - 예약 고갈 시 lookahead 자동 보정 (최대 2초)
 
 - [같은 음계 간섭 방지](./implementation-level/pitch-class-interference-prevention.ko.md)
   - 같은 샘플 소스에서 파생된 오디오의 위상 간섭을 시간 오프셋으로 분산 (기본 0ms, 비활성화)
@@ -182,7 +183,6 @@ graph TB
 - MIDI 클립 레이아웃 계산을 Web Worker로 이동
 
 ### 구현 수준
-- 측정 기반 동적 lookahead 윈도우 크기 조절 (현재는 개발자 패널에서 수동 조절)
 - 드리프트 보정 알고리즘 파라미터 자동 튜닝
 - 샘플 로딩 우선순위 큐
 - LRU 캐시 도입으로 캐시 크기 제한

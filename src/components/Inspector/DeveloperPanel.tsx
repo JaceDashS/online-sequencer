@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import styles from './DeveloperPanel.module.css';
 import { useUIState } from '../../store/uiStore';
-import { playbackController } from '../../core/audio/PlaybackController';
+import { playbackController, type ScheduleHealth } from '../../core/audio/PlaybackController';
 import { AUDIO_BUFFER_CONSTANTS } from '../../constants/ui';
 import {
   describeApprovalFailure,
@@ -42,6 +42,18 @@ const DeveloperPanel: React.FC = () => {
   const [pendingAction, setPendingAction] = useState(false);
   useEffect(() => subscribeJaceSession(setSession), []);
   const visible = canShowDeveloperPanel(session, ui.devModeEnabled);
+
+  // 예약 상태·출력 지연 측정값 (1초마다 읽기만 함, 서버 요청 없음)
+  const [health, setHealth] = useState<ScheduleHealth>(() => playbackController.getScheduleHealth());
+  const [latency, setLatency] = useState(() => playbackController.getEngine().getLatencyInfo());
+  useEffect(() => {
+    if (!visible) return;
+    const timer = window.setInterval(() => {
+      setHealth(playbackController.getScheduleHealth());
+      setLatency(playbackController.getEngine().getLatencyInfo());
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [visible]);
   const [driftInput, setDriftInput] = useState(String(ui.playbackDriftMs));
   const [pitchOffsetInput, setPitchOffsetInput] = useState(String(ui.pitchOffsetMaxMs));
   const [lookaheadInput, setLookaheadInput] = useState(String(ui.scheduleLookaheadSeconds));
@@ -195,10 +207,27 @@ const DeveloperPanel: React.FC = () => {
     }
   };
 
+  // BUF(이전 명칭): 실제 렌더링 버퍼가 아니라 UI 틱 간격과 latencyHint 선호값을 함께 정하는 값
   const bufferOptions = AUDIO_BUFFER_CONSTANTS.BUFFER_SIZES.map((size) => ({
-    label: String(size),
+    label: `${size} · ${Math.round((size / AUDIO_BUFFER_CONSTANTS.SAMPLE_RATE) * AUDIO_BUFFER_CONSTANTS.PERIODS * 1000)}ms`,
     value: size,
   }));
+  const formatMs = (seconds: number | null) => (seconds === null ? '—' : `${(seconds * 1000).toFixed(1)}ms`);
+
+  const handleAutoLookaheadToggle = () => {
+    const nextValue = !health.autoEnabled;
+    void runApproved(() => {
+      playbackController.setAutoLookaheadEnabled(nextValue);
+      setHealth(playbackController.getScheduleHealth());
+    });
+  };
+
+  const handleScheduleHealthReset = () => {
+    void runApproved(() => {
+      playbackController.resetScheduleHealth();
+      setHealth(playbackController.getScheduleHealth());
+    });
+  };
 
   const logOptions = [
     { label: 'OFF', value: 0 },
@@ -270,10 +299,10 @@ const DeveloperPanel: React.FC = () => {
           </div>
         </div>
         <div className={styles.row}>
-          <span className={styles.label}>BUF</span>
+          <span className={styles.label} title="UI tick interval and AudioContext latencyHint preference. Not the Web Audio render buffer (fixed 128 frames).">LATENCY HINT</span>
           <div className={styles.field}>
             <select
-              className={styles.select}
+              className={`${styles.select} ${styles.selectWide}`}
               value={ui.audioBufferSize}
               onChange={handleBufferChange}
             >
@@ -284,6 +313,12 @@ const DeveloperPanel: React.FC = () => {
               ))}
             </select>
           </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label} title="Values reported by the browser. latencyHint changes apply after playback stops.">ACTUAL</span>
+          <span className={styles.value}>
+            base {formatMs(latency.baseLatency)} / out {formatMs(latency.outputLatency)}
+          </span>
         </div>
         <div className={styles.row}>
           <span className={styles.label}>LOG</span>
@@ -335,6 +370,40 @@ const DeveloperPanel: React.FC = () => {
               onKeyDown={(event) => { if (event.key === 'Enter') { (event.target as HTMLInputElement).blur(); } }}
             />
             <span className={styles.unit}>s</span>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label} title="Raise the lookahead automatically when scheduled audio runs low">AUTO LOOKAHEAD</span>
+          <div className={styles.field}>
+            <button
+              type="button"
+              className={`${styles.toggleButton} ${health.autoEnabled ? styles.toggleButtonOn : styles.toggleButtonOff}`}
+              onClick={handleAutoLookaheadToggle}
+            >
+              [{health.autoEnabled ? 'ON' : 'OFF'}]
+            </button>
+          </div>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>EFFECTIVE</span>
+          <span className={styles.value}>
+            {health.effectiveLookaheadSeconds.toFixed(2)}s
+            {health.autoExtraSeconds > 0 ? ` (+${health.autoExtraSeconds.toFixed(2)} auto ×${health.autoIncreaseCount})` : ''}
+          </span>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label} title="Scheduler ticks with less than 50ms of audio scheduled / none scheduled">LOW / EMPTY</span>
+          <span className={styles.value}>
+            {health.lowCount} / {health.depletedCount}
+            {health.minRemainingSeconds !== null ? ` · min ${formatMs(health.minRemainingSeconds)}` : ''}
+          </span>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>SCHEDULE</span>
+          <div className={styles.field}>
+            <button type="button" className={styles.toggleButton} onClick={handleScheduleHealthReset}>
+              RESET
+            </button>
           </div>
         </div>
         <div className={styles.row}>
