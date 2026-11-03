@@ -95,3 +95,24 @@ Online Sequencer는 jace-s에 앱 ID **41**로 등록되어 있습니다. 이 �
 실서버(jace-s 운영)로는 확인하지 않았습니다. 방 만료 6시간 여부는 서버 응답 `expiresAt`으로 확인해야 합니다.
 
 단위 테스트: `scripts/unit-tests/service-notice-tests.ts` (`npm run test:unit`에 포함)
+
+## 5. 어드민 UI 미리보기
+
+어드민이 서버 상태와 관계없이 새 UI를 강제로 띄워 확인하는 패널입니다. 구현: `src/components/Inspector/AdminPreviewPanel.tsx`, `src/utils/uiPreview.ts`
+
+| 항목 | 내용 |
+|---|---|
+| 표시 조건 | `GET {API}/auth/session` 200 응답의 `isAdmin === true` (jace-s 메인 사이트 `services/web/src/utils/authClient.ts`와 같은 기준) |
+| 사실상 사용 가능 주소 | 로그인이 되는 `online-sequencer.jace-s.com`만. localhost·vercel.app·Electron에서는 세션 확인을 하지 않으므로 보이지 않음 |
+| 위치 | 인스펙터 아래(DEV 패널 다음). 인스펙터를 숨기면 함께 숨겨짐 |
+| 성격 | 화면 표시 전용. 서버 요청을 보내지 않고 실제 방·세션·공지 상태를 바꾸지 않음. 새로고침하면 사라짐. `isAdmin`은 권한 판정이 아님 |
+
+| 대상 | 미리보기 |
+|---|---|
+| 공지 토스트 | 연결됨 공지(8초 후 닫힘), 연결 불가 공지 2개(HTML 태그 제목 포함, 유지), 장애 문구 |
+| 계정 버튼 | 끔 / `Log in` / 확인 중 / 로그인(`Preview User`) |
+| 호스팅 드롭다운 | 가상 방 `0000`: 비로그인 1시간+로그인 안내, 로그인 6시간, 만료 2분 전, 만료됨. 실제 호스팅·참가 중이 아닐 때만 표시. Allow·Kick·Stop은 미리보기 상태만 바꿈 |
+| 방 API 에러 토스트 | `ACTIVE_ROOM_LIMIT`, `RATE_LIMITED`, `CSRF_VALIDATION_FAILED`, `NO_AVAILABLE_ROOM_CODES`, `ROOM_NOT_FOUND`, `KICKED`, `UNAUTHORIZED` |
+
+세션 응답의 `csrfToken`은 계약상 `null`일 수 있습니다. 이때는 로그인 상태로 표시하되, 변경 요청에는 쿠키·CSRF를 붙이지 않습니다(비로그인 요청).
+

@@ -3,7 +3,8 @@
  *
  * - 로그인 쿠키는 jace-s API(https://api.jace-s.com)에만 있다.
  * - 세션 확인: GET {API_URL}/auth/session, credentials: 'include'
- *   200 → { user, csrfToken, ... }, 401 → 로그아웃
+ *   200 → { user, isAdmin, adminAccess, csrfToken(문자열 또는 null), ... }, 401 → 로그아웃
+ *   isAdmin은 jace-s 메인 사이트와 같은 판단 기준이다(관리 메뉴를 하나라도 볼 수 있음). 화면 표시용이며 권한 판정은 서버가 한다.
  * - 로그인 상태의 변경 요청(POST/PUT/PATCH/DELETE): credentials: 'include' + 헤더 x-csrf-token
  *   (CSRF가 없거나 틀리면 403 CSRF_VALIDATION_FAILED)
  * - 비로그인 사용자는 쿠키와 CSRF 헤더 없이 요청한다.
@@ -27,6 +28,8 @@ export interface JaceSessionState {
   status: JaceSessionStatus;
   user: JaceSessionUser | null;
   csrfToken: string | null;
+  /** jace-s 관리 메뉴를 하나라도 볼 수 있는 계정인지 (화면 표시용) */
+  isAdmin: boolean;
 }
 
 const SESSION_TIMEOUT_MS = 10_000;
@@ -39,6 +42,7 @@ let state: JaceSessionState = {
   status: isLoginAvailable() ? 'unknown' : 'unavailable',
   user: null,
   csrfToken: null,
+  isAdmin: false,
 };
 const listeners = new Set<Listener>();
 let inflight: Promise<JaceSessionState> | null = null;
@@ -66,14 +70,19 @@ export function subscribeJaceSession(listener: Listener): () => void {
 }
 
 /**
- * 세션 응답 본문을 해석합니다. csrfToken이 없으면 로그인 상태로 보지 않습니다.
+ * 세션 응답(200) 본문을 해석합니다. user 객체가 없으면 로그인 상태로 보지 않습니다.
+ * csrfToken은 계약상 null일 수 있습니다(CSRF 쿠키가 다른 세션의 것일 때). 이때는 로그인 상태로 표시하되
+ * 변경 요청에 쿠키·CSRF를 붙이지 않습니다(비로그인 요청으로 처리).
  */
-export function parseSessionPayload(payload: unknown): Pick<JaceSessionState, 'user' | 'csrfToken'> | null {
+export function parseSessionPayload(payload: unknown): Pick<JaceSessionState, 'user' | 'csrfToken' | 'isAdmin'> | null {
   if (!payload || typeof payload !== 'object') return null;
-  const body = payload as { user?: unknown; csrfToken?: unknown };
-  if (typeof body.csrfToken !== 'string' || !body.csrfToken) return null;
-  const user = body.user && typeof body.user === 'object' ? (body.user as JaceSessionUser) : {};
-  return { user, csrfToken: body.csrfToken };
+  const body = payload as { user?: unknown; csrfToken?: unknown; isAdmin?: unknown };
+  if (!body.user || typeof body.user !== 'object') return null;
+  return {
+    user: body.user as JaceSessionUser,
+    csrfToken: typeof body.csrfToken === 'string' && body.csrfToken ? body.csrfToken : null,
+    isAdmin: body.isAdmin === true,
+  };
 }
 
 /**
@@ -94,7 +103,7 @@ export function getSessionDisplayName(user: JaceSessionUser | null): string {
 export function refreshJaceSession(): Promise<JaceSessionState> {
   if (!isLoginAvailable()) {
     if (state.status !== 'unavailable') {
-      setState({ status: 'unavailable', user: null, csrfToken: null });
+      setState({ status: 'unavailable', user: null, csrfToken: null, isAdmin: false });
     }
     return Promise.resolve(state);
   }
@@ -117,15 +126,15 @@ export function refreshJaceSession(): Promise<JaceSessionState> {
         const parsed = parseSessionPayload(await response.json());
         setState(parsed
           ? { status: 'signed-in', ...parsed }
-          : { status: 'signed-out', user: null, csrfToken: null });
+          : { status: 'signed-out', user: null, csrfToken: null, isAdmin: false });
       } else if (response.status === 401) {
-        setState({ status: 'signed-out', user: null, csrfToken: null });
+        setState({ status: 'signed-out', user: null, csrfToken: null, isAdmin: false });
       } else {
         // 서버 오류: 로그인 여부를 판단할 수 없음
-        setState({ status: 'unknown', user: null, csrfToken: null });
+        setState({ status: 'unknown', user: null, csrfToken: null, isAdmin: false });
       }
     } catch {
-      setState({ status: 'unknown', user: null, csrfToken: null });
+      setState({ status: 'unknown', user: null, csrfToken: null, isAdmin: false });
     } finally {
       clearTimeout(timer);
       inflight = null;

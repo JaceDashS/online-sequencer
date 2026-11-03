@@ -10,6 +10,7 @@ import { useWindowWidth } from '../../hooks/useWindowWidth';
 import { BREAKPOINTS } from '../../constants/ui';
 import { formatRoomExpiry } from '../../core/sync/roomExpiry';
 import { getJaceSession, openJaceLoginWindow, subscribeJaceSession, type JaceSessionState } from '../../core/auth/jaceSession';
+import { setHostingPreview, updateHostingPreview, useUiPreview } from '../../utils/uiPreview';
 
 interface Participant {
   id: string;
@@ -31,6 +32,7 @@ const CollaborationButtons: React.FC = () => {
   const [roomExpiresAt, setRoomExpiresAt] = useState<number | null>(null);
   const [expiryNow, setExpiryNow] = useState(() => Date.now());
   const [session, setSession] = useState<JaceSessionState>(() => getJaceSession());
+  const uiPreview = useUiPreview();
   const windowWidth = useWindowWidth();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const joinInputRef = useRef<HTMLInputElement>(null);
@@ -437,6 +439,33 @@ const CollaborationButtons: React.FC = () => {
     };
   }, [showCollaborationDropdown]);
 
+  // 어드민 미리보기: 실제로 호스팅하지 않을 때만 가상 방을 보여준다 (서버 요청 없음)
+  const previewHosting = mode === 'idle' ? uiPreview.hosting : null;
+  const viewMode: CollaborationMode = previewHosting ? 'hosting' : mode;
+  const viewRoomCode = previewHosting ? '0000' : roomCode;
+  const viewIsHost = previewHosting ? true : isHost;
+  const viewParticipants: Participant[] = previewHosting
+    ? [
+        { id: clientId, name: 'You', connectionState: 'connected' },
+        ...previewHosting.guests.map((name, index) => ({
+          id: `preview-guest-${index}`,
+          name,
+          connectionState: (['connected', 'connecting', 'failed'] as ConnectionState[])[index % 3],
+        })),
+      ]
+    : participants;
+  const viewExpiresAt = previewHosting ? previewHosting.expiresAt : roomExpiresAt;
+  const viewSessionStatus = previewHosting ? previewHosting.sessionStatus : session.status;
+  const viewAllowCountdown = previewHosting ? (previewHosting.allowing ? 60 : null) : allowCountdown;
+  const viewHandleStop = previewHosting ? () => setHostingPreview(null) : handleStopHost;
+  const viewHandleAllow = previewHosting ? () => updateHostingPreview({ allowing: true }) : handleAllowParticipant;
+  const viewHandleKick = previewHosting
+    ? (participantId: string) => {
+        const index = Number(participantId.replace('preview-guest-', ''));
+        updateHostingPreview({ guests: previewHosting.guests.filter((_, i) => i !== index) });
+      }
+    : handleKickParticipant;
+
   return (
     <div className={styles.collaborationButtons}>
       {/* Loading 상태 */}
@@ -447,7 +476,7 @@ const CollaborationButtons: React.FC = () => {
       )}
 
       {/* Idle 상태: Collaboration 드롭다운 버튼 */}
-      {mode === 'idle' && (
+      {viewMode === 'idle' && (
         <div 
           ref={collaborationButtonRef}
           className={styles.collaborationButtonContainer}
@@ -573,7 +602,7 @@ const CollaborationButtons: React.FC = () => {
       )}
 
       {/* Hosting 상태: 드롭다운 */}
-      {mode === 'hosting' && roomCode && (
+      {viewMode === 'hosting' && viewRoomCode && (
         <div ref={dropdownRef} className={styles.hostDropdownContainer}>
           <button
             className={styles.dropdownTrigger}
@@ -583,7 +612,7 @@ const CollaborationButtons: React.FC = () => {
             }}
             title="Room participants"
           >
-            <span className={styles.roomCodeDisplay}>{roomCode}</span>
+            <span className={styles.roomCodeDisplay}>{viewRoomCode}</span>
             <svg 
               width="12" 
               height="12" 
@@ -601,10 +630,10 @@ const CollaborationButtons: React.FC = () => {
             <div className={styles.participantsDropdown}>
               <div className={styles.participantsList}>
                 <div className={styles.participantsTitle}>
-                  Participants ({participants.length}/4)
+                  Participants ({viewParticipants.length}/4)
                 </div>
-                {isHost && (() => {
-                  const expiry = formatRoomExpiry(roomExpiresAt, expiryNow);
+                {viewIsHost && (() => {
+                  const expiry = formatRoomExpiry(viewExpiresAt, expiryNow);
                   if (!expiry) return null;
                   return (
                     <div className={styles.roomExpiry} title="Room lifetime is set by the server when the room is created">
@@ -615,7 +644,7 @@ const CollaborationButtons: React.FC = () => {
                     </div>
                   );
                 })()}
-                {isHost && session.status === 'signed-out' && (
+                {viewIsHost && viewSessionStatus === 'signed-out' && (
                   <div className={styles.roomExpiryHint}>
                     Rooms created while signed in last 6 hours (1 hour otherwise).{' '}
                     <button type="button" className={styles.roomExpiryLogin} onClick={openJaceLoginWindow}>
@@ -623,7 +652,7 @@ const CollaborationButtons: React.FC = () => {
                     </button>
                   </div>
                 )}
-                {participants.map((participant) => {
+                {viewParticipants.map((participant) => {
                   const getConnectionStateIcon = (state?: ConnectionState) => {
                     switch (state) {
                       case 'connected':
@@ -675,7 +704,7 @@ const CollaborationButtons: React.FC = () => {
                   };
 
                   const isSelf = participant.id === clientId;
-                  const canKick = isHost && !isSelf;
+                  const canKick = viewIsHost && !isSelf;
 
                   return (
                     <div key={participant.id} className={styles.participantItem} title={getConnectionStateText(participant.connectionState)}>
@@ -686,7 +715,7 @@ const CollaborationButtons: React.FC = () => {
                           className={styles.kickButton}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleKickParticipant(participant.id);
+                            viewHandleKick(participant.id);
                           }}
                           title={`Kick ${participant.name}`}
                         >
@@ -699,17 +728,17 @@ const CollaborationButtons: React.FC = () => {
                     </div>
                   );
                 })}
-                {isHost && (
+                {viewIsHost && (
                   <div className={styles.dropdownFooter}>
                     <div className={styles.footerButtons}>
-                      {allowCountdown !== null && allowCountdown > 0 ? (
+                      {viewAllowCountdown !== null && viewAllowCountdown > 0 ? (
                         <div className={styles.countdownDisplay}>
-                          Allow: {allowCountdown}s
+                          Allow: {viewAllowCountdown}s
                         </div>
                       ) : (
                         <button
                           className={styles.allowButton}
-                          onClick={handleAllowParticipant}
+                          onClick={viewHandleAllow}
                           title="Allow participants to join for 1 minute"
                         >
                           Allow 1min
@@ -717,7 +746,7 @@ const CollaborationButtons: React.FC = () => {
                       )}
                       <button
                         className={styles.stopHostButton}
-                        onClick={handleStopHost}
+                        onClick={viewHandleStop}
                         title="Stop hosting"
                       >
                         Stop Hosting
@@ -725,7 +754,7 @@ const CollaborationButtons: React.FC = () => {
                     </div>
                   </div>
                 )}
-                {!isHost && (
+                {!viewIsHost && (
                   <div className={styles.dropdownFooter}>
                     <button
                       className={styles.stopHostButton}

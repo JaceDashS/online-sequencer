@@ -7,6 +7,7 @@ import MeasureRuler from '../components/EventDisplay/MeasureRuler';
 import EventDisplay from '../components/EventDisplay/EventDisplay';
 import Inspector from '../components/Inspector/Inspector';
 import DeveloperPanel from '../components/Inspector/DeveloperPanel';
+import AdminPreviewPanel from '../components/Inspector/AdminPreviewPanel';
 import Mixer from '../components/Mixer/Mixer';
 import { getProject, updateBpm, updateTimeSignature, subscribeToProjectChanges, setProject, updateTrack } from '../store/projectStore';
 import { addEffectToMaster } from '../store/projectActions';
@@ -346,6 +347,7 @@ const DawPage: React.FC = () => {
         >
           <Inspector selectedTrackId={ui.selectedTrackId || undefined} />
           <DeveloperPanel />
+          <AdminPreviewPanel />
         </div>
         )}
       </div>

@@ -165,9 +165,14 @@ test('health 200 without notices shows nothing', () => {
   assert.deepEqual(resolveServiceNoticeToasts({ connected: true, announcements: [] }), []);
 });
 
-test('session payload requires csrfToken', () => {
-  assert.deepEqual(parseSessionPayload({ user: { name: 'a' }, csrfToken: 't' }), { user: { name: 'a' }, csrfToken: 't' });
-  assert.equal(parseSessionPayload({ user: { name: 'a' } }), null);
+test('session payload reads user, isAdmin and a nullable csrfToken', () => {
+  assert.deepEqual(
+    parseSessionPayload({ user: { name: 'a' }, csrfToken: 't', isAdmin: true, adminAccess: {} }),
+    { user: { name: 'a' }, csrfToken: 't', isAdmin: true }
+  );
+  // 계약: csrfToken은 null일 수 있다 → 로그인 상태이지만 변경 요청에 쿠키·CSRF를 붙이지 않음
+  assert.deepEqual(parseSessionPayload({ user: { name: 'a' }, csrfToken: null }), { user: { name: 'a' }, csrfToken: null, isAdmin: false });
+  assert.equal(parseSessionPayload({ csrfToken: 't' }), null);
   assert.equal(parseSessionPayload(null), null);
 });
 

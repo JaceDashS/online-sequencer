@@ -8,6 +8,7 @@ import {
   type ServiceNoticeToast,
   type ServiceStatusSnapshot,
 } from '../../core/notices/serviceNotices';
+import { subscribeNoticePreview } from '../../utils/uiPreview';
 import styles from './ServiceNoticeToasts.module.css';
 
 /**
@@ -41,6 +42,31 @@ const ServiceNoticeToasts: React.FC = () => {
     setToasts((current) => current.filter((toast) => toast.key !== key));
   }, []);
 
+  const showToasts = useCallback((next: ServiceNoticeToast[], mode: 'replace' | 'append') => {
+    setToasts((current) => (mode === 'replace' ? next : [...current, ...next]));
+    for (const toast of next) {
+      if (toast.autoDismissMs !== null) {
+        timersRef.current.set(
+          toast.key,
+          setTimeout(() => dismiss(toast.key), toast.autoDismissMs)
+        );
+      }
+    }
+  }, [dismiss]);
+
+  // 어드민 미리보기: 서버 결과와 같은 규칙으로 예시 토스트를 추가한다 (서버 요청 없음)
+  useEffect(() => {
+    let previewCount = 0;
+    return subscribeNoticePreview((snapshot) => {
+      previewCount += 1;
+      const prefix = `preview-${previewCount}:`;
+      showToasts(
+        resolveServiceNoticeToasts(snapshot).map((toast) => ({ ...toast, key: prefix + toast.key })),
+        'append'
+      );
+    });
+  }, [showToasts]);
+
   useEffect(() => {
     let cancelled = false;
     const timers = timersRef.current;
@@ -48,16 +74,7 @@ const ServiceNoticeToasts: React.FC = () => {
     loadOnce()
       .then((snapshot) => {
         if (cancelled) return;
-        const next = resolveServiceNoticeToasts(snapshot);
-        setToasts(next);
-        for (const toast of next) {
-          if (toast.autoDismissMs !== null) {
-            timers.set(
-              toast.key,
-              setTimeout(() => dismiss(toast.key), toast.autoDismissMs)
-            );
-          }
-        }
+        showToasts(resolveServiceNoticeToasts(snapshot), 'append');
       })
       .catch(() => {
         // loadServiceStatus는 실패를 내부에서 처리하므로 여기까지 오지 않는다.
@@ -68,7 +85,7 @@ const ServiceNoticeToasts: React.FC = () => {
       timers.forEach((timer) => clearTimeout(timer));
       timers.clear();
     };
-  }, [dismiss]);
+  }, [showToasts]);
 
   if (toasts.length === 0 || typeof document === 'undefined') {
     return null;
