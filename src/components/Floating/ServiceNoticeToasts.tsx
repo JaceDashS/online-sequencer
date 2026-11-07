@@ -34,7 +34,8 @@ function loadOnce(): Promise<ServiceStatusSnapshot | null> {
 /**
  * jace-s 서비스 공지·장애 상단 토스트
  *
- * 화면 위 가운데에 쌓이며, 색은 Sequencer 테마 변수를 따릅니다.
+ * 화면 위 가운데에 토스트 하나로 보여 주며(공지가 여러 개면 한 줄씩), 색은 Sequencer 테마 변수를 따릅니다.
+ * 미리보기와 서버 결과는 서로 겹쳐 쌓이지 않고 가장 최근 것으로 바뀝니다.
  * 변형(transform)이 있는 부모의 영향을 받지 않도록 document.body에 포털로 그립니다.
  */
 const ServiceNoticeToasts: React.FC = () => {
@@ -50,8 +51,11 @@ const ServiceNoticeToasts: React.FC = () => {
     setToasts((current) => current.filter((toast) => toast.key !== key));
   }, []);
 
-  const showToasts = useCallback((next: ServiceNoticeToast[], mode: 'replace' | 'append') => {
-    setToasts((current) => (mode === 'replace' ? next : [...current, ...next]));
+  const showToasts = useCallback((next: ServiceNoticeToast[]) => {
+    // 이전 토스트의 자동 닫힘 타이머를 정리하고 새 결과로 바꾼다
+    timersRef.current.forEach((timer) => clearTimeout(timer));
+    timersRef.current.clear();
+    setToasts(next);
     for (const toast of next) {
       if (toast.autoDismissMs !== null) {
         timersRef.current.set(
@@ -62,15 +66,14 @@ const ServiceNoticeToasts: React.FC = () => {
     }
   }, [dismiss]);
 
-  // 어드민 미리보기: 서버 결과와 같은 규칙으로 예시 토스트를 추가한다 (서버 요청 없음)
+  // 어드민 미리보기: 서버 결과와 같은 규칙으로 예시 토스트를 보여 준다 (서버 요청 없음)
   useEffect(() => {
     let previewCount = 0;
     return subscribeNoticePreview((snapshot) => {
       previewCount += 1;
       const prefix = `preview-${previewCount}:`;
       showToasts(
-        resolveServiceNoticeToasts(snapshot).map((toast) => ({ ...toast, key: prefix + toast.key })),
-        'append'
+        resolveServiceNoticeToasts(snapshot).map((toast) => ({ ...toast, key: prefix + toast.key }))
       );
     });
   }, [showToasts]);
@@ -82,7 +85,7 @@ const ServiceNoticeToasts: React.FC = () => {
     loadOnce()
       .then((snapshot) => {
         if (cancelled || !snapshot) return;
-        showToasts(resolveServiceNoticeToasts(snapshot), 'append');
+        showToasts(resolveServiceNoticeToasts(snapshot));
       })
       .catch(() => {
         // loadServiceStatus는 실패를 내부에서 처리하므로 여기까지 오지 않는다.
@@ -108,7 +111,13 @@ const ServiceNoticeToasts: React.FC = () => {
           role={toast.role}
         >
           {/* 제목·문구는 텍스트로만 렌더링 (HTML 해석 금지) */}
-          <span className={styles.text}>{toast.text}</span>
+          {toast.lines.length === 1 ? (
+            <span className={styles.text}>{toast.lines[0]}</span>
+          ) : (
+            <ul className={`${styles.text} ${styles.lines}`}>
+              {toast.lines.map((line, index) => <li key={index}>{line}</li>)}
+            </ul>
+          )}
           <button
             type="button"
             className={styles.close}

@@ -28,7 +28,8 @@ export interface ServiceNoticeToast {
   /** React key 겸 닫기 식별자 */
   key: string;
   kind: 'notice' | 'outage';
-  text: string;
+  /** 공지가 여러 개여도 토스트 하나에 한 줄씩 담는다 */
+  lines: string[];
   role: 'status' | 'alert';
   /** null이면 사용자가 닫을 때까지 유지 */
   autoDismissMs: number | null;
@@ -138,26 +139,27 @@ export async function fetchServiceNotices(
 
 /**
  * 연결 상태와 공지로 표시할 토스트를 결정합니다.
- * - 연결됨: 공지 토스트를 순서대로, 각 8초 뒤 자동으로 닫힘
- * - 연결 불가 + 공지 있음: 공지 토스트만, 닫을 때까지 유지 (장애 문구 없음)
+ * 토스트는 언제나 최대 하나다. 공지가 여러 개면 그 토스트에 공지 순서대로 한 줄씩 담는다.
+ * - 연결됨: 공지 토스트 하나, 8초 뒤 자동으로 닫힘
+ * - 연결 불가 + 공지 있음: 공지 토스트 하나, 닫을 때까지 유지 (장애 문구 없음)
  * - 연결 불가 + 공지 없음: 장애 문구 토스트 하나, 닫을 때까지 유지
  */
 export function resolveServiceNoticeToasts(snapshot: ServiceStatusSnapshot): ServiceNoticeToast[] {
   if (snapshot.announcements.length > 0) {
-    return snapshot.announcements.map((announcement) => ({
-      key: `notice:${announcement.id}`,
+    return [{
+      key: `notice:${snapshot.announcements.map((announcement) => announcement.id).join(',')}`,
       kind: 'notice',
-      text: announcement.title,
+      lines: snapshot.announcements.map((announcement) => announcement.title),
       role: 'status',
       autoDismissMs: snapshot.connected ? NOTICE_AUTO_DISMISS_MS : null,
-    }));
+    }];
   }
   if (snapshot.connected) return [];
   return [
     {
       key: 'outage',
       kind: 'outage',
-      text: OUTAGE_MESSAGE,
+      lines: [OUTAGE_MESSAGE],
       role: 'alert',
       autoDismissMs: null,
     },

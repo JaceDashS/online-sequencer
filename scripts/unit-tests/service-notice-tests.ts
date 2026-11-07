@@ -146,13 +146,21 @@ test('handoff case: health down + notices -> notice toasts only, persistent', as
   assert.equal(toasts.length, 1);
   assert.equal(toasts[0].kind, 'notice');
   assert.equal(toasts[0].autoDismissMs, null);
-  assert.ok(toasts.every((toast) => toast.text !== OUTAGE_MESSAGE));
+  assert.ok(toasts.every((toast) => !toast.lines.includes(OUTAGE_MESSAGE)));
+});
+
+test('several notices share one toast with one line each', () => {
+  const toasts = resolveServiceNoticeToasts({ connected: true, announcements: [{ id: 'a', title: '점검' }, { id: 'b', title: '동기화 지연' }] });
+  assert.equal(toasts.length, 1);
+  assert.deepEqual(toasts[0].lines, ['점검', '동기화 지연']);
+  assert.equal(toasts[0].key, 'notice:a,b');
+  assert.equal(toasts[0].autoDismissMs, NOTICE_AUTO_DISMISS_MS);
 });
 
 test('handoff case: health down + notices down -> one outage toast', async () => {
   const transport = createTransport({ '/health': 'network-error', [NOTICES_PATH]: 'network-error' });
   const toasts = resolveServiceNoticeToasts(await loadServiceStatus(transport, ORIGIN, 41));
-  assert.deepEqual(toasts, [{ key: 'outage', kind: 'outage', text: OUTAGE_MESSAGE, role: 'alert', autoDismissMs: null }]);
+  assert.deepEqual(toasts, [{ key: 'outage', kind: 'outage', lines: [OUTAGE_MESSAGE], role: 'alert', autoDismissMs: null }]);
 });
 
 test('handoff case: health 200 + notice -> auto dismiss after 8s with role status', async () => {
