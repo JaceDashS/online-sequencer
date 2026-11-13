@@ -9,3 +9,5 @@
 - [Worklog](worklog/00-index.md) — Dated implementation and review records.
 - [Documentation Overview](README.md) — Existing documentation map and reading guidance.
 - [Integration Test Strategy](testing.md) — Existing automated and manual test commands.
+
+- [Design](design/00-index.md) — Feature implementation details
