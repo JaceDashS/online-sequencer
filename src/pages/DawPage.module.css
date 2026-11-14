@@ -135,8 +135,10 @@
   position: absolute;
   bottom: 8px;
   left: 8px;
+  width: calc(var(--tracklist-width, 200px) - 16px);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   z-index: 100;
 }
