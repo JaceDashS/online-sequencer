@@ -32,6 +32,9 @@ function getEnvValue(key: EnvKey): string | undefined {
 /** 협업(시그널링) API 경로 */
 const COLLABORATION_PATH = '/online-sequencer';
 
+/** Online Sequencer 정식 등록 앱 ID (jace-s APP_ID_HISTORY 기준) */
+export const CANONICAL_APP_ID = 4;
+
 /**
  * 필수 설정값. 코드 기본값은 없으며 배포 환경 변수로만 정한다.
  * 빠지면 해당 기능(협업·공지·로그인)을 끄고 콘솔에 한 번 알린다.
@@ -92,6 +95,16 @@ export function getNoticeAppId(): number | null {
   if (Number.isInteger(parsed) && parsed > 0) return parsed;
   reportMissing('VITE_NOTICE_APP_ID');
   return null;
+}
+
+/**
+ * 피드백(댓글) 출처용 앱 ID. VITE_NOTICE_APP_ID가 유효하면 그 값을 쓰고, 없으면 정식 ID(4)를 돌려줍니다.
+ */
+export function getFeedbackAppId(): number {
+  const raw = getEnvValue('VITE_NOTICE_APP_ID');
+  const parsed = raw ? Number(raw) : NaN;
+  if (Number.isSafeInteger(parsed) && parsed > 0) return parsed;
+  return CANONICAL_APP_ID;
 }
 
 /**

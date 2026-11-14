@@ -14,14 +14,15 @@ import { SignalingClient } from '../../src/core/sync/SignalingClient';
 import { createRoomApiError } from '../../src/core/sync/roomApiErrors';
 import { formatRoomExpiry, roomExpiredMessage, roomExpiringMessage } from '../../src/core/sync/roomExpiry';
 import { clearHostRoomIfMatches, loadHostRoom, saveHostRoom } from '../../src/core/sync/hostTokenStore';
+import { FeedbackRateLimitError, submitSequencerFeedback } from '../../src/core/feedback/feedbackClient';
 import { resetTransport, setTransport } from '../../src/transport';
-import { buildApiUrl, buildWebSocketUrl, getApiUrl, getNoticeAppId, getSiteUrl, isLoginAvailable } from '../../src/utils/apiConfig';
+import { buildApiUrl, buildWebSocketUrl, CANONICAL_APP_ID, getApiUrl, getFeedbackAppId, getNoticeAppId, getSiteUrl, isLoginAvailable } from '../../src/utils/apiConfig';
 import type { IHttpRequestOptions, IHttpResponse, IWebSocket } from '../../src/transport/types';
 
 // 코드 기본값이 없으므로 운영 값과 같은 환경 변수를 설정한다
 process.env.VITE_API_URL = 'https://api.jace-s.com';
 process.env.VITE_SITE_URL = 'https://jace-s.com';
-process.env.VITE_NOTICE_APP_ID = '41';
+process.env.VITE_NOTICE_APP_ID = '4';
 process.env.VITE_LOGIN_HOSTS = 'online-sequencer.jace-s.com';
 
 type TestFn = () => void | Promise<void>;
@@ -59,7 +60,9 @@ console.log('Service notice unit tests\n');
 console.log('='.repeat(60));
 
 test('configured addresses follow the api.jace-s.com contract (no /api prefix)', () => {
-  assert.equal(getNoticeAppId(), 41);
+  assert.equal(getNoticeAppId(), 4);
+  assert.equal(getFeedbackAppId(), 4);
+  assert.equal(CANONICAL_APP_ID, 4);
   assert.equal(getApiUrl(), 'https://api.jace-s.com');
   assert.equal(getSiteUrl(), 'https://jace-s.com');
   assert.equal(buildApiUrl('/rooms'), 'https://api.jace-s.com/online-sequencer/rooms');
@@ -98,7 +101,7 @@ test('requests go to api origin without cookies', async () => {
   const transport = createTransport({ '/health': { status: 200 }, [NOTICES_PATH]: { status: 200, body: { schemaVersion: 1, announcements: [] } } });
   await loadServiceStatus(transport, ORIGIN, getNoticeAppId());
   const urls = transport.calls.map((call) => call.url).sort();
-  assert.deepEqual(urls, [`${ORIGIN}/health`, `${ORIGIN}/notices?app=41`]);
+  assert.deepEqual(urls, [`${ORIGIN}/health`, `${ORIGIN}/notices?app=4`]);
   for (const call of transport.calls) {
     assert.equal(call.credentials, 'omit');
     assert.equal(call.method, 'GET');
@@ -131,10 +134,10 @@ test('notices with unknown schema or shape are treated as none', () => {
 });
 
 test('notices failures give no announcements', async () => {
-  assert.deepEqual(await fetchServiceNotices(createTransport({ [NOTICES_PATH]: { status: 500, body: {} } }), ORIGIN, 41), []);
-  assert.deepEqual(await fetchServiceNotices(createTransport({ [NOTICES_PATH]: { status: 200, rawBody: '{oops' } }), ORIGIN, 41), []);
-  assert.deepEqual(await fetchServiceNotices(createTransport({ [NOTICES_PATH]: 'network-error' }), ORIGIN, 41), []);
-  assert.deepEqual(await fetchServiceNotices(createTransport({ [NOTICES_PATH]: 'hang' }), ORIGIN, 41, 20), []);
+  assert.deepEqual(await fetchServiceNotices(createTransport({ [NOTICES_PATH]: { status: 500, body: {} } }), ORIGIN, 4), []);
+  assert.deepEqual(await fetchServiceNotices(createTransport({ [NOTICES_PATH]: { status: 200, rawBody: '{oops' } }), ORIGIN, 4), []);
+  assert.deepEqual(await fetchServiceNotices(createTransport({ [NOTICES_PATH]: 'network-error' }), ORIGIN, 4), []);
+  assert.deepEqual(await fetchServiceNotices(createTransport({ [NOTICES_PATH]: 'hang' }), ORIGIN, 4, 20), []);
 });
 
 test('handoff case: health down + notices -> notice toasts only, persistent', async () => {
@@ -142,7 +145,7 @@ test('handoff case: health down + notices -> notice toasts only, persistent', as
     '/health': 'network-error',
     [NOTICES_PATH]: { status: 200, body: { schemaVersion: 1, announcements: [{ id: 'n1', title: '오늘 밤 11시부터 30분간 점검합니다' }] } },
   });
-  const toasts = resolveServiceNoticeToasts(await loadServiceStatus(transport, ORIGIN, 41));
+  const toasts = resolveServiceNoticeToasts(await loadServiceStatus(transport, ORIGIN, 4));
   assert.equal(toasts.length, 1);
   assert.equal(toasts[0].kind, 'notice');
   assert.equal(toasts[0].autoDismissMs, null);
@@ -159,7 +162,7 @@ test('several notices share one toast with one line each', () => {
 
 test('handoff case: health down + notices down -> one outage toast', async () => {
   const transport = createTransport({ '/health': 'network-error', [NOTICES_PATH]: 'network-error' });
-  const toasts = resolveServiceNoticeToasts(await loadServiceStatus(transport, ORIGIN, 41));
+  const toasts = resolveServiceNoticeToasts(await loadServiceStatus(transport, ORIGIN, 4));
   assert.deepEqual(toasts, [{ key: 'outage', kind: 'outage', lines: [OUTAGE_MESSAGE], role: 'alert', autoDismissMs: null }]);
 });
 
@@ -168,7 +171,7 @@ test('handoff case: health 200 + notice -> auto dismiss after 8s with role statu
     '/health': { status: 200 },
     [NOTICES_PATH]: { status: 200, body: { schemaVersion: 1, announcements: [{ id: 'n1', title: '공지' }] } },
   });
-  const toasts = resolveServiceNoticeToasts(await loadServiceStatus(transport, ORIGIN, 41));
+  const toasts = resolveServiceNoticeToasts(await loadServiceStatus(transport, ORIGIN, 4));
   assert.equal(toasts.length, 1);
   assert.equal(toasts[0].role, 'status');
   assert.equal(toasts[0].autoDismissMs, NOTICE_AUTO_DISMISS_MS);
@@ -679,6 +682,57 @@ test('admin approval re-checks the server session before every action', async ()
 test('admin approval is denied where login is unavailable outside the local dev server', async () => {
   const result = await requestAdminApproval('monitor', 'read');
   assert.deepEqual(result, { approved: false, reason: 'signed-out' });
+});
+
+test('feedback submission sends canonical sourceAppId for guests and members', async () => {
+  // 1) Guest feedback (no session) sends sourceAppId: 4 and userPassword with credentials omit
+  const guestTransport = createScriptedTransport([
+    { match: '/comments', status: 201, body: { id: 101 } },
+  ]);
+  const guestRes = await submitSequencerFeedback(
+    { content: '  Great sequencer!  ', userPassword: 'pw123' },
+    guestTransport
+  );
+  assert.equal(guestRes.id, 101);
+  assert.equal(guestTransport.calls.length, 1);
+  assert.equal(guestTransport.calls[0].url, 'https://api.jace-s.com/comments');
+  assert.equal(guestTransport.calls[0].credentials, 'omit');
+  assert.deepEqual(JSON.parse(guestTransport.calls[0].body as string), {
+    parentHeaderId: null,
+    content: 'Great sequencer!',
+    sourceAppId: 4,
+    userPassword: 'pw123',
+  });
+
+  // 2) Signed-in member feedback sends credentials include + x-csrf-token and no userPassword
+  await withSignedInWindow(async () => {
+    const memberTransport = createScriptedTransport([
+      { match: '/auth/session', status: 200, body: { user: { displayName: 'Jace' }, csrfToken: 'csrf-1' } },
+      { match: '/comments', status: 201, body: { id: 102 } },
+      { match: '/comments', status: 429, body: { error: 'RATE_LIMITED' } },
+    ]);
+    setTransport(memberTransport);
+    await refreshJaceSession();
+
+    const memberRes = await submitSequencerFeedback(
+      { content: 'Member feedback' },
+      memberTransport
+    );
+    assert.equal(memberRes.id, 102);
+    const postCall = memberTransport.calls.find((c) => c.url.endsWith('/comments'))!;
+    assert.equal(postCall.credentials, 'include');
+    assert.equal(postCall.headers?.['x-csrf-token'], 'csrf-1');
+    assert.deepEqual(JSON.parse(postCall.body as string), {
+      parentHeaderId: null,
+      content: 'Member feedback',
+      sourceAppId: 4,
+    });
+
+    await assert.rejects(
+      () => submitSequencerFeedback({ content: 'Rate limited' }, memberTransport),
+      FeedbackRateLimitError
+    );
+  });
 });
 
 (async () => {

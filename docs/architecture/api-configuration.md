@@ -34,7 +34,7 @@ flowchart LR
 |---|---|---|
 | `VITE_API_URL` | `https://api.jace-s.com` (경로에 `/api` 없음, origin만 사용) | 협업 요청 시 "VITE_API_URL is not configured" 오류. 공지·서버 상태 조회와 로그인도 꺼짐 |
 | `VITE_SITE_URL` | `https://jace-s.com` | 로그인·계정 화면을 열 수 없어 로그인 꺼짐 |
-| `VITE_NOTICE_APP_ID` | `41` | 공지를 조회하지 않음(서버 생존 확인만) |
+| `VITE_NOTICE_APP_ID` | `4` | 공지를 조회하지 않음(서버 생존 확인만). 피드백 출처 ID는 기본값 `4` 사용 |
 | `VITE_LOGIN_HOSTS` | `online-sequencer.jace-s.com` | 로그인 UI·세션 확인 꺼짐. 운영 개발자 패널도 안 보임. 로컬 개발에서는 비우는 것이 정상 |
 | `VITE_TURN_SERVER_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL` | 필요할 때만 | 공개 STUN만 사용 |
 | `ENABLE_DEVTOOLS` | (Electron main 전용) | 개발자 도구 끔 |
@@ -57,6 +57,7 @@ flowchart LR
 | `buildWebSocketUrl('/signaling', { clientId })` | `wss://api.jace-s.com/online-sequencer/signaling?clientId=...` |
 | `getSiteUrl()` | `VITE_SITE_URL`의 origin, 없으면 `null` |
 | `getNoticeAppId()` | `VITE_NOTICE_APP_ID`(양의 정수), 없으면 `null` |
+| `getFeedbackAppId()` | `VITE_NOTICE_APP_ID`(양의 정수), 없으면 정식 ID `4` |
 | `isLoginAvailable()` | 브라우저(Electron 제외)이고 호스트가 `VITE_LOGIN_HOSTS`에 있으며 API·화면 주소가 모두 있으면 true |
 
 - `http://` → `ws://`, `https://` → `wss://`로 변환합니다.

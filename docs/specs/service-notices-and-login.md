@@ -8,7 +8,7 @@
 
 ## 개요
 
-Online Sequencer는 jace-s에 앱 ID **41**로 등록되어 있습니다. 이 문서는 jace-s가 제공하는 서비스 상태·공지 표시와 로그인 세션 사용 방식을 정의합니다.
+Online Sequencer는 jace-s에 정식 앱 ID **4**로 등록되어 있습니다. 이 문서는 jace-s가 제공하는 서비스 상태·공지 표시, 피드백(댓글) 출처 연동, 로그인 세션 사용 방식을 정의합니다.
 
 - 계약 원문: jace-s 저장소 `docs/api/apps/online-sequencer/` (`10-client-contract.md`, `20-health.md`, `30-app-contract.md`)
 - 기준: jace-s 커밋 `9416e01` 이후 (2026-11-03 운영 반영). 예전 핸드오프(2026-11-01, 공지 토스트)를 대체
