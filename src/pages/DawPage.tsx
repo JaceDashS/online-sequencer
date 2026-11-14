@@ -9,6 +9,7 @@ import Inspector from '../components/Inspector/Inspector';
 import DeveloperPanel from '../components/Inspector/DeveloperPanel';
 import AdminPreviewPanel from '../components/Inspector/AdminPreviewPanel';
 import Mixer from '../components/Mixer/Mixer';
+import FloatingButton from '../components/Floating/FloatingButton';
 import { getProject, updateBpm, updateTimeSignature, subscribeToProjectChanges, setProject, updateTrack } from '../store/projectStore';
 import { addEffectToMaster } from '../store/projectActions';
 import type { Effect } from '../types/project';
@@ -351,7 +352,10 @@ const DawPage: React.FC = () => {
         </div>
         )}
       </div>
-      <div className={styles.versionLabel}>v{APP_VERSION}</div>
+      <div className={styles.bottomLeftBar}>
+        <span className={styles.versionLabel}>v{APP_VERSION}</span>
+        <FloatingButton />
+      </div>
       {isAudioLoading && (
         <div className={styles.audioLoadingOverlay}>
           <div className={styles.audioLoadingCard}>

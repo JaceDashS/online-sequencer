@@ -131,15 +131,21 @@
   position: relative;
 }
 
-.versionLabel {
+.bottomLeftBar {
   position: absolute;
   bottom: 8px;
   left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 100;
+}
+
+.versionLabel {
   font-size: 11px;
   color: var(--text-quaternary);
   user-select: none;
   pointer-events: none;
-  z-index: 100;
   transition: color 0.3s ease;
 }
 
