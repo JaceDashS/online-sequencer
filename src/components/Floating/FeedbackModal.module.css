@@ -1,4 +1,5 @@
 .backdrop {
+  animation: feedbackBackdropEnter 220ms ease-out both;
   position: fixed;
   inset: 0;
   z-index: 9500;
@@ -10,6 +11,7 @@
 }
 
 .modal {
+  animation: feedbackPanelEnter 220ms ease-out both;
   position: relative;
   width: min(520px, 100%);
   max-height: 85vh;
@@ -188,4 +190,18 @@
 .submitButton:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+@keyframes feedbackBackdropEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes feedbackPanelEnter {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop, .modal { animation: none; }
 }

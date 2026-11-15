@@ -1,6 +1,6 @@
 # Product Navigation
 
-The unused About placeholder component and its empty stylesheet are removed. No About menu is introduced; sequencing and feedback are unchanged.
+The unused About placeholder component and its empty stylesheet are removed. About Developer opens https://jace-s.com/about in a separate tab; the removed internal About placeholder is not used.
 
 - Design: [Navigation](../../design/app/10-navigation.md).
 

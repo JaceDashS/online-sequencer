@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './FeedbackModal.module.css';
 import {
@@ -24,6 +24,30 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const handlers = useRef({ onClose, isSubmitting });
+  handlers.current = { onClose, isSubmitting };
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    panel.current?.querySelector<HTMLElement>('textarea')?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopImmediatePropagation();
+        if (!handlers.current.isSubmitting) handlers.current.onClose();
+      }
+      if (event.key !== 'Tab') return;
+      const nodes = Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled)') ?? []);
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (!first) { event.preventDefault(); panel.current?.focus(); }
+      else if (event.shiftKey && (document.activeElement === first || !panel.current?.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || !panel.current?.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+    };
+    window.addEventListener('keydown', keydown, true);
+    return () => { window.removeEventListener('keydown', keydown, true); document.body.style.overflow = overflow; previous?.focus(); };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -114,7 +138,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
         if (e.key === 'Escape' && !isSubmitting) onClose();
       }}
     >
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div ref={panel} tabIndex={-1} className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2 id="sequencer-feedback-title" className={styles.title}>Feedback</h2>
           <button

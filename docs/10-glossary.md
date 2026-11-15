@@ -24,3 +24,7 @@
 - Input: A project shared by a host with a stored room credential.
 - Steps: The host re-registers its room through `SignalingClient` using the host token.
 - Expected result: The existing room can be reused subject to the server contract without treating the token as an account session.
+
+## Feedback Composer
+
+An in app writing dialog that posts a public comment with the canonical product identity. Opening it keeps the current app screen in place.
