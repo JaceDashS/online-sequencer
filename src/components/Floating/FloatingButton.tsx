@@ -5,17 +5,19 @@ import { getSiteUrl } from '../../utils/apiConfig';
 
 const FloatingButton: React.FC = () => {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const mainPageUrl = `${getSiteUrl() ?? 'https://jace-s.com'}/apps`;
+  const aboutDeveloperUrl = `${getSiteUrl() ?? 'https://jace-s.com'}/about`;
 
   return (
     <>
       <a
-        href={mainPageUrl}
+        href={aboutDeveloperUrl}
+        target="_blank"
+        rel="noopener noreferrer"
         className={styles.floatingButton}
-        title="Go to main page"
+        title="About Developer"
         style={{ textDecoration: 'none' }}
       >
-        Main page
+        About Developer
       </a>
       <button
         type="button"
