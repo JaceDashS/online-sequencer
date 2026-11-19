@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://online-sequencer.jace-s.com/sitemap.xml
