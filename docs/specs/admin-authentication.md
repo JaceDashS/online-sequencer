@@ -8,6 +8,7 @@
 > - jace-s API 이전(`api.jace-s.com`, 커밋 `9416e01` 이후)으로 방 목록 `GET /online-sequencer/rooms`가 없어졌고, `/api/auth/verify-password`는 계약에 없습니다.
 > - 이에 따라 개발자 패널의 관리자 기능(비밀번호 확인·방 목록·강제 삭제)을 클라이언트에서 제거했습니다.
 > - 일반 호스트 권한은 이 문서의 5장 대신 jace-s 계약의 `hostToken`(Bearer) 방식을 따릅니다. [서버 API](./collaboration-specification/server-api.md) 참고.
+> - jace-s 플랫폼은 2026-11-19에 이 문서가 다룬 관리자 전용 로그인 경로(`/auth/verify-password`, `/auth/admin/login`, `/auth/admin/session`, `/auth/admin/logout`)를 삭제했습니다. 지금은 모두 404이며, 관리 권한은 `GET /auth/session`의 `adminAccess`로만 확인합니다.
 > - 이 문서는 설계 이력으로만 남깁니다.
 
 ## 1. 목적

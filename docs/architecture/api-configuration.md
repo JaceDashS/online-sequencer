@@ -86,7 +86,7 @@ flowchart LR
 | `https://jace-s.com/api/auth/session` | `https://api.jace-s.com/auth/session` |
 | `https://jace-s.com/health` (공지 포함) | `https://api.jace-s.com/health` + `/notices?app=41` |
 | `/external/health/...` (prewarm) | 부르지 않음 |
-| `/api/auth/verify-password`, `GET /online-sequencer/rooms` (관리자) | 기능 제거 |
+| `/api/auth/verify-password`, `/auth/admin/login`·`session`·`logout`, `GET /online-sequencer/rooms` (관리자) | 기능 제거 (관리자 로그인 경로는 jace-s에서 2026-11-19 삭제, 404) |
 
 예전 주소는 전환 기간에만 동작하며, jace-s 운영자가 요청이 없어진 것을 확인한 뒤 닫습니다(이후 404).
 
