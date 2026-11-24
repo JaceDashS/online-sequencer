@@ -8,7 +8,7 @@ The existing FeedbackModal and submitSequencerFeedback remain in use. The backdr
 
 - Spec: [Feedback Dialogs](../../specs/app/98-feedback-dialogs.md)
 - Architecture: [Overview](../../architecture/10-overview.md)
-- Scenarios: [Feedback Dialogs](../../testing/scenarios/app/98-feedback-dialogs.md)
+- Scenarios: [Feedback Dialogs](../../testing/test-cases/app/98-feedback-dialogs.md)
 
 ## Example
 

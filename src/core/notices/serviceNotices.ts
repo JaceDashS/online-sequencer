@@ -1,7 +1,7 @@
 /**
  * jace-s 서비스 상태·공지 조회
  *
- * 계약: jace-s 저장소 docs/api/apps/online-sequencer/20-health.md
+ * 계약: jace-s 저장소 docs/api/43-online-sequencer-health.md
  * - GET {apiOrigin}/health          : 서버 생존 확인. 200이면 연결됨, 그 외는 연결 불가. 본문은 읽지 않는다.
  * - GET {apiOrigin}/notices?app=41  : 공지 목록. 200이 아니거나 형식이 다르면 공지 없음.
  * 두 요청 모두 쿠키 없이, 타임아웃 10초로 앱 진입 때 한 번만 보낸다.

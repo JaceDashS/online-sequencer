@@ -1,5 +1,5 @@
 {
-  "document": "case-tests/ruler.md",
+  "document": "docs/testing/test-cases/editor/60-ruler.md",
   "cases": [
     { "id": "RU-001", "title": "Measure/beat markers display" },
     { "id": "RU-002", "title": "BPM change reflected" },

@@ -29,6 +29,6 @@ flowchart LR
 
 The verification must complete before remote changes. Concurrent changes must reject the combined push rather than delete a branch containing unreviewed work.
 
-- Scenarios: [History Integration Scenarios](../testing/scenarios/repository/10-history-integration.md).
+- Scenarios: [History Integration Scenarios](../testing/test-cases/repository/10-history-integration.md).
 - Terms: [Glossary](../10-glossary.md#commit-tree).
-- Existing tests: [Integration Test Strategy](../testing.md).
+- Existing tests: [Integration Test Strategy](../testing/10-strategy.md).

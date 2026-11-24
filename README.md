@@ -66,7 +66,7 @@ online-daw/
 ├── docs/             # Documentation in Korean (specs, architecture, manual, work log)
 ├── electron/         # Electron main / preload
 ├── scripts/          # Test and verification scripts
-├── case-tests/       # QA fixtures and detailed case references
+├── case-tests/       # QA fixtures and case data
 └── public/           # Static assets (samples, icons)
 ```
 
@@ -94,7 +94,7 @@ There are no built-in defaults for the jace-s settings. Copy `.env.example` and 
 | `VITE_TURN_SERVER_URL`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL` | Optional | Public STUN servers only |
 
 - `VITE_` values are embedded in the client bundle at build time. Do not put secrets in them, and redeploy after changing them.
-- Production builds print a warning for missing required values. Details (in Korean): [API configuration](docs/architecture/api-configuration.md).
+- Production builds print a warning for missing required values. Details (in Korean): [API configuration](docs/api/10-platform-integration.md).
 
 ## Development
 
@@ -126,18 +126,18 @@ npm test
 npm run qa
 ```
 
-See the [integration test strategy](docs/testing.md) (Korean) for order, verdicts and the server outage policy.
+See the [integration test strategy](docs/testing/10-strategy.md) (Korean) for order, verdicts and the server outage policy.
 
 ## Documentation
 
 Project documentation is primarily written in Korean. Start from the [documentation index](docs/00-index.md).
 
-- [MIDI standard compliance](docs/specs/midi-standard-compliance.md)
-- [Project save/load format](docs/specs/project-save-load-specification.md)
-- [Real-time collaboration spec](docs/specs/collaboration-specification/README.md)
-- [jace-s notices and sign-in](docs/specs/service-notices-and-login.md)
-- [Architecture](docs/architecture/README.md)
-- [User manual](docs/manual/README.md)
+- [MIDI standard compliance](docs/specs/app/20-midi-standard-compliance.md)
+- [Project save/load format](docs/specs/app/30-project-save-load-specification.md)
+- [Real-time collaboration spec](docs/specs/collaboration/00-index.md)
+- [jace-s notices and sign-in](docs/specs/app/40-service-notices-and-login.md)
+- [Architecture](docs/architecture/30-playback-architecture.md)
+- [User manual](docs/guides/20-user-manual.md)
 
 ## License
 

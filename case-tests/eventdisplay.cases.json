@@ -1,5 +1,5 @@
 {
-  "document": "case-tests/eventdisplay.md",
+  "document": "docs/testing/test-cases/editor/10-eventdisplay.md",
   "cases": [
     { "id": "ED-001", "title": "Double-click does not create history entry" },
     { "id": "ED-002", "title": "Notes persist after part delete and undo/redo" },

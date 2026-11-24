@@ -4,14 +4,14 @@
 
 - Definition: The editable arrangement containing tracks, parts, MIDI notes and timing information.
 - Code: Project state, MIDI import and export modules under `src/core/midi/`.
-- Related documentation: [Project Save and Load](specs/project-save-load-specification.md).
+- Related documentation: [Project Save and Load](specs/app/30-project-save-load-specification.md).
 
 ## Host Token
 
 - Definition: The per-room credential used by a hosting client for room management and re-registration.
 - Code: `hostTokenStore`, `SignalingClient`.
 - Notes: Distinct from the signed-in account session and its CSRF token.
-- Related documentation: [Collaboration Contract](specs/collaboration-specification/server-api.md).
+- Related documentation: [Collaboration Contract](specs/collaboration/13-server-api.md).
 
 ## Commit Tree
 

@@ -1,5 +1,5 @@
 {
-  "document": "case-tests/tracklist.md",
+  "document": "docs/testing/test-cases/editor/90-tracklist.md",
   "cases": [
     { "id": "TL-001", "title": "Resize track list panel" },
     { "id": "TL-002", "title": "Add track" },

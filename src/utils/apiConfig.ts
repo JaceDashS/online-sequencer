@@ -1,7 +1,7 @@
 /**
  * jace-s API 설정
  *
- * 계약: jace-s 저장소 docs/api/apps/online-sequencer/ (10-client-contract, 20-health, 30-app-contract)
+ * 계약: jace-s 저장소 docs/api/41-online-sequencer-api.md (client, health and feature contracts)
  *
  * - API:        https://api.jace-s.com (경로에 /api를 붙이지 않는다)
  * - 협업 API:   {API_URL}/online-sequencer/...

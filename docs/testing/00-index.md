@@ -1,4 +1,4 @@
 # Testing Index
 
-- [Integration Strategy](../testing.md) — Existing script, browser and manual validation strategy.
-- [Scenarios](scenarios/00-index.md) — Repository verification scenarios.
+- [Integration Strategy](10-strategy.md) — Existing script, browser and manual validation strategy.
+- [Test Cases](test-cases/00-index.md) — Repository verification scenarios.

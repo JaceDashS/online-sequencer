@@ -1,5 +1,5 @@
 {
-  "document": "case-tests/midieditor.md",
+  "document": "docs/testing/test-cases/editor/30-midieditor.md",
   "cases": [
     { "id": "ME-001", "title": "Exit split mode (3 -> 1)" },
     { "id": "ME-002", "title": "Exit merge mode (4 -> 1)" },

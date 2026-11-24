@@ -1,7 +1,7 @@
 /**
  * Online Sequencer 방 API 에러 해석
  *
- * 계약: jace-s 저장소 docs/api/apps/online-sequencer/30-app-contract.md (Http Errors)
+ * 계약: jace-s 저장소 docs/api/44-online-sequencer-app-contract.md (Http Errors)
  * 에러 형식: {success:false, error:string, code?:string, details?:unknown}
  * 실패 응답이 JSON이 아닐 수 있으므로(프록시·인프라 오류) 본문이 없어도 처리한다.
  */

@@ -1,5 +1,5 @@
 {
-  "document": "case-tests/toolbar.md",
+  "document": "docs/testing/test-cases/editor/80-toolbar.md",
   "cases": [
     { "id": "TB-001", "title": "Play/stop button (click/shortcut)" },
     { "id": "TB-002", "title": "Record button (click/shortcut)" },

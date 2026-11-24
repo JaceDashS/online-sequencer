@@ -1,0 +1,133 @@
+# jace-s 연동: 서비스 공지 토스트와 로그인 명세
+
+**Document Version**: 2.0  
+**Software Version**: 0.1.0  
+**Last Updated**: 2026-11-03
+
+---
+
+## 개요
+
+Online Sequencer는 jace-s에 정식 앱 ID **4**로 등록되어 있습니다. 이 문서는 jace-s가 제공하는 서비스 상태·공지 표시, 피드백(댓글) 출처 연동, 로그인 세션 사용 방식을 정의합니다.
+
+- 계약 원문: jace-s 저장소 `docs/api/41-online-sequencer-api.md` (`42-online-sequencer-client-contract.md`, `43-online-sequencer-health.md`, `44-online-sequencer-app-contract.md`)
+- 기준: jace-s 커밋 `9416e01` 이후 (2026-11-03 운영 반영). 예전 핸드오프(2026-11-01, 공지 토스트)를 대체
+- 주소: API `https://api.jace-s.com`(경로에 `/api` 없음), 화면 `https://jace-s.com`. 상세는 [API 설정](../../api/10-platform-integration.md)
+- 구현:
+  - `src/core/notices/serviceNotices.ts`: 조회·판정 로직
+  - `src/components/Floating/ServiceNoticeToasts.tsx`: 상단 토스트
+  - `src/core/auth/jaceSession.ts`: 로그인 세션·CSRF
+  - `src/components/Toolbar/AccountButton.tsx`: 로그인 버튼
+  - `src/utils/apiConfig.ts`: 주소·앱 ID·로그인 허용 호스트
+  - `src/core/sync/SignalingClient.ts`: 방 요청의 hostToken·CSRF
+
+---
+
+## 1. 서비스 상태와 공지 조회
+
+앱 진입 때 두 요청을 동시에 **한 번씩** 보냅니다. 둘 다 쿠키 없이(`credentials: 'omit'`), 타임아웃 10초입니다.
+
+| 요청 | 판정 |
+|---|---|
+| `GET {API}/health` | 200이면 연결됨. 다른 상태 코드, 네트워크 실패, 시간 초과는 연결 불가. 본문은 읽지 않음 |
+| `GET {API}/notices?app=41` | 200이고 `schemaVersion === 1`, `announcements` 배열이면 공지 목록. 그 외는 공지 없음. 연결 상태에는 영향 없음 |
+
+- `/notices` 응답: `{"schemaVersion":1,"announcements":[{"id","title"}],"noticeRevision","timestamp"}`
+- 각 공지에서 `id`, `title`만 사용합니다. 예전 형식의 `content` 등 추가 필드는 무시합니다. `id` 또는 `title`이 없거나 `id`가 중복된 항목은 버립니다.
+- 공지 게시·종료가 `/notices`에 반영되기까지 1분 정도 걸릴 수 있습니다 (서버 측 동작).
+- 방에 있는 동안 `/health`와 `/notices`를 주기적으로 다시 부르지 않습니다.
+- 장애 문구는 앱이 고정값 `"Unable to connect to the server."`로 가집니다.
+
+## 2. 표시 규칙
+
+| 상태 | 표시 |
+|---|---|
+| 연결됨 + 공지 있음 | 공지 토스트 하나. 공지가 여러 개면 그 안에 순서대로 한 줄씩(목록). 8초 뒤 자동으로 닫힘. `role="status"` |
+| 연결됨 + 공지 없음 | 표시 없음 |
+| 연결 불가 + 공지 있음 | 공지 토스트 하나(여러 개면 한 줄씩), 닫을 때까지 유지. 장애 문구 없음 |
+| 연결 불가 + 공지 없음 | 장애 문구 토스트 하나, 닫을 때까지 유지. `role="alert"` |
+
+### 모양
+
+- 화면 위 가운데, 위 여백 12px, 폭 `min(512px, 100vw - 24px)`. 앱 토스트(오류·경고)와 같은 공용 영역(`src/utils/topToastHost.ts`)에 쌓이며, 서비스 공지가 위, 앱 토스트가 아래에 와서 겹치지 않습니다
+- 토스트 밖 영역은 클릭이 아래로 통과 (`pointer-events: none`)
+- 테마 변수 사용: 배경 `--bg-primary`, 글자 `--text-primary`, 테두리 `--border-color`. 장애 토스트는 `--color-warning` 테두리. 흰색 고정 금지
+- 둥근 모서리 8px, 그림자, 0.3초 동안 위에서 내려옴 (`prefers-reduced-motion`이면 애니메이션 없음), 닫기 버튼 ×
+- 서비스 공지 토스트는 언제나 최대 하나입니다. 관리자 미리보기를 띄우면 지금 토스트가 미리보기로 바뀌고, 겹쳐 쌓이지 않습니다
+- 예: 공지 "점검"과 "동기화 지연"이 게시된 상태로 접속 → 토스트 하나에 두 줄이 보이고 8초 뒤 닫힘
+- 제목과 문구는 텍스트로만 렌더링 (HTML 해석 금지)
+- `document.body`에 포털로 그림. 모바일 안내 화면(폭 1120px 이하)에서도 표시
+
+## 3. 로그인 세션
+
+로그인 쿠키는 `https://api.jace-s.com`에만 있습니다. `jace-s.com/login`에서 로그인하면 이 주소에 쿠키가 생깁니다. 서버는 `https://online-sequencer.jace-s.com`만 credentials 포함 CORS로 허용합니다.
+
+| 항목 | 방식 |
+|---|---|
+| 로그인 사용 가능 조건 | 브라우저(Electron 제외)이고 호스트가 `VITE_LOGIN_HOSTS`(코드 기본값 없음, 운영 `online-sequencer.jace-s.com`)에 있음 |
+| 로그인 상태 확인 | `GET {API}/auth/session`, `credentials: 'include'`. 200 → `{user, csrfToken, ...}`, 401 → 로그아웃. 그 외는 판단 불가 |
+| 로그인 상태의 변경 요청 (POST/DELETE) | `credentials: 'include'` + 헤더 `x-csrf-token: <세션 응답의 csrfToken>`. 없거나 틀리면 403 `CSRF_VALIDATION_FAILED` |
+| CSRF 실패 처리 | 방 생성이 403 `CSRF_VALIDATION_FAILED`이면 세션을 다시 확인하고 **한 번만** 재시도. 세션이 만료됐으면 비로그인 요청으로 재시도. 계약상 이 경우 방은 만들어지지 않아 중복 생성이 없음 |
+| 로그인 상태의 조회 요청 (GET) | `credentials: 'include'`만 추가 |
+| 비로그인 상태 | 쿠키·CSRF 헤더 없이 요청 (허용 호스트에서도 동일) |
+| 로그인 화면 | `{SITE}/login`을 새 창으로 열고, 창이 닫히거나 포커스가 돌아오면 세션을 다시 확인 |
+| 로그아웃 | 툴바의 사용자 이름을 누르면 `{SITE}/account`를 새 창으로 엶. 돌아오면 세션을 다시 확인 |
+| 허용 호스트 밖 (vercel.app, localhost, Electron) | 로그인 UI 숨김, 세션 확인 요청 없음 |
+
+- 적용 대상: `SignalingClient`의 방 생성·조회·조인 허용·강퇴·삭제
+- 로그인 상태로 만든 방은 6시간, 비로그인은 1시간 유지됩니다 (서버 정책).
+- 호스트의 참가자 드롭다운에 응답 `expiresAt` 기준 만료 시각과 남은 시간을 표시합니다(`src/core/sync/roomExpiry.ts`). 30초마다 화면만 갱신하며 서버에 다시 묻지 않습니다. 재등록은 만료 시각을 연장하지 않습니다.
+- 허용 호스트에서 비로그인 상태로 호스팅 중이면 "Rooms created while signed in last 6 hours (1 hour otherwise). Log in" 안내를 함께 표시합니다. 이미 만든 방의 만료 시각은 로그인해도 바뀌지 않습니다.
+- 방 요청의 호스트 인증은 로그인과 별개로 `hostToken`(Bearer)을 씁니다. [서버 API](../collaboration/13-server-api.md) 참고.
+- WebSocket(`wss://api.jace-s.com/online-sequencer/signaling`)은 브라우저가 같은 사이트 쿠키를 자동으로 보냅니다.
+
+## 4. 확인 시나리오
+
+| 입력 | 기대 결과 | 자동 검증 |
+|---|---|---|
+| `/health` 실패, `/notices` 공지 2개(두 번째 제목에 HTML 태그) | 공지 토스트 2개만, 9초 뒤에도 유지, 태그는 글자 그대로. 1280px·360px 동일 | 단위 테스트 + 브라우저 확인 |
+| `/health` 실패, 공지 `[]` 또는 `/notices` 실패 | `"Unable to connect to the server."` 토스트 하나 유지 | 단위 테스트 + 브라우저 확인 |
+| `/health` 200, 공지 1개 | 8초 뒤 닫힘 | 단위 테스트 + 브라우저 확인 |
+| 허용 호스트, 비로그인, 방 만들기 | `POST {API}/online-sequencer/rooms`에 쿠키·CSRF 없음, WebSocket `wss://api.jace-s.com/online-sequencer/signaling` | 브라우저 확인 (모의 서버) |
+| 허용 호스트, 로그인, 방 만들기 | 세션 200·csrfToken, 방 생성 요청에 `x-csrf-token` | 단위 테스트 + 브라우저 확인 (모의 서버) |
+| hostToken | 생성 응답의 토큰을 WebSocket `register`의 `data.hostToken`과 조인 허용·강퇴·삭제·재등록 Bearer에 사용, URL·로그에 없음 | 단위 테스트 |
+| 예전 주소 | `jace-s.com/api`, `api.jace-s.com/api/`, `jace-s.com/health` 요청 0건 | 브라우저 확인 (모의 서버) |
+| `online-sequencer.vercel.app` 등 | 로그인 UI 없음 | 단위 테스트 + 브라우저 확인 |
+
+실서버(jace-s 운영)로는 확인하지 않았습니다. 방 만료 6시간 여부는 서버 응답 `expiresAt`으로 확인해야 합니다.
+
+단위 테스트: `scripts/unit-tests/service-notice-tests.ts` (`npm run test:unit`에 포함)
+
+## 5. 어드민 UI 미리보기
+
+어드민이 서버 상태와 관계없이 새 UI를 강제로 띄워 확인하는 패널입니다. 구현: `src/components/Inspector/AdminPreviewPanel.tsx`, `src/utils/uiPreview.ts`
+
+| 항목 | 내용 |
+|---|---|
+| 표시 조건 | `GET {API}/auth/session` 200 응답의 `isAdmin === true` (jace-s 메인 사이트 `services/web/src/utils/authClient.ts`와 같은 기준)이고, 아래 영역별 `adminAccess` 권한이 하나 이상 있을 때 |
+| 영역별 권한 | 공지 토스트: `notices` read 이상 / 계정 버튼: `users` read 이상 / 호스팅 드롭다운·방 에러: `rooms` read 이상. 표는 `src/utils/adminPreviewPermissions.ts` 한 곳에서 관리. 수준 비교는 jace-s `meetsAdminLevel`과 같음(none < read < write) |
+| 사실상 사용 가능 주소 | 로그인이 되는 `online-sequencer.jace-s.com`만. localhost·vercel.app·Electron에서는 세션 확인을 하지 않으므로 보이지 않음 |
+| 위치 | 인스펙터 아래(DEV 패널 다음). 인스펙터를 숨기면 함께 숨겨짐 |
+| 성격 | 화면 표시 전용. 서버 요청을 보내지 않고 실제 방·세션·공지 상태를 바꾸지 않음. 새로고침하면 사라짐. `isAdmin`은 권한 판정이 아님 |
+
+| 대상 | 미리보기 |
+|---|---|
+| 공지 토스트 | 연결됨 공지(8초 후 닫힘), 연결 불가 공지 2개(HTML 태그 제목 포함, 유지), 장애 문구 |
+| 계정 버튼 | 끔 / `Log in` / 확인 중 / 로그인(`Preview User`) |
+| 호스팅 드롭다운 | 가상 방 `0000`: 비로그인 1시간+로그인 안내, 로그인 6시간, 만료 2분 전, 만료됨. 실제 호스팅·참가 중이 아닐 때만 표시. Allow·Kick·Stop은 미리보기 상태만 바꿈 |
+| 방 API 에러 토스트 | `ACTIVE_ROOM_LIMIT`, `RATE_LIMITED`, `CSRF_VALIDATION_FAILED`, `NO_AVAILABLE_ROOM_CODES`, `ROOM_NOT_FOUND`, `KICKED`, `UNAUTHORIZED` |
+
+세션 응답의 `csrfToken`은 계약상 `null`일 수 있습니다. 이때는 로그인 상태로 표시하되, 변경 요청에는 쿠키·CSRF를 붙이지 않습니다(비로그인 요청).
+
+## 6. 개발자 패널 권한과 서버 승인
+
+| 항목 | 내용 |
+|---|---|
+| 표시 (운영) | 세션 `adminAccess.monitor`가 read 이상이면 숨김 없이 표시. 테마 버튼 10번 클릭은 운영에서 패널을 열지 않음. 권한 값: `src/utils/adminPreviewPermissions.ts`의 `DEVELOPER_PANEL_PERMISSION` |
+| 표시 (로컬 개발 서버) | `npm run dev`에서는 기존처럼 테마 버튼 10번 클릭으로 표시 |
+| 동작 전 승인 | 개발자 패널과 어드민 미리보기의 모든 동작은 적용 직전에 `GET {API}/auth/session`을 다시 불러 권한을 확인(`requestAdminApproval`). 통과해야 적용하고, 거절되면 오류 토스트를 띄우고 입력값을 되돌림 |
+| 거절 사유 | 로그인 안 됨 / 권한 없음 / 서버 확인 실패 |
+| 권한 회수 | 다음 동작의 재확인에서 즉시 반영되어 패널이 사라짐 |
+| 로컬 개발 예외 | 로컬 개발 서버이면서 로그인을 쓸 수 없는 주소(localhost 등)에서는 서버 확인 없이 승인 |
+| 한계 | 패널 동작은 브라우저 내부 설정이라 클라이언트를 조작하면 우회할 수 있음. 서버가 강제하는 권한 판정이 아님 |
+

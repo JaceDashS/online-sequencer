@@ -1,5 +1,5 @@
 {
-  "document": "case-tests/inspector.md",
+  "document": "docs/testing/test-cases/editor/20-inspector.md",
   "cases": [
     { "id": "IN-001", "title": "Selected track sync" },
     { "id": "IN-002", "title": "Effect add/remove" },

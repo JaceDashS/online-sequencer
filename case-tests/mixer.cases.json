@@ -1,5 +1,5 @@
 {
-  "document": "case-tests/mixer.md",
+  "document": "docs/testing/test-cases/editor/40-mixer.md",
   "cases": [
     { "id": "MX-001", "title": "Channel volume adjustment" },
     { "id": "MX-002", "title": "Channel pan adjustment" },

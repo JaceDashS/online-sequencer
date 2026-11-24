@@ -1,5 +1,5 @@
 {
-  "document": "case-tests/shortcuts.md",
+  "document": "docs/testing/test-cases/editor/70-shortcuts.md",
   "cases": [
     { "id": "SH-001", "title": "Quantize toggle (Q)" },
     { "id": "SH-002", "title": "Metronome toggle (M)" },
